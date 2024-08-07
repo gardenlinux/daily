@@ -4,12 +4,18 @@ body, html {
     height: 100%;
 }
 
+table {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
 .dashboard {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 100vh;
 }
 
 .days {
@@ -37,5 +43,10 @@ body, html {
 
 .progress {
     background-color: #cccccc; /* Grey */
+    color: black;
+}
+
+.stale {
+    background-color: #f3d000; /* Yellow */
     color: black;
 }

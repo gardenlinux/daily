@@ -1,0 +1,17 @@
+name: aggregate_package_states.yml
+permissions:
+  contents: write
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 7 * * *'
+jobs:
+  aggregate_packages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: run aggregator
+        run: sh cronjob.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

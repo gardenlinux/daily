@@ -25,6 +25,22 @@
                 href="https://github.com/gardenlinux/repo/actions/workflows/build.yml">Repo Build</a>
         </div>
 
+        <div id="legend">
+            <table id="legend-table">
+                <tr>
+                    <td class="success">success</td>
+                    <td class="progress">progress</td>
+                    <td class="stale">stale</td>
+                    <td class="failure">failure</td>
+                    <td>other</td>
+                </tr>
+            </table>
+        </div>
+
+        <div id="packages">
+            <table id="packages-table">
+            </table>
+        </div>
     </div>
 
     <script>
@@ -82,8 +98,41 @@
             return Math.round((todayTime - initialTime) / (1000 * 60 * 60 * 24));
         }
 
+        async function fillPackageTable() {
+            let table = document.getElementById("packages-table");
+            let file = "packages/" + getGlDays() + ".json";
+            const response = await fetch(file);
+            const packages = await response.json();
+
+            // group by status
+            const packageByStatus = Object.groupBy(packages, ({Status}) => Status)
+
+            // two loops, first by status then iterate over array
+            for (const status of ["success", "progress", "workFlowNotFound", "noRunFound", "brokenTimestamp", "stale", "failure"]) {
+            if (status in packageByStatus) {
+                for (const pkg of packageByStatus[status]) {
+                    let row = table.insertRow(0);
+                    row.classList.add(pkg.Status);
+
+                    let a = document.createElement('a');
+                    a.innerHTML = pkg.Name;
+                    a.href = "https://github.com/gardenlinux/" + pkg.Name + "/actions/workflows/build.yml";
+
+                    let pkgName = row.insertCell(0);
+                    pkgName.appendChild(a);
+
+                    let pkgStatusTime = row.insertCell(1);
+                    pkgStatusTime.innerHTML = pkg.Time;
+
+                }
+
+            }
+            }
+        }
+
         getRun();
-        document.getElementById('gl-days').innerText = "GL " + getGlDays()
+        document.getElementById('gl-days').innerText = "GL " + getGlDays();
+        fillPackageTable();
     </script>
 </body>
 
