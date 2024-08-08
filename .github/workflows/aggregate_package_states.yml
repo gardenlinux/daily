@@ -4,7 +4,7 @@ permissions:
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 7 * * *'
+    - cron: '0 3 * * *'
 jobs:
   aggregate_packages:
     runs-on: ubuntu-latest
