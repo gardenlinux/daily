@@ -16,6 +16,7 @@ cd ..|| exit 2
 
 git config --global user.email "package_aggregator@gardenlinux.io"
 git config --global user.name "package_aggregator"
+git fetch origin gh-pages
 git checkout gh-pages
 cp $OUTFILE packages/$GARDENLINUX_VERSION.json
 git add packages/$GARDENLINUX_VERSION.json
