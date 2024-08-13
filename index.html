@@ -108,7 +108,7 @@
             const packageByStatus = Object.groupBy(packages, ({Status}) => Status)
 
             // two loops, first by status then iterate over array
-            for (const status of ["success", "progress", "workFlowNotFound", "noRunFound", "brokenTimestamp", "stale", "failure"]) {
+            for (const status of ["progress", "workFlowNotFound", "noRunFound", "brokenTimestamp", "stale", "failure"]) {
             if (status in packageByStatus) {
                 for (const pkg of packageByStatus[status]) {
                     let row = table.insertRow(0);
