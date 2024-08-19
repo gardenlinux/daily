@@ -50,3 +50,22 @@ table {
     background-color: #f3d000; /* Yellow */
     color: black;
 }
+
+.legend {
+    font-size: 1.5em;
+    margin-bottom: 20px;
+    padding: 20px;
+    border-radius: 10px;
+    width: 70%;
+    text-align: center;
+}
+
+.noIssues {
+    background-color: #5cb85c; /* Green */
+    color: white;
+}
+
+.issues {
+    background-color: #f3d000; /* Yellow */
+    color: white;
+}

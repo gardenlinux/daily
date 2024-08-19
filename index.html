@@ -25,16 +25,11 @@
                 href="https://github.com/gardenlinux/repo/actions/workflows/build.yml">Repo Build</a>
         </div>
 
-        <div id="legend">
-            <table id="legend-table">
-                <tr>
-                    <td class="success">success</td>
-                    <td class="progress">progress</td>
-                    <td class="stale">stale</td>
-                    <td class="failure">failure</td>
-                    <td>other</td>
-                </tr>
-            </table>
+        <div id="legend-issues" class="legend issues">
+            <p>Package repos that need attention:</p>
+        </div>
+        <div id="legend-no-isues" class="legend noIssues">
+            <p>No package builds need attention. Continue doing awesome work :-)</p>
         </div>
 
         <div id="packages">
@@ -99,6 +94,10 @@
         }
 
         async function fillPackageTable() {
+            // Set to invisible by default, and only make visible if we have packages with build-issues
+            let legend = document.getElementById("legend-issues");
+            legend.style.display = 'none';
+            
             let table = document.getElementById("packages-table");
             let file = "packages/" + getGlDays() + ".json";
             const response = await fetch(file);
@@ -109,25 +108,29 @@
 
             // two loops, first by status then iterate over array
             for (const status of ["progress", "workFlowNotFound", "noRunFound", "brokenTimestamp", "stale", "failure"]) {
-            if (status in packageByStatus) {
-                for (const pkg of packageByStatus[status]) {
-                    let row = table.insertRow(0);
-                    row.classList.add(pkg.Status);
+                if (status in packageByStatus) {
+                    // We have at least one package-build that needs attention
+                    legend.style.display = 'block';
 
-                    let a = document.createElement('a');
-                    a.innerHTML = pkg.Name;
-                    a.href = "https://github.com/gardenlinux/" + pkg.Name + "/actions/workflows/build.yml";
+                    for (const pkg of packageByStatus[status]) {
+                        let row = table.insertRow(0);
+                        row.classList.add(pkg.Status);
 
-                    let pkgName = row.insertCell(0);
-                    pkgName.appendChild(a);
+                        let a = document.createElement('a');
+                        a.innerHTML = pkg.Name;
+                        a.href = "https://github.com/gardenlinux/" + pkg.Name + "/actions/workflows/build.yml";
 
-                    let pkgStatusTime = row.insertCell(1);
-                    pkgStatusTime.innerHTML = pkg.Time;
+                        let pkgName = row.insertCell(0);
+                        pkgName.appendChild(a);
 
+                        let pkgStatusTime = row.insertCell(1);
+                        pkgStatusTime.innerHTML = pkg.Time;
+                    }
                 }
-
             }
-            }
+            // Show no issues banner only if the issue banner is not shown
+            let legendNoIssues = document.getElementById("legend-no-isues");
+            legendNoIssues.style.display = legend.style.display === "block" ? "none" : "block";
         }
 
         getRun();
