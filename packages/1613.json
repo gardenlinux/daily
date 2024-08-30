@@ -1,0 +1,242 @@
+[
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:03:57Z",
+  "Name": "package-onmetal-image"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2024-08-30T03:05:10.193816803Z",
+  "Name": "package-tar"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2024-08-30T03:05:10.416139349Z",
+  "Name": "package-open-vm-tools"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2024-08-30T03:05:10.606592841Z",
+  "Name": "package-libyang2"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:22:12Z",
+  "Name": "package-aws-kms-pkcs11"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2024-08-30T03:05:11.675792077Z",
+  "Name": "package-syslinux"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:23:16Z",
+  "Name": "package-xz-utils"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:04:38Z",
+  "Name": "package-efitools"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:21:45Z",
+  "Name": "package-datefudge"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:17:34Z",
+  "Name": "package-frr"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:15:39Z",
+  "Name": "package-sudosh2"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:27:39Z",
+  "Name": "package-refpolicy"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:20:27Z",
+  "Name": "package-selinux-basics"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:28:14Z",
+  "Name": "package-linux"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:15:59Z",
+  "Name": "package-curl"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:15:42Z",
+  "Name": "package-fail2ban"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:24:38Z",
+  "Name": "package-ignition"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:11:53Z",
+  "Name": "package-gardenlinux-repo-manager"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:19:16Z",
+  "Name": "package-ferm"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:25:28Z",
+  "Name": "package-libpam-ssh"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:22:34Z",
+  "Name": "package-perl"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:14:09Z",
+  "Name": "package-runc"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:04:02Z",
+  "Name": "package-golang"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:13:54Z",
+  "Name": "package-systemd"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2024-08-30T03:05:26.988220728Z",
+  "Name": "package-cloud-init"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:23:15Z",
+  "Name": "package-neofetch"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:13:07Z",
+  "Name": "package-ostree"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2024-08-30T03:05:28.75082756Z",
+  "Name": "package-openssl"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:23:07Z",
+  "Name": "package-golang-github-containers-libhvee"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:25:23Z",
+  "Name": "package-aws-sdk-cpp"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:01:55Z",
+  "Name": "package-libstoragemgmt"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2024-08-30T03:05:31.28946677Z",
+  "Name": "package-uid-wrapper"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:15:05Z",
+  "Name": "package-python3.12"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:07:34Z",
+  "Name": "package-metalbond"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2024-08-30T03:05:33.188620096Z",
+  "Name": "package-sssd"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:26:36Z",
+  "Name": "package-docker-machine"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:20:26Z",
+  "Name": "package-openssh"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:20:02Z",
+  "Name": "package-pam"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:23:54Z",
+  "Name": "package-containerd"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:06:43Z",
+  "Name": "package-libxml2"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:22:43Z",
+  "Name": "package-cyrus-sasl2"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:24:21Z",
+  "Name": "package-oras"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:12:06Z",
+  "Name": "package-sops"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:16:21Z",
+  "Name": "package-htop"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:24:43Z",
+  "Name": "package-deborphan"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:13:49Z",
+  "Name": "package-resizefat32"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:07:56Z",
+  "Name": "package-iproute2"
+ },
+ {
+  "Status": "success",
+  "Time": "2024-08-30T00:05:52Z",
+  "Name": "package-gardenlinux-selinux-module"
+ }
+]
