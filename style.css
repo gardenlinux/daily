@@ -1,4 +1,5 @@
-body, html {
+body,
+html {
     margin: 0;
     padding: 0;
     height: 100%;
@@ -33,22 +34,37 @@ table {
 }
 
 .success {
-    background-color: #5cb85c; /* Green */
+    background-color: #5cb85c;
+    /* Green */
     color: white;
 }
 
 .failure {
-    background-color: #d9534f; /* Red */
+    background-color: #d9534f;
+    /* Red */
     color: white;
 }
 
 .progress {
-    background-color: #cccccc; /* Grey */
+    animation: pulseProgress 5s infinite;
     color: black;
 }
 
+@keyframes pulseProgress {
+
+    0%,
+    100% {
+        background-color: #dddddd;
+    }
+
+    50% {
+        background-color: #777777;
+    }
+}
+
 .stale {
-    background-color: #f3d000; /* Yellow */
+    background-color: #f3d000;
+    /* Yellow */
     color: black;
 }
 
@@ -62,11 +78,13 @@ table {
 }
 
 .noIssues {
-    background-color: #5cb85c; /* Green */
+    background-color: #5cb85c;
+    /* Green */
     color: white;
 }
 
 .issues {
-    background-color: #f3d000; /* Yellow */
+    background-color: #f3d000;
+    /* Yellow */
     color: white;
 }
