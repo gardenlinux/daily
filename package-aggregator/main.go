@@ -23,7 +23,7 @@ type packageState struct {
 	// or it can be workFlowNotFound (in case no workflow is defined in build.yml)
 	// or it can be noRunFound (in case a workflow file in build.yml exists, but no run has been executed yet)
 	// or it can be brokenTimestamp (in case the GitHub API returns an invalid timestamp for the run)
-	// or it can be hasNullRelease in case there is a release that has the tag "null"
+	// or it can be hasNullRelease in case there is a release that is marked as latest and has the tag "null"
 	Status string `json:"Status"`
 	// Time is the Time at which this tool tried to grab data from GitHub
 	// in case there is a workflow run that contains more precise data (UpdatedAt), that timestamp is used
