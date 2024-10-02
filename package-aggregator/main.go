@@ -57,14 +57,18 @@ func main() {
 	}
 }
 
-// hasNullRelease returns whether there is a release with the tag "null". This indicates that
+// hasNullRelease returns whether the latest release has the tag "null". This indicates that
 // the build state of this repository is currently not of interest for the Gardenlinux team
 // A simple boolean as a return value is not really sufficient as a return value, there is no way
 // to communicate if an API call has failed etc, but I consider this "good enough" for this use-case.
 // The successful retrieval of a null-release returns a true, everything else a false.
 func hasNullRelease(repoName string, client *github.Client, ctx context.Context) bool {
-	repoRelease, _, _ := client.Repositories.GetReleaseByTag(ctx, orga, repoName, "null")
-	return repoRelease != nil
+	repoRelease, _, err := client.Repositories.GetLatestRelease(ctx, orga, repoName)
+	if err != nil {
+		slog.Warn("failed getting latest release, returning hasNullRelease as false", "err", err.Error())
+		return false
+	}
+	return *repoRelease.TagName == "null"
 }
 
 func getPackageStateByRepoName(repoName string, client *github.Client, ctx context.Context) packageState {
