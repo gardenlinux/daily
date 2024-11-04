@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	outFileName, githubToken, orga, prefix, workflowfile, exclude string
+	outFileName, githubToken, orga, prefix, workflowfile, exclude, include string
 	stale                                                         float64
 )
 
@@ -162,6 +162,13 @@ func getPackageRepoNames(client *github.Client, ctx context.Context) []string {
 	// collect the remaining into slice
 	for repo := range prefixRepos {
 		packageRepos = append(packageRepos, repo)
+
+		println(repo)
+	}
+
+	// Add repos from the include list
+	for _, in := range strings.Split(include, ",") {
+		packageRepos = append(packageRepos, in)
 	}
 
 	return packageRepos
@@ -186,6 +193,7 @@ func config() {
 	flag.StringVar(&prefix, "prefix", "package-", "filter the organizations repos by this prefix")
 	flag.StringVar(&workflowfile, "workflowfile", "build.yml", "scrape workflow runs of this file")
 	flag.StringVar(&exclude, "exclude", "", "a comma separated list of repositories to exclude from scraping")
+	flag.StringVar(&include, "include", "", "a comma separated list of repositories to include when scraping")
 	flag.Float64Var(&stale, "stale", 24, "time after which a package should be considered stale (even if the run was successful)")
 
 	flag.Parse()
