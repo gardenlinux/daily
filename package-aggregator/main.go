@@ -160,7 +160,7 @@ func getPackageRepoNames(client *github.Client, ctx context.Context) []string {
 	}
 
 	// collect the remaining into slice
-	for repo, _ := range prefixRepos {
+	for repo := range prefixRepos {
 		packageRepos = append(packageRepos, repo)
 	}
 
@@ -185,7 +185,7 @@ func config() {
 	flag.StringVar(&orga, "orga", "gardenlinux", "The GitHub organization name to scrape")
 	flag.StringVar(&prefix, "prefix", "package-", "filter the organizations repos by this prefix")
 	flag.StringVar(&workflowfile, "workflowfile", "build.yml", "scrape workflow runs of this file")
-	flag.StringVar(&exclude, "exclude", "", "a comma seperated list of repositories to exclude from scraping")
+	flag.StringVar(&exclude, "exclude", "", "a comma separated list of repositories to exclude from scraping")
 	flag.Float64Var(&stale, "stale", 24, "time after which a package should be considered stale (even if the run was successful)")
 
 	flag.Parse()
