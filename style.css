@@ -24,6 +24,17 @@ table {
     font-size: 1.5em;
 }
 
+.boxed {
+    display: flex;
+    width: 70%;
+    margin-bottom: 20px;
+    padding: 18px;
+    align-items: stretch;
+	flex-flow: column;
+    border: 2px solid #a0a0a0;
+    border-radius: 10px;
+}
+
 .label {
     font-size: 3em;
     margin-bottom: 20px;
@@ -31,6 +42,26 @@ table {
     border-radius: 10px;
     width: 70%;
     text-align: center;
+}
+
+.boxed > .label {
+    width: 100%;
+}
+
+.lined-up {
+    display: flex;
+    justify-content: space-evenly;
+	flex-flow: row;
+    column-gap: 20px;
+	align-content: center;
+}
+
+.boxed > .lined-up {
+    width: 100%;
+}
+
+.label-5 {
+    width: 100%;
 }
 
 .success {

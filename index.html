@@ -12,14 +12,25 @@
     <h1>Garden Linux Daily Dashboard</h1>
     <div class="days" id="gl-days"></div>
     <div class="dashboard">
-        <div id="daily-info-28837699" class="label"><a
-                href="https://github.com/gardenlinux/gardenlinux/actions/workflows/nightly.yml">Garden Linux Nightly</a>
+        <div class="boxed">
+            <div id="daily-info-28837699" class="label"><a
+                    href="https://github.com/gardenlinux/gardenlinux/actions/workflows/nightly.yml">Garden Linux Nightly</a>
+            </div>
+
+            <div class="lined-up">
+                <div id="daily-info-152444846" class="label label-5"><a
+                    href="https://github.com/gardenlinux/gardenlinux/actions/workflows/publish.yml">Publish to ghcr.io</a>
+                </div>
+
+                <div id="daily-info-152444850" class="label label-5"><a
+                    href="https://github.com/gardenlinux/gardenlinux/actions/workflows/publish_s3.yml">Publish to S3</a>
+                </div>
+            </div>
         </div>
 
         <div id="daily-info-84300234" class="label"><a
                 href="https://github.com/gardenlinux/repo/actions/workflows/update.yml">Repo Update</a>
         </div>
-
 
         <div id="daily-info-84300233" class="label"><a
                 href="https://github.com/gardenlinux/repo/actions/workflows/build.yml">Repo Build</a>
@@ -41,14 +52,27 @@
     <script>
         async function getRun() {
             const reposWorkflows = [
+                // nightly
                 {
                     repo: "gardenlinux",
                     workflowId: "28837699"
                 },
+                // publish.yml
+                {
+                    repo: "gardenlinux",
+                    workflowId: "152444846"
+                },
+                // publish_s3.yml
+                {
+                    repo: "gardenlinux",
+                    workflowId: "152444850"
+                },
+                // nightly
                 {
                     repo: "repo",
                     workflowId: "84300234"
                 },
+                // nightly
                 {
                     repo: "repo",
                     workflowId: "84300233"
@@ -115,7 +139,7 @@
             // Set to invisible by default, and only make visible if we have packages with build-issues
             let legend = document.getElementById("legend-issues");
             legend.style.display = 'none';
-            
+
             let table = document.getElementById("packages-table");
             let file = "packages/" + getGlDays() + ".json";
             const response = await fetch(file);
