@@ -30,7 +30,7 @@ table {
     margin-bottom: 20px;
     padding: 18px;
     align-items: stretch;
-	flex-flow: column;
+    flex-flow: column;
     border: 2px solid #a0a0a0;
     border-radius: 10px;
 }
@@ -46,15 +46,15 @@ table {
 
 .boxed > .label {
     width: 100%;
-    padding: 20px 0
+    padding: 20px 0;
 }
 
 .lined-up {
     display: flex;
     justify-content: space-evenly;
-	flex-flow: row;
+    flex-flow: row;
     column-gap: 20px;
-	align-content: center;
+    align-content: center;
 }
 
 .boxed > .lined-up {
@@ -83,15 +83,19 @@ table {
     color: black;
 }
 
-@keyframes pulseProgress {
+.queued {
+    animation: pulseProgress 5s infinite;
+    color: black;
+}
 
+@keyframes pulseProgress {
     0%,
     100% {
-        background-color: #dddddd;
+        background-color: #f3d000;
     }
 
     50% {
-        background-color: #777777;
+        background-color: #f3d000;
     }
 }
 
@@ -120,4 +124,174 @@ table {
     background-color: #f3d000;
     /* Yellow */
     color: white;
+}
+
+/* Styles for run details */
+.run-details {
+    margin-top: 10px;
+    padding: 10px;
+    font-size: 0.4em;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.run-item {
+    margin-bottom: 8px;
+    padding: 5px;
+    border-radius: 3px;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.run-item:last-child {
+    margin-bottom: 0;
+}
+
+/* Color individual run items based on their status */
+.run-item .run-status.success {
+    background-color: #5cb85c;
+    color: white;
+    padding: 3px 6px;
+    border-radius: 3px;
+    display: inline-block;
+}
+
+.run-item .run-status.failure {
+    background-color: #d9534f;
+    color: white;
+    padding: 3px 6px;
+    border-radius: 3px;
+    display: inline-block;
+}
+
+.run-item .run-status.progress {
+    animation: pulseProgress 5s infinite;
+    color: black;
+    padding: 3px 6px;
+    border-radius: 3px;
+    display: inline-block;
+}
+
+.run-item .run-status.queued {
+    animation: pulseProgress 5s infinite;
+    color: black;
+    padding: 3px 6px;
+    border-radius: 3px;
+    display: inline-block;
+}
+
+.run-status a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.run-status a:hover {
+    text-decoration: underline;
+}
+
+.branch-commit {
+    opacity: 0.8;
+    font-size: 0.9em;
+}
+
+.no-runs {
+    background-color: #f3d000;
+    /* Yellow - like GitHub Actions */
+    color: black;
+}
+
+.api-error {
+    background-color: #6c757d;
+    /* Gray for API errors */
+    color: white;
+}
+
+/* Settings panel styles */
+#settings-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+#settings-btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+#settings-btn:hover {
+    background-color: #0056b3;
+}
+
+#settings-panel {
+    position: absolute;
+    top: 50px;
+    right: 0;
+    background: white;
+    border: 2px solid #007bff;
+    border-radius: 8px;
+    padding: 20px;
+    min-width: 300px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+#settings-panel h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.token-status {
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+.token-input-group {
+    margin-bottom: 15px;
+}
+
+.token-input-group input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    font-family: monospace;
+}
+
+.token-input-group button {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 5px;
+}
+
+.token-input-group button:hover {
+    background-color: #218838;
+}
+
+.token-input-group button:last-child {
+    background-color: #dc3545;
+}
+
+.token-input-group button:last-child:hover {
+    background-color: #c82333;
+}
+
+#settings-panel small {
+    color: #666;
+    line-height: 1.4;
+}
+
+#settings-panel a {
+    color: #007bff;
 }
