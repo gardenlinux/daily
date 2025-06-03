@@ -9,6 +9,39 @@
 
     <body>
         <h1>Garden Linux Daily Dashboard</h1>
+
+        <!-- Settings Panel -->
+        <div id="settings-container">
+            <button id="settings-btn" onclick="toggleSettings()">
+                ⚙️ Settings
+            </button>
+            <div id="settings-panel" style="display: none">
+                <h3>GitHub Authentication</h3>
+                <div class="token-status">
+                    <span id="auth-status">Not authenticated</span>
+                </div>
+                <div class="token-input-group">
+                    <input
+                        type="password"
+                        id="token-input"
+                        placeholder="Enter GitHub Personal Access Token" />
+                    <button onclick="saveToken()">Save</button>
+                    <button onclick="clearToken()">Clear</button>
+                </div>
+                <small>
+                    Create a token at:
+                    <a href="https://github.com/settings/tokens" target="_blank"
+                        >GitHub Settings</a
+                    >
+                    <br />
+                    • <strong>Classic</strong>: needs 'public_repo' scope
+                    <br />
+                    • <strong>Fine-grained</strong>: needs 'Actions:Read' +
+                    'Metadata:Read' permissions
+                </small>
+            </div>
+        </div>
+
         <div class="days" id="gl-days"></div>
         <div class="dashboard">
             <div class="boxed">
@@ -74,6 +107,92 @@
         </div>
 
         <script>
+            // GitHub authentication - supports both Classic and Fine-grained tokens
+            function getAuthHeaders() {
+                const token = localStorage.getItem("github_token");
+
+                if (token) {
+                    let authHeader;
+                    if (token.startsWith("ghp_")) {
+                        authHeader = `token ${token}`;
+                    } else if (token.startsWith("github_pat_")) {
+                        authHeader = `Bearer ${token}`;
+                    } else {
+                        authHeader = `token ${token}`;
+                    }
+
+                    return {
+                        Authorization: authHeader,
+                        Accept: "application/vnd.github.v3+json",
+                        "X-GitHub-Api-Version": "2022-11-28",
+                    };
+                } else {
+                    return {
+                        Accept: "application/vnd.github.v3+json",
+                        "X-GitHub-Api-Version": "2022-11-28",
+                    };
+                }
+            }
+
+            // Settings panel functions
+            function toggleSettings() {
+                const panel = document.getElementById("settings-panel");
+                panel.style.display =
+                    panel.style.display === "none" ? "block" : "none";
+                updateAuthStatus();
+            }
+
+            function saveToken() {
+                const tokenInput = document.getElementById("token-input");
+                const token = tokenInput.value.trim();
+
+                if (!token) {
+                    alert("Please enter a token");
+                    return;
+                }
+
+                // Validate token format
+                if (
+                    !token.startsWith("ghp_") &&
+                    !token.startsWith("github_pat_")
+                ) {
+                    const confirmSave = confirm(
+                        "Warning: This doesn't look like a valid GitHub token.\n" +
+                            'GitHub tokens start with "ghp_" (classic) or "github_pat_" (fine-grained).\n\n' +
+                            "Do you want to save it anyway?"
+                    );
+                    if (!confirmSave) {
+                        return;
+                    }
+                }
+
+                localStorage.setItem("github_token", token);
+                tokenInput.value = "";
+                updateAuthStatus();
+                alert("Token saved successfully! Refreshing data...");
+                location.reload(); // Refresh to use new token
+            }
+
+            function clearToken() {
+                localStorage.removeItem("github_token");
+                updateAuthStatus();
+                alert("Token cleared! Page will reload...");
+                location.reload();
+            }
+
+            function updateAuthStatus() {
+                const token = localStorage.getItem("github_token");
+                const statusElement = document.getElementById("auth-status");
+
+                if (token) {
+                    statusElement.textContent = "Authenticated ✅";
+                    statusElement.style.color = "#5cb85c";
+                } else {
+                    statusElement.textContent = "Not authenticated ❌";
+                    statusElement.style.color = "#d9534f";
+                }
+            }
+
             async function getRun() {
                 const reposWorkflows = [
                     // nightly.yml
@@ -233,6 +352,7 @@
             getRun();
             document.getElementById("gl-days").innerText = "GL " + getGlDays();
             fillPackageTable();
+            updateAuthStatus(); // Initialize auth status display
         </script>
     </body>
 </html>
