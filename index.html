@@ -10,6 +10,19 @@
     <body>
         <h1>Garden Linux Daily Dashboard</h1>
 
+        <div
+            style="
+                text-align: center;
+                margin-bottom: 20px;
+                font-size: 0.9em;
+                color: #666;
+            ">
+            <p>
+                💡 <strong>Tip:</strong> View historic data by adding
+                <code>?gl=XXXX</code> to the URL (e.g., <code>?gl=1890</code>)
+            </p>
+        </div>
+
         <!-- Settings Panel -->
         <div id="settings-container">
             <button id="settings-btn" onclick="toggleSettings()">
@@ -113,6 +126,46 @@
         </div>
 
         <script>
+            // URL parameter parsing
+            function getUrlParameter(name) {
+                const urlParams = new URLSearchParams(window.location.search);
+                return urlParams.get(name);
+            }
+
+            function getGlDaysFromUrl() {
+                const glParam = getUrlParameter("gl");
+                if (glParam) {
+                    const glNumber = parseInt(glParam, 10);
+                    if (!isNaN(glNumber) && glNumber > 0) {
+                        return glNumber;
+                    }
+                }
+                return null;
+            }
+
+            function getCurrentGlDays() {
+                var today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const initialDay = new Date("2020-03-31");
+
+                const todayTime = today.getTime();
+                const initialTime = initialDay.getTime();
+
+                return Math.round(
+                    (todayTime - initialTime) / (1000 * 60 * 60 * 24)
+                );
+            }
+
+            function getGlDays() {
+                // Check if GL version is specified in URL, otherwise use current day
+                const urlGlDays = getGlDaysFromUrl();
+                return urlGlDays !== null ? urlGlDays : getCurrentGlDays();
+            }
+
+            function isHistoricView() {
+                return getGlDaysFromUrl() !== null;
+            }
+
             // GitHub authentication - supports both Classic and Fine-grained tokens
             function getAuthHeaders() {
                 const token = localStorage.getItem("github_token");
@@ -257,14 +310,19 @@
                     },
                 ];
 
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const todayStart = today.toISOString();
-                const tomorrow = new Date(today);
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                const tomorrowStart = tomorrow.toISOString();
+                // Calculate the target date based on GL version
+                const glDays = getGlDays();
+                const initialDay = new Date("2020-03-31");
+                const targetDate = new Date(initialDay);
+                targetDate.setDate(targetDate.getDate() + glDays);
+                targetDate.setHours(0, 0, 0, 0);
 
-                const tagName = `${getGlDays()}.0`;
+                const targetDateStart = targetDate.toISOString();
+                const nextDay = new Date(targetDate);
+                nextDay.setDate(nextDay.getDate() + 1);
+                const nextDayStart = nextDay.toISOString();
+
+                const tagName = `${glDays}.0`;
 
                 // First, fetch nightly workflow runs to use for SHA matching
                 let nightlyRuns = [];
@@ -305,7 +363,7 @@
                             apiUrl = `https://api.github.com/repos/gardenlinux/${workflow.repo}/actions/workflows/${workflow.workflowId}/runs?per_page=50&branch=main`;
                         }
                     } else {
-                        apiUrl = `https://api.github.com/repos/gardenlinux/${workflow.repo}/actions/workflows/${workflow.workflowId}/runs?per_page=20&branch=main`;
+                        apiUrl = `https://api.github.com/repos/gardenlinux/${workflow.repo}/actions/workflows/${workflow.workflowId}/runs?per_page=50&branch=main`;
                     }
 
                     const response = await fetch(apiUrl, {
@@ -348,14 +406,14 @@
                         continue;
                     }
 
-                    // Filter runs for today
-                    const todayRunsUnsorted = workflowRuns.filter((run) => {
+                    // Filter runs for the target date (current day or historic day)
+                    const targetRunsUnsorted = workflowRuns.filter((run) => {
                         const runDate = new Date(run.created_at);
-                        return runDate >= today && runDate < tomorrow;
+                        return runDate >= targetDate && runDate < nextDay;
                     });
 
-                    // Sort today's runs by run.id in descending order (newest first)
-                    const todayRuns = todayRunsUnsorted.sort(
+                    // Sort target runs by run.id in descending order (newest first)
+                    const targetRuns = targetRunsUnsorted.sort(
                         (a, b) => b.id - a.id
                     );
 
@@ -373,31 +431,46 @@
                     // Reset classes
                     workflowDomElement.className =
                         workflowDomElement.className.replace(
-                            /\b(progress|success|failure)\b/g,
+                            /\b(progress|success|failure|historic-view|no-runs)\b/g,
                             ""
                         );
 
-                    if (todayRuns.length === 0) {
-                        // No runs today
+                    if (targetRuns.length === 0) {
+                        // No runs for target date
                         workflowDomElement.classList.add("no-runs");
                         const detailsDiv = document.createElement("div");
                         detailsDiv.className = "run-details";
-                        detailsDiv.innerHTML = "<small>No runs today</small>";
+                        const dateStr = targetDate.toLocaleDateString();
+                        detailsDiv.innerHTML = `<small>No runs found for ${
+                            isHistoricView()
+                                ? `historic date ${dateStr}`
+                                : "today"
+                        }</small>`;
                         workflowDomElement.appendChild(detailsDiv);
                         continue;
+                    }
+
+                    // Add historic styling if needed
+                    if (isHistoricView()) {
+                        workflowDomElement.classList.add("historic-view");
                     }
 
                     // Determine overall status based on the most recent run
                     // After sorting by ID descending, the first element is the most recent
                     const mostRecentRun =
-                        todayRuns.length > 0 ? todayRuns[0] : null;
+                        targetRuns.length > 0 ? targetRuns[0] : null;
 
                     if (!mostRecentRun) {
-                        // Handles the case where todayRuns might be empty after filtering
+                        // Handles the case where targetRuns might be empty after filtering
                         workflowDomElement.classList.add("no-runs");
                         const detailsDiv = document.createElement("div");
                         detailsDiv.className = "run-details";
-                        detailsDiv.innerHTML = "<small>No runs today</small>";
+                        const dateStr = targetDate.toLocaleDateString();
+                        detailsDiv.innerHTML = `<small>No runs found for ${
+                            isHistoricView()
+                                ? `historic date ${dateStr}`
+                                : "today"
+                        }</small>`;
                         workflowDomElement.appendChild(detailsDiv);
                         continue;
                     }
@@ -421,7 +494,7 @@
                     detailsDiv.className = "run-details";
 
                     // Iterate over the sorted runs (descending by ID - newest first)
-                    todayRuns.forEach(async (run, index) => {
+                    targetRuns.forEach(async (run, index) => {
                         const runDiv = document.createElement("div");
                         runDiv.className = "run-item";
 
@@ -450,6 +523,34 @@
                         const createdTime = new Date(
                             run.created_at
                         ).toLocaleTimeString();
+                        const updatedTime = new Date(
+                            run.updated_at
+                        ).toLocaleTimeString();
+
+                        // Calculate duration for completed runs
+                        let durationText = "";
+                        if (run.status === "completed") {
+                            const startTime = new Date(run.created_at);
+                            const endTime = new Date(run.updated_at);
+                            const durationMs = endTime - startTime;
+
+                            const durationHours = Math.floor(
+                                durationMs / 3600000
+                            ); // 1 hour = 3600000ms
+                            const durationMinutes = Math.floor(
+                                (durationMs % 3600000) / 60000
+                            );
+                            const durationSeconds = Math.floor(
+                                (durationMs % 60000) / 1000
+                            );
+
+                            if (durationHours > 0) {
+                                durationText = ` (${durationHours}h ${durationMinutes}m ${durationSeconds}s)`;
+                            } else {
+                                durationText = ` (${durationMinutes}m ${durationSeconds}s)`;
+                            }
+                        }
+
                         const branch = run.head_branch || "main";
                         const commitSha = run.head_sha
                             ? run.head_sha.substring(0, 7)
@@ -462,10 +563,17 @@
                             run
                         );
 
+                        let timeDisplay = `Start: ${createdTime}`;
+                        if (run.status === "completed") {
+                            timeDisplay += ` | End: ${updatedTime}${durationText}`;
+                        } else if (run.status === "in_progress") {
+                            timeDisplay += ` | Running...`;
+                        }
+
                         runDiv.innerHTML = `
                             <small class="run-status ${statusClass}">
                                 <a href="${run.html_url}" target="_blank">
-                                    ${statusText} - ${createdTime}
+                                    ${statusText} - ${timeDisplay}
                                 </a>
                                 <br>
                                 <span class="branch-commit">
@@ -479,22 +587,118 @@
 
                     workflowDomElement.appendChild(detailsDiv);
                 }
-                // Show no issues banner only if the issue banner is not shown
-                let legendNoIssues = document.getElementById("legend-no-isues");
-                legendNoIssues.style.display =
-                    legend.style.display === "block" ? "none" : "block";
+
+                updateTopBoxBorder();
             }
-            function getGlDays() {
-                var today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const initialDay = new Date("2020-03-31");
 
-                const todayTime = today.getTime();
-                const initialTime = initialDay.getTime();
+            function updateTopBoxBorder() {
+                /*
+                 * BORDER COLOR CODING SYSTEM (Priority Order - Highest to Lowest):
+                 *
+                 * 🟡 YELLOW (status-progress) - HIGHEST PRIORITY
+                 *    - Any workflow is in progress or queued
+                 *    - Overrides all other states
+                 *
+                 * 🔴 RED (status-failure) - HIGH PRIORITY
+                 *    - Any publish step has failed (Publish to ghcr.io OR Publish to S3)
+                 *    - Critical for deployment pipeline
+                 *
+                 * 🟢 GREEN (status-success) - MEDIUM PRIORITY
+                 *    - "Build and publish a release" is successful (takes priority over nightly)
+                 *    - OR "Garden Linux Nightly" is successful (if build/publish not successful)
+                 *    - Green means at least one key workflow succeeded AND no publish failures
+                 *
+                 * 🔴 RED (status-failure) - LOWER PRIORITY
+                 *    - Any key workflow has failed (Nightly OR Build/publish)
+                 *    - Only applies if no publish failures and no successes
+                 *
+                 * ⚫ GREY (status-unknown) - LOWEST PRIORITY
+                 *    - No runs, API errors, or unknown states
+                 */
 
-                return Math.round(
-                    (todayTime - initialTime) / (1000 * 60 * 60 * 24)
+                const nightlyElement = document.getElementById(
+                    "daily-info-28837699"
+                ); // Garden Linux Nightly
+                const releaseElement = document.getElementById(
+                    "daily-info-152444842"
+                ); // Build and publish a release
+                const publishGhcrElement = document.getElementById(
+                    "daily-info-152444846"
+                ); // Publish to ghcr.io
+                const publishS3Element = document.getElementById(
+                    "daily-info-152444850"
+                ); // Publish to S3
+                const repoUpdateElement = document.getElementById(
+                    "daily-info-84300234"
+                ); // Repo Update
+                const repoBuildElement = document.getElementById(
+                    "daily-info-84300233"
+                ); // Repo Build
+
+                const topBox = document.querySelector(".boxed");
+
+                // Remove existing status classes
+                topBox.classList.remove(
+                    "status-success",
+                    "status-progress",
+                    "status-failure",
+                    "status-unknown"
                 );
+
+                // 1. HIGHEST PRIORITY: Check if ANY workflow is in progress
+                const allElements = [
+                    nightlyElement,
+                    releaseElement,
+                    publishGhcrElement,
+                    publishS3Element,
+                    repoUpdateElement,
+                    repoBuildElement,
+                ];
+
+                const anyInProgress = allElements.some(
+                    (element) =>
+                        element &&
+                        !element.classList.contains("no-runs") &&
+                        (element.classList.contains("progress") ||
+                            element.classList.contains("queued"))
+                );
+
+                if (anyInProgress) {
+                    topBox.classList.add("status-progress");
+                } else {
+                    // 2. HIGH PRIORITY: Check if any publish step has failed
+                    const publishGhcrFailed =
+                        publishGhcrElement?.classList.contains("failure");
+                    const publishS3Failed =
+                        publishS3Element?.classList.contains("failure");
+
+                    if (publishGhcrFailed || publishS3Failed) {
+                        topBox.classList.add("status-failure");
+                    } else {
+                        // 3. MEDIUM PRIORITY: Check for successful workflows (Build/publish takes priority over nightly)
+                        const releaseSuccess =
+                            releaseElement?.classList.contains("success");
+                        const nightlySuccess =
+                            nightlyElement?.classList.contains("success");
+
+                        if (releaseSuccess || nightlySuccess) {
+                            topBox.classList.add("status-success");
+                        } else {
+                            // 4. LOWER PRIORITY: Check if any key workflow has failed
+                            const nightlyFailed =
+                                nightlyElement?.classList.contains("failure");
+                            const releaseFailed =
+                                releaseElement?.classList.contains("failure");
+
+                            if (nightlyFailed || releaseFailed) {
+                                topBox.classList.add("status-failure");
+                            } else {
+                                // 5. LOWEST PRIORITY: No runs, API errors, or unknown state
+                                topBox.classList.add("status-unknown");
+                            }
+                        }
+                    }
+                }
             }
 
             async function fillPackageTable() {
@@ -504,55 +708,115 @@
 
                 let table = document.getElementById("packages-table");
                 let file = "packages/" + getGlDays() + ".json";
-                const response = await fetch(file);
-                const packages = await response.json();
 
-                // group by status
-                const packageByStatus = Object.groupBy(
-                    packages,
-                    ({ Status }) => Status
-                );
+                try {
+                    const response = await fetch(file);
+                    if (!response.ok) {
+                        throw new Error(
+                            `HTTP ${response.status}: ${response.statusText}`
+                        );
+                    }
+                    const packages = await response.json();
 
-                // two loops, first by status then iterate over array
-                for (const status of [
-                    "progress",
-                    "workFlowNotFound",
-                    "noRunFound",
-                    "brokenTimestamp",
-                    "stale",
-                    "failure",
-                ]) {
-                    if (status in packageByStatus) {
-                        // We have at least one package-build that needs attention
-                        legend.style.display = "block";
+                    // group by status
+                    const packageByStatus = Object.groupBy(
+                        packages,
+                        ({ Status }) => Status
+                    );
 
-                        for (const pkg of packageByStatus[status]) {
-                            let row = table.insertRow(0);
-                            row.classList.add(pkg.Status);
+                    // two loops, first by status then iterate over array
+                    for (const status of [
+                        "progress",
+                        "workFlowNotFound",
+                        "noRunFound",
+                        "brokenTimestamp",
+                        "stale",
+                        "failure",
+                    ]) {
+                        if (status in packageByStatus) {
+                            // We have at least one package-build that needs attention
+                            legend.style.display = "block";
 
-                            let a = document.createElement("a");
-                            a.innerHTML = pkg.Name;
-                            a.href =
-                                "https://github.com/gardenlinux/" +
-                                pkg.Name +
-                                "/actions/workflows/build.yml";
+                            for (const pkg of packageByStatus[status]) {
+                                let row = table.insertRow(0);
+                                row.classList.add(pkg.Status);
 
-                            let pkgName = row.insertCell(0);
-                            pkgName.appendChild(a);
+                                let a = document.createElement("a");
+                                a.innerHTML = pkg.Name;
+                                a.href =
+                                    "https://github.com/gardenlinux/" +
+                                    pkg.Name +
+                                    "/actions/workflows/build.yml";
+                                a.target = "_blank";
 
-                            let pkgStatusTime = row.insertCell(1);
-                            pkgStatusTime.innerHTML = pkg.Time;
+                                let pkgName = row.insertCell(0);
+                                pkgName.appendChild(a);
+
+                                let pkgStatusTime = row.insertCell(1);
+                                pkgStatusTime.innerHTML = pkg.Time;
+                            }
                         }
                     }
+                    // Show no issues banner only if the issue banner is not shown
+                    let legendNoIssues =
+                        document.getElementById("legend-no-isues");
+                    legendNoIssues.style.display =
+                        legend.style.display === "block" ? "none" : "block";
+                } catch (error) {
+                    console.error("Failed to load package data:", error);
+                    // Show error message in the packages section
+                    let row = table.insertRow(0);
+                    row.classList.add("api-error");
+                    let errorCell = row.insertCell(0);
+                    errorCell.colSpan = 2;
+                    errorCell.innerHTML = `<small>Failed to load package data for GL ${getGlDays()}: ${
+                        error.message
+                    }</small>`;
+
+                    // Hide both legends
+                    document.getElementById("legend-issues").style.display =
+                        "none";
+                    document.getElementById("legend-no-isues").style.display =
+                        "none";
                 }
-                // Show no issues banner only if the issue banner is not shown
-                let legendNoIssues = document.getElementById("legend-no-isues");
-                legendNoIssues.style.display =
-                    legend.style.display === "block" ? "none" : "block";
             }
 
+            // Always load workflow data (for both current and historic views)
             getRun();
-            document.getElementById("gl-days").innerText = "GL " + getGlDays();
+
+            // Update the display text
+            const glDays = getGlDays();
+            const currentGlDays = getCurrentGlDays();
+            const glDaysElement = document.getElementById("gl-days");
+
+            // Calculate the date for the GL version
+            const initialDay = new Date("2020-03-31");
+            const glDate = new Date(initialDay);
+            glDate.setDate(glDate.getDate() + glDays);
+            const formattedDate = glDate.toLocaleDateString("en-US", {
+                weekday: "short",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+            });
+
+            if (isHistoricView()) {
+                const currentDate = new Date(initialDay);
+                currentDate.setDate(currentDate.getDate() + currentGlDays);
+                const currentFormattedDate = currentDate.toLocaleDateString(
+                    "en-US",
+                    {
+                        weekday: "short",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                    }
+                );
+                glDaysElement.innerText = `GL ${glDays} - ${formattedDate} (Historic - Current: GL ${currentGlDays} - ${currentFormattedDate})`;
+            } else {
+                glDaysElement.innerText = `GL ${glDays} - ${formattedDate}`;
+            }
+
             fillPackageTable();
             updateAuthStatus(); // Initialize auth status display
         </script>

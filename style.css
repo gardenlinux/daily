@@ -35,6 +35,27 @@ table {
     border-radius: 10px;
 }
 
+/* Dynamic border styles for top workflow box */
+.boxed.status-success {
+    border: 4px solid #5cb85c; /* Green border */
+    box-shadow: 0 0 10px rgba(92, 184, 92, 0.3);
+}
+
+.boxed.status-progress {
+    border: 4px solid #f3d000; /* Yellow border */
+    box-shadow: 0 0 10px rgba(243, 208, 0, 0.3);
+}
+
+.boxed.status-failure {
+    border: 4px solid #d9534f; /* Red border */
+    box-shadow: 0 0 10px rgba(217, 83, 79, 0.3);
+}
+
+.boxed.status-unknown {
+    border: 4px solid #6c757d; /* Grey border */
+    box-shadow: 0 0 10px rgba(108, 117, 125, 0.3);
+}
+
 .label {
     font-size: 3em;
     margin-bottom: 20px;
@@ -196,15 +217,51 @@ table {
 }
 
 .no-runs {
-    background-color: #f3d000;
-    /* Yellow - like GitHub Actions */
-    color: black;
+    background-color: #6c757d;
+    /* Grey - indicates no data available */
+    color: white;
 }
 
 .api-error {
-    background-color: #6c757d;
-    /* Gray for API errors */
+    background-color: #d9534f;
+    /* Red */
     color: white;
+}
+
+/* Historic view styling */
+.historic-view {
+    border: 2px dashed #6c757d;
+    /* Add dashed border to indicate historic data */
+    position: relative;
+}
+
+.historic-view::before {
+    content: "📅 Historic";
+    position: absolute;
+    top: 5px;
+    right: 10px;
+    background-color: #6c757d;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.3em;
+    font-weight: bold;
+}
+
+.historic-view .run-details {
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+/* Error styling for packages table */
+#packages-table .api-error {
+    background-color: #d9534f;
+    color: white;
+}
+
+#packages-table .api-error td {
+    padding: 15px;
+    text-align: center;
+    font-style: italic;
 }
 
 /* Settings panel styles */
