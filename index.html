@@ -1,184 +1,550 @@
 <!DOCTYPE html>
 <html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Garden Linux Daily Dashboard</title>
+        <link rel="stylesheet" href="style.css" />
+    </head>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Garden Linux Daily Dashboard</title>
-    <link rel="stylesheet" href="style.css">
-</head>
+    <body>
+        <h1>Garden Linux Daily Dashboard</h1>
 
-<body>
-    <h1>Garden Linux Daily Dashboard</h1>
-    <div class="days" id="gl-days"></div>
-    <div class="dashboard">
-        <div class="boxed">
-            <div id="daily-info-28837699" class="label"><a
-                    href="https://github.com/gardenlinux/gardenlinux/actions/workflows/nightly.yml">Garden Linux Nightly</a>
+        <!-- Settings Panel -->
+        <div id="settings-container">
+            <button id="settings-btn" onclick="toggleSettings()">
+                ⚙️ Settings
+            </button>
+            <div id="settings-panel" style="display: none">
+                <h3>GitHub Authentication</h3>
+                <div class="token-status">
+                    <span id="auth-status">Not authenticated</span>
+                </div>
+                <div class="token-input-group">
+                    <input
+                        type="password"
+                        id="token-input"
+                        placeholder="Enter GitHub Personal Access Token" />
+                    <button onclick="saveToken()">Save</button>
+                    <button onclick="clearToken()">Clear</button>
+                </div>
+                <small>
+                    Create a token at:
+                    <a href="https://github.com/settings/tokens" target="_blank"
+                        >GitHub Settings</a
+                    >
+                    <br />
+                    • <strong>Classic</strong>: needs 'public_repo' scope
+                    <br />
+                    • <strong>Fine-grained</strong>: needs 'Actions:Read' +
+                    'Metadata:Read' permissions
+                </small>
             </div>
+        </div>
 
-            <div class="lined-up">
-                <div id="daily-info-152444846" class="label label-5"><a
-                    href="https://github.com/gardenlinux/gardenlinux/actions/workflows/publish.yml">Publish to ghcr.io</a>
+        <div class="days" id="gl-days"></div>
+        <div class="dashboard">
+            <div class="boxed">
+                <div class="lined-up">
+                    <div id="daily-info-28837699" class="label label-5">
+                        <a
+                            href="https://github.com/gardenlinux/gardenlinux/actions/workflows/nightly.yml"
+                            >Garden Linux Nightly - Schedule</a
+                        >
+                    </div>
+                    <div id="daily-info-152444842" class="label label-5">
+                        <a
+                            href="https://github.com/gardenlinux/gardenlinux/actions/workflows/manual_release.yml"
+                            >Build and publish a release - Manual</a
+                        >
+                    </div>
                 </div>
 
-                <div id="daily-info-152444850" class="label label-5"><a
-                    href="https://github.com/gardenlinux/gardenlinux/actions/workflows/publish_s3.yml">Publish to S3</a>
+                <div class="lined-up">
+                    <div id="daily-info-152444846" class="label label-5">
+                        <a
+                            href="https://github.com/gardenlinux/gardenlinux/actions/workflows/publish.yml"
+                            >Publish to ghcr.io</a
+                        >
+                    </div>
+
+                    <div id="daily-info-152444850" class="label label-5">
+                        <a
+                            href="https://github.com/gardenlinux/gardenlinux/actions/workflows/publish_s3.yml"
+                            >Publish to S3</a
+                        >
+                    </div>
                 </div>
+            </div>
+
+            <div id="daily-info-84300234" class="label">
+                <a
+                    href="https://github.com/gardenlinux/repo/actions/workflows/update.yml"
+                    >Repo Update</a
+                >
+            </div>
+
+            <div id="daily-info-84300233" class="label">
+                <a
+                    href="https://github.com/gardenlinux/repo/actions/workflows/build.yml"
+                    >Repo Build</a
+                >
+            </div>
+
+            <div id="legend-issues" class="legend issues">
+                <p>Package repos that need attention:</p>
+            </div>
+            <div id="legend-no-isues" class="legend noIssues">
+                <p>
+                    No package builds need attention. Continue doing awesome
+                    work :-)
+                </p>
+            </div>
+
+            <div id="packages">
+                <table id="packages-table"></table>
             </div>
         </div>
 
-        <div id="daily-info-84300234" class="label"><a
-                href="https://github.com/gardenlinux/repo/actions/workflows/update.yml">Repo Update</a>
-        </div>
+        <script>
+            // GitHub authentication - supports both Classic and Fine-grained tokens
+            function getAuthHeaders() {
+                const token = localStorage.getItem("github_token");
 
-        <div id="daily-info-84300233" class="label"><a
-                href="https://github.com/gardenlinux/repo/actions/workflows/build.yml">Repo Build</a>
-        </div>
+                if (token) {
+                    let authHeader;
+                    if (token.startsWith("ghp_")) {
+                        authHeader = `token ${token}`;
+                    } else if (token.startsWith("github_pat_")) {
+                        authHeader = `Bearer ${token}`;
+                    } else {
+                        authHeader = `token ${token}`;
+                    }
 
-        <div id="legend-issues" class="legend issues">
-            <p>Package repos that need attention:</p>
-        </div>
-        <div id="legend-no-isues" class="legend noIssues">
-            <p>No package builds need attention. Continue doing awesome work :-)</p>
-        </div>
-
-        <div id="packages">
-            <table id="packages-table">
-            </table>
-        </div>
-    </div>
-
-    <script>
-        async function getRun() {
-            const reposWorkflows = [
-                // nightly
-                {
-                    repo: "gardenlinux",
-                    workflowId: "28837699"
-                },
-                // publish.yml
-                {
-                    repo: "gardenlinux",
-                    workflowId: "152444846"
-                },
-                // publish_s3.yml
-                {
-                    repo: "gardenlinux",
-                    workflowId: "152444850"
-                },
-                // nightly
-                {
-                    repo: "repo",
-                    workflowId: "84300234"
-                },
-                // nightly
-                {
-                    repo: "repo",
-                    workflowId: "84300233"
-                }
-            ];
-
-            const today = getGlDays();
-            const tagName = `${today}.0`;
-
-            for await (const workflow of reposWorkflows) {
-                let apiUrl;
-
-                // Only filter by daily tag for the repo build workflow
-                if (workflow.workflowId === "84300233") {
-                    const tagResponse = await fetch(`https://api.github.com/repos/gardenlinux/${workflow.repo}/git/ref/tags/${tagName}`);
-                    const tagData = await tagResponse.json();
-                    const commitSha = tagData.object.sha;
-                    apiUrl = `https://api.github.com/repos/gardenlinux/${workflow.repo}/actions/workflows/${workflow.workflowId}/runs?per_page=1&head_sha=${commitSha}`;
+                    return {
+                        Authorization: authHeader,
+                        Accept: "application/vnd.github.v3+json",
+                        "X-GitHub-Api-Version": "2022-11-28",
+                    };
                 } else {
-                    apiUrl = `https://api.github.com/repos/gardenlinux/${workflow.repo}/actions/workflows/${workflow.workflowId}/runs?per_page=1&branch=main`;
+                    return {
+                        Accept: "application/vnd.github.v3+json",
+                        "X-GitHub-Api-Version": "2022-11-28",
+                    };
+                }
+            }
+
+            async function getTriggerInfo(owner, repo, runData) {
+                try {
+                    const event = runData.event;
+
+                    switch (event) {
+                        case "workflow_dispatch":
+                            return "workflow_dispatch (manual or bot)";
+                        case "workflow_run":
+                            return "workflow_run (by workflow)";
+                        case "schedule":
+                            return "schedule";
+                        case "push":
+                            return "push";
+                        case "pull_request":
+                            return "pull_request";
+                        default:
+                            return event;
+                    }
+                } catch (error) {
+                    console.error("Failed to get trigger info:", error);
+                    return "unknown";
+                }
+            }
+
+            // Settings panel functions
+            function toggleSettings() {
+                const panel = document.getElementById("settings-panel");
+                panel.style.display =
+                    panel.style.display === "none" ? "block" : "none";
+                updateAuthStatus();
+            }
+
+            function saveToken() {
+                const tokenInput = document.getElementById("token-input");
+                const token = tokenInput.value.trim();
+
+                if (!token) {
+                    alert("Please enter a token");
+                    return;
                 }
 
-                const response = await fetch(apiUrl);
-                const runs = await response.json();
-                const workflowRuns = runs.workflow_runs;
-                const workflowRun = workflowRuns[0];
-                const status = workflowRun.status;
-                const conclusion = workflowRun.conclusion;
+                // Validate token format
+                if (
+                    !token.startsWith("ghp_") &&
+                    !token.startsWith("github_pat_")
+                ) {
+                    const confirmSave = confirm(
+                        "Warning: This doesn't look like a valid GitHub token.\n" +
+                            'GitHub tokens start with "ghp_" (classic) or "github_pat_" (fine-grained).\n\n' +
+                            "Do you want to save it anyway?"
+                    );
+                    if (!confirmSave) {
+                        return;
+                    }
+                }
 
-                console.log(`For github repo ${workflow.repo}, got the following response:`);
-                console.log('Number of runs (should be 1): ' + workflowRuns.length);
-                console.log('Workflow status             : ' + status);
-                console.log('Workflow conclusion         : ' + conclusion);
-                console.log('Workflow created_at         : ' + workflowRun['created_at']);
+                localStorage.setItem("github_token", token);
+                tokenInput.value = "";
+                updateAuthStatus();
+                alert("Token saved successfully! Refreshing data...");
+                location.reload(); // Refresh to use new token
+            }
 
-                const workflowDomElement = document.getElementById(`daily-info-${workflow.workflowId}`);
+            function clearToken() {
+                localStorage.removeItem("github_token");
+                updateAuthStatus();
+                alert("Token cleared! Page will reload...");
+                location.reload();
+            }
 
-                if (status === "in_progress") {
-                    workflowDomElement.classList.add('progress');
+            function updateAuthStatus() {
+                const token = localStorage.getItem("github_token");
+                const statusElement = document.getElementById("auth-status");
+
+                if (token) {
+                    statusElement.textContent = "Authenticated ✅";
+                    statusElement.style.color = "#5cb85c";
                 } else {
-                    if (status === "completed") {
-                        if (conclusion === "success") {
-                            workflowDomElement.classList.add('success');
+                    statusElement.textContent = "Not authenticated ❌";
+                    statusElement.style.color = "#d9534f";
+                }
+            }
 
+            async function getRun() {
+                const reposWorkflows = [
+                    // nightly.yml
+                    {
+                        repo: "gardenlinux",
+                        workflowId: "28837699",
+                    },
+                    // Build and publish a release -  manual_release.yml
+                    {
+                        repo: "gardenlinux",
+                        workflowId: "152444842",
+                    },
+                    // Publish to ghcr.io - publish.yml
+                    {
+                        repo: "gardenlinux",
+                        workflowId: "152444846",
+                    },
+                    // Publish to S3 - publish_s3.yml
+                    {
+                        repo: "gardenlinux",
+                        workflowId: "152444850",
+                    },
+                    // nightly
+                    {
+                        repo: "repo",
+                        workflowId: "84300234",
+                    },
+                    // nightly
+                    {
+                        repo: "repo",
+                        workflowId: "84300233",
+                    },
+                ];
+
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const todayStart = today.toISOString();
+                const tomorrow = new Date(today);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const tomorrowStart = tomorrow.toISOString();
+
+                const tagName = `${getGlDays()}.0`;
+
+                // First, fetch nightly workflow runs to use for SHA matching
+                let nightlyRuns = [];
+                try {
+                    const nightlyResponse = await fetch(
+                        `https://api.github.com/repos/gardenlinux/gardenlinux/actions/workflows/28837699/runs?per_page=200&branch=main`,
+                        {
+                            headers: getAuthHeaders(),
+                        }
+                    );
+                    if (nightlyResponse.ok) {
+                        const nightlyData = await nightlyResponse.json();
+                        nightlyRuns = nightlyData.workflow_runs || [];
+                    }
+                } catch (error) {
+                    console.error(
+                        "Failed to fetch nightly runs for SHA matching:",
+                        error
+                    );
+                }
+
+                for await (const workflow of reposWorkflows) {
+                    let apiUrl;
+
+                    // Only filter by daily tag for the repo build workflow
+                    if (workflow.workflowId === "84300233") {
+                        try {
+                            const tagResponse = await fetch(
+                                `https://api.github.com/repos/gardenlinux/${workflow.repo}/git/ref/tags/${tagName}`,
+                                {
+                                    headers: getAuthHeaders(),
+                                }
+                            );
+                            const tagData = await tagResponse.json();
+                            const commitSha = tagData.object.sha;
+                            apiUrl = `https://api.github.com/repos/gardenlinux/${workflow.repo}/actions/workflows/${workflow.workflowId}/runs?per_page=50&head_sha=${commitSha}`;
+                        } catch (error) {
+                            apiUrl = `https://api.github.com/repos/gardenlinux/${workflow.repo}/actions/workflows/${workflow.workflowId}/runs?per_page=50&branch=main`;
+                        }
+                    } else {
+                        apiUrl = `https://api.github.com/repos/gardenlinux/${workflow.repo}/actions/workflows/${workflow.workflowId}/runs?per_page=20&branch=main`;
+                    }
+
+                    const response = await fetch(apiUrl, {
+                        headers: getAuthHeaders(),
+                    });
+
+                    if (!response.ok) {
+                        console.error(
+                            `API Error for workflow ${workflow.workflowId}:`,
+                            response.status,
+                            response.statusText
+                        );
+                        const workflowDomElement = document.getElementById(
+                            `daily-info-${workflow.workflowId}`
+                        );
+                        workflowDomElement.classList.add("api-error");
+                        const detailsDiv = document.createElement("div");
+                        detailsDiv.className = "run-details";
+                        detailsDiv.innerHTML = `<small>API Error: ${response.status} ${response.statusText}</small>`;
+                        workflowDomElement.appendChild(detailsDiv);
+                        continue;
+                    }
+
+                    const runs = await response.json();
+                    const workflowRuns = runs.workflow_runs;
+
+                    if (!workflowRuns) {
+                        console.error(
+                            `No workflow_runs in response for workflow ${workflow.workflowId}:`,
+                            runs
+                        );
+                        const workflowDomElement = document.getElementById(
+                            `daily-info-${workflow.workflowId}`
+                        );
+                        workflowDomElement.classList.add("api-error");
+                        const detailsDiv = document.createElement("div");
+                        detailsDiv.className = "run-details";
+                        detailsDiv.innerHTML = `<small>No workflow runs data</small>`;
+                        workflowDomElement.appendChild(detailsDiv);
+                        continue;
+                    }
+
+                    // Filter runs for today
+                    const todayRunsUnsorted = workflowRuns.filter((run) => {
+                        const runDate = new Date(run.created_at);
+                        return runDate >= today && runDate < tomorrow;
+                    });
+
+                    // Sort today's runs by run.id in descending order (newest first)
+                    const todayRuns = todayRunsUnsorted.sort(
+                        (a, b) => b.id - a.id
+                    );
+
+                    const workflowDomElement = document.getElementById(
+                        `daily-info-${workflow.workflowId}`
+                    );
+
+                    // Clear existing content
+                    const existingDetails =
+                        workflowDomElement.querySelector(".run-details");
+                    if (existingDetails) {
+                        existingDetails.remove();
+                    }
+
+                    // Reset classes
+                    workflowDomElement.className =
+                        workflowDomElement.className.replace(
+                            /\b(progress|success|failure)\b/g,
+                            ""
+                        );
+
+                    if (todayRuns.length === 0) {
+                        // No runs today
+                        workflowDomElement.classList.add("no-runs");
+                        const detailsDiv = document.createElement("div");
+                        detailsDiv.className = "run-details";
+                        detailsDiv.innerHTML = "<small>No runs today</small>";
+                        workflowDomElement.appendChild(detailsDiv);
+                        continue;
+                    }
+
+                    // Determine overall status based on the most recent run
+                    // After sorting by ID descending, the first element is the most recent
+                    const mostRecentRun =
+                        todayRuns.length > 0 ? todayRuns[0] : null;
+
+                    if (!mostRecentRun) {
+                        // Handles the case where todayRuns might be empty after filtering
+                        workflowDomElement.classList.add("no-runs");
+                        const detailsDiv = document.createElement("div");
+                        detailsDiv.className = "run-details";
+                        detailsDiv.innerHTML = "<small>No runs today</small>";
+                        workflowDomElement.appendChild(detailsDiv);
+                        continue;
+                    }
+
+                    if (mostRecentRun.status === "in_progress") {
+                        workflowDomElement.classList.add("progress");
+                    } else if (mostRecentRun.status === "queued") {
+                        workflowDomElement.classList.add("queued");
+                    } else if (mostRecentRun.status === "completed") {
+                        if (mostRecentRun.conclusion === "success") {
+                            workflowDomElement.classList.add("success");
                         } else {
-                            workflowDomElement.classList.add('failure');
+                            workflowDomElement.classList.add("failure");
+                        }
+                    } else {
+                        workflowDomElement.classList.add("queued");
+                    }
+
+                    // Create details section for all runs
+                    const detailsDiv = document.createElement("div");
+                    detailsDiv.className = "run-details";
+
+                    // Iterate over the sorted runs (descending by ID - newest first)
+                    todayRuns.forEach(async (run, index) => {
+                        const runDiv = document.createElement("div");
+                        runDiv.className = "run-item";
+
+                        let statusClass = "";
+                        let statusText = "";
+
+                        if (run.status === "in_progress") {
+                            statusClass = "progress";
+                            statusText = "In Progress";
+                        } else if (run.status === "queued") {
+                            statusClass = "queued";
+                            statusText = "Queued";
+                        } else if (run.status === "completed") {
+                            if (run.conclusion === "success") {
+                                statusClass = "success";
+                                statusText = "Success";
+                            } else {
+                                statusClass = "failure";
+                                statusText = run.conclusion || "Failed";
+                            }
+                        } else {
+                            statusClass = "queued";
+                            statusText = run.status;
+                        }
+
+                        const createdTime = new Date(
+                            run.created_at
+                        ).toLocaleTimeString();
+                        const branch = run.head_branch || "main";
+                        const commitSha = run.head_sha
+                            ? run.head_sha.substring(0, 7)
+                            : "unknown";
+
+                        // Get trigger information for all workflows
+                        const triggerInfo = await getTriggerInfo(
+                            "gardenlinux",
+                            workflow.repo,
+                            run
+                        );
+
+                        runDiv.innerHTML = `
+                            <small class="run-status ${statusClass}">
+                                <a href="${run.html_url}" target="_blank">
+                                    ${statusText} - ${createdTime}
+                                </a>
+                                <br>
+                                <span class="branch-commit">
+                                    Branch: ${branch} | Commit: ${commitSha} | Run: ${run.id} | Trigger: ${triggerInfo}
+                                </span>
+                            </small>
+                        `;
+
+                        detailsDiv.appendChild(runDiv);
+                    });
+
+                    workflowDomElement.appendChild(detailsDiv);
+                }
+            }
+            function getGlDays() {
+                var today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const initialDay = new Date("2020-03-31");
+
+                const todayTime = today.getTime();
+                const initialTime = initialDay.getTime();
+
+                return Math.round(
+                    (todayTime - initialTime) / (1000 * 60 * 60 * 24)
+                );
+            }
+
+            async function fillPackageTable() {
+                // Set to invisible by default, and only make visible if we have packages with build-issues
+                let legend = document.getElementById("legend-issues");
+                legend.style.display = "none";
+
+                let table = document.getElementById("packages-table");
+                let file = "packages/" + getGlDays() + ".json";
+                const response = await fetch(file);
+                const packages = await response.json();
+
+                // group by status
+                const packageByStatus = Object.groupBy(
+                    packages,
+                    ({ Status }) => Status
+                );
+
+                // two loops, first by status then iterate over array
+                for (const status of [
+                    "progress",
+                    "workFlowNotFound",
+                    "noRunFound",
+                    "brokenTimestamp",
+                    "stale",
+                    "failure",
+                ]) {
+                    if (status in packageByStatus) {
+                        // We have at least one package-build that needs attention
+                        legend.style.display = "block";
+
+                        for (const pkg of packageByStatus[status]) {
+                            let row = table.insertRow(0);
+                            row.classList.add(pkg.Status);
+
+                            let a = document.createElement("a");
+                            a.innerHTML = pkg.Name;
+                            a.href =
+                                "https://github.com/gardenlinux/" +
+                                pkg.Name +
+                                "/actions/workflows/build.yml";
+
+                            let pkgName = row.insertCell(0);
+                            pkgName.appendChild(a);
+
+                            let pkgStatusTime = row.insertCell(1);
+                            pkgStatusTime.innerHTML = pkg.Time;
                         }
                     }
                 }
+                // Show no issues banner only if the issue banner is not shown
+                let legendNoIssues = document.getElementById("legend-no-isues");
+                legendNoIssues.style.display =
+                    legend.style.display === "block" ? "none" : "block";
             }
-        }
-        function getGlDays() {
-            var today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const initialDay = new Date('2020-03-31');
 
-            const todayTime = today.getTime();
-            const initialTime = initialDay.getTime();
-
-            return Math.round((todayTime - initialTime) / (1000 * 60 * 60 * 24));
-        }
-
-        async function fillPackageTable() {
-            // Set to invisible by default, and only make visible if we have packages with build-issues
-            let legend = document.getElementById("legend-issues");
-            legend.style.display = 'none';
-
-            let table = document.getElementById("packages-table");
-            let file = "packages/" + getGlDays() + ".json";
-            const response = await fetch(file);
-            const packages = await response.json();
-
-            // group by status
-            const packageByStatus = Object.groupBy(packages, ({Status}) => Status)
-
-            // two loops, first by status then iterate over array
-            for (const status of ["progress", "workFlowNotFound", "noRunFound", "brokenTimestamp", "stale", "failure"]) {
-                if (status in packageByStatus) {
-                    // We have at least one package-build that needs attention
-                    legend.style.display = 'block';
-
-                    for (const pkg of packageByStatus[status]) {
-                        let row = table.insertRow(0);
-                        row.classList.add(pkg.Status);
-
-                        let a = document.createElement('a');
-                        a.innerHTML = pkg.Name;
-                        a.href = "https://github.com/gardenlinux/" + pkg.Name + "/actions/workflows/build.yml";
-
-                        let pkgName = row.insertCell(0);
-                        pkgName.appendChild(a);
-
-                        let pkgStatusTime = row.insertCell(1);
-                        pkgStatusTime.innerHTML = pkg.Time;
-                    }
-                }
-            }
-            // Show no issues banner only if the issue banner is not shown
-            let legendNoIssues = document.getElementById("legend-no-isues");
-            legendNoIssues.style.display = legend.style.display === "block" ? "none" : "block";
-        }
-
-        getRun();
-        document.getElementById('gl-days').innerText = "GL " + getGlDays();
-        fillPackageTable();
-    </script>
-</body>
-
+            getRun();
+            document.getElementById("gl-days").innerText = "GL " + getGlDays();
+            fillPackageTable();
+            updateAuthStatus(); // Initialize auth status display
+        </script>
+    </body>
 </html>
