@@ -8,8 +8,6 @@
     </head>
 
     <body>
-        <h1>Garden Linux Daily Dashboard</h1>
-
         <div
             style="
                 text-align: center;
@@ -17,10 +15,7 @@
                 font-size: 0.9em;
                 color: #666;
             ">
-            <p>
-                💡 <strong>Tip:</strong> View historic data by adding
-                <code>?gl=XXXX</code> to the URL (e.g., <code>?gl=1890</code>)
-            </p>
+            <h1>Garden Linux Daily Dashboard</h1>
         </div>
 
         <!-- Settings Panel -->
@@ -52,76 +47,156 @@
                     • <strong>Fine-grained</strong>: needs 'Actions:Read' +
                     'Metadata:Read' permissions
                 </small>
+
+                <hr style="margin: 20px 0; border: 1px solid #ddd" />
+
+                <h3>Historic Releases</h3>
+                <div class="gl-selector">
+                    <label for="gl-input">Garden Linux Version:</label>
+                    <div class="gl-input-group">
+                        <button class="gl-btn" onclick="decrementGL()">
+                            ▼
+                        </button>
+                        <input
+                            type="number"
+                            id="gl-input"
+                            min="1"
+                            step="1"
+                            onchange="goToGL()"
+                            onkeypress="handleGLKeypress(event)"
+                            oninput="handleGLInput()" />
+                        <button class="gl-btn" onclick="incrementGL()">
+                            ▲
+                        </button>
+                    </div>
+                    <div class="gl-info">
+                        <small id="gl-date-info">Loading...</small>
+                    </div>
+                    <div class="gl-actions">
+                        <button onclick="goToToday()" class="today-btn">
+                            Go to Today
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
         <div class="days" id="gl-days"></div>
-        <div class="dashboard">
-            <div class="boxed">
-                <div class="lined-up">
-                    <div id="daily-info-28837699" class="label label-5">
-                        <a
-                            href="https://github.com/gardenlinux/gardenlinux/actions/workflows/nightly.yml"
-                            target="_blank"
-                            >Garden Linux Nightly - Schedule</a
-                        >
-                    </div>
-                    <div id="daily-info-152444842" class="label label-5">
-                        <a
-                            href="https://github.com/gardenlinux/gardenlinux/actions/workflows/manual_release.yml"
-                            target="_blank"
-                            >Build and publish a release - Manual</a
-                        >
-                    </div>
-                </div>
 
-                <div class="lined-up">
-                    <div id="daily-info-152444846" class="label label-5">
+        <!-- Pipeline Hierarchy Container -->
+        <div class="pipeline-container" id="pipeline-container">
+            <!-- Stage 4: Publish -->
+            <div class="pipeline-stage stage-4" id="stage-4">
+                <div class="stage-header">
+                    <span class="stage-icon">🚀</span>
+                    <h3>Stage 4: Publish</h3>
+                </div>
+                <div class="stage-workflows">
+                    <div id="daily-info-152444846" class="workflow-box">
                         <a
                             href="https://github.com/gardenlinux/gardenlinux/actions/workflows/publish.yml"
-                            target="_blank"
-                            >Publish to ghcr.io</a
-                        >
+                            target="_blank">
+                            Publish to ghcr.io
+                        </a>
                     </div>
-
-                    <div id="daily-info-152444850" class="label label-5">
+                    <div id="daily-info-152444850" class="workflow-box">
                         <a
                             href="https://github.com/gardenlinux/gardenlinux/actions/workflows/publish_s3.yml"
-                            target="_blank"
-                            >Publish to S3</a
-                        >
+                            target="_blank">
+                            Publish to S3
+                        </a>
                     </div>
                 </div>
             </div>
 
-            <div id="daily-info-84300234" class="label">
-                <a
-                    href="https://github.com/gardenlinux/repo/actions/workflows/update.yml"
-                    target="_blank"
-                    >Repo Update</a
-                >
+            <!-- Stage 3: Nightly/Manual Release -->
+            <div class="pipeline-stage stage-3" id="stage-3">
+                <div class="stage-header">
+                    <span class="stage-icon">🔄</span>
+                    <h3>Stage 3: Build & Release</h3>
+                </div>
+                <div class="stage-workflows">
+                    <div id="daily-info-28837699" class="workflow-box">
+                        <a
+                            href="https://github.com/gardenlinux/gardenlinux/actions/workflows/nightly.yml"
+                            target="_blank">
+                            Garden Linux Nightly - Schedule
+                        </a>
+                    </div>
+                    <div id="daily-info-152444842" class="workflow-box">
+                        <a
+                            href="https://github.com/gardenlinux/gardenlinux/actions/workflows/manual_release.yml"
+                            target="_blank">
+                            Build and publish a release - Manual
+                        </a>
+                    </div>
+                </div>
             </div>
 
-            <div id="daily-info-84300233" class="label">
-                <a
-                    href="https://github.com/gardenlinux/repo/actions/workflows/build.yml"
-                    target="_blank"
-                    >Repo Build</a
-                >
+            <!-- Stage 2: Repository -->
+            <div class="pipeline-stage stage-2" id="stage-2">
+                <div class="stage-header">
+                    <span class="stage-icon">📦</span>
+                    <h3>Stage 2: Repository</h3>
+                </div>
+                <div class="stage-workflows sequential-workflows">
+                    <div class="sub-stage" id="sub-stage-repo-build">
+                        <div class="sub-stage-header">
+                            <span class="sub-stage-icon">🏗️</span>
+                            <h4>Repo Build</h4>
+                            <span class="sequence-indicator">2nd</span>
+                        </div>
+                        <div id="daily-info-84300233" class="workflow-box">
+                            <a
+                                href="https://github.com/gardenlinux/repo/actions/workflows/build.yml"
+                                target="_blank">
+                                Repo Build
+                            </a>
+                        </div>
+                    </div>
+                    <div class="sequential-arrow">↑</div>
+                    <div class="sub-stage" id="sub-stage-repo-update">
+                        <div class="sub-stage-header">
+                            <span class="sub-stage-icon">🔄</span>
+                            <h4>Repo Update</h4>
+                            <span class="sequence-indicator">1st</span>
+                        </div>
+                        <div id="daily-info-84300234" class="workflow-box">
+                            <a
+                                href="https://github.com/gardenlinux/repo/actions/workflows/update.yml"
+                                target="_blank">
+                                Repo Update
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div id="legend-issues" class="legend issues">
-                <p>Package repos that need attention:</p>
-            </div>
-            <div id="legend-no-isues" class="legend noIssues">
-                <p>
-                    No package builds need attention. Continue doing awesome
-                    work :-)
-                </p>
-            </div>
+            <!-- Stage 1: Package Builds -->
+            <div class="pipeline-stage stage-1" id="stage-1">
+                <div class="stage-header">
+                    <span class="stage-icon">🧱</span>
+                    <h3>Stage 1: Package Builds</h3>
+                </div>
+                <div class="stage-workflows">
+                    <div class="package-summary" id="package-summary">
+                        <div class="package-status" id="package-status">
+                            Loading package status...
+                        </div>
 
-            <div id="packages">
-                <table id="packages-table"></table>
+                        <!-- Package Issues Section -->
+                        <div id="package-issues-section" style="display: none">
+                            <div class="package-issues-header">
+                                <strong
+                                    >Package repos that need attention:</strong
+                                >
+                            </div>
+                            <div class="package-table-container">
+                                <table id="packages-table"></table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -276,6 +351,107 @@
                 }
             }
 
+            // GL Version Selector Functions
+            function initializeGLSelector() {
+                const glInput = document.getElementById("gl-input");
+                const currentGL = getGlDays();
+                glInput.value = currentGL;
+                updateGLDateInfo(currentGL);
+            }
+
+            function updateGLDateInfo(glDays) {
+                const dateInfoElement = document.getElementById("gl-date-info");
+                const initialDay = new Date("2020-03-31");
+                const glDate = new Date(initialDay);
+                glDate.setDate(glDate.getDate() + glDays);
+
+                const formattedDate = glDate.toLocaleDateString("en-US", {
+                    weekday: "short",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                });
+
+                const currentGL = getCurrentGlDays();
+                const isToday = glDays === currentGL;
+                const isFuture = glDays > currentGL;
+
+                let statusText = "";
+                if (isToday) {
+                    statusText = " (Today)";
+                } else if (isFuture) {
+                    statusText = ` (${glDays - currentGL} days in future)`;
+                } else {
+                    statusText = ` (${currentGL - glDays} days ago)`;
+                }
+
+                dateInfoElement.textContent = `${formattedDate}${statusText}`;
+            }
+
+            function incrementGL() {
+                const glInput = document.getElementById("gl-input");
+                const currentValue =
+                    parseInt(glInput.value) || getCurrentGlDays();
+                const newValue = currentValue + 1;
+                glInput.value = newValue;
+                updateGLDateInfo(newValue);
+            }
+
+            function decrementGL() {
+                const glInput = document.getElementById("gl-input");
+                const currentValue =
+                    parseInt(glInput.value) || getCurrentGlDays();
+                const newValue = Math.max(1, currentValue - 1);
+                glInput.value = newValue;
+                updateGLDateInfo(newValue);
+            }
+
+            function handleGLKeypress(event) {
+                if (event.key === "Enter") {
+                    goToGL();
+                }
+                // Update date info as user types
+                setTimeout(() => {
+                    const glInput = document.getElementById("gl-input");
+                    const value = parseInt(glInput.value);
+                    if (!isNaN(value) && value > 0) {
+                        updateGLDateInfo(value);
+                    }
+                }, 10);
+            }
+
+            function handleGLInput() {
+                // Update date info as user types
+                const glInput = document.getElementById("gl-input");
+                const value = parseInt(glInput.value);
+                if (!isNaN(value) && value > 0) {
+                    updateGLDateInfo(value);
+                }
+            }
+
+            function goToGL() {
+                const glInput = document.getElementById("gl-input");
+                const glValue = parseInt(glInput.value);
+
+                if (isNaN(glValue) || glValue < 1) {
+                    alert("Please enter a valid GL version (positive number)");
+                    glInput.value = getCurrentGlDays();
+                    return;
+                }
+
+                // Navigate to the URL with the GL parameter
+                const url = new URL(window.location.href);
+                url.searchParams.set("gl", glValue);
+                window.location.href = url.toString();
+            }
+
+            function goToToday() {
+                // Navigate to today's version (remove GL parameter)
+                const url = new URL(window.location.href);
+                url.searchParams.delete("gl");
+                window.location.href = url.toString();
+            }
+
             async function getRun() {
                 const reposWorkflows = [
                     // nightly.yml
@@ -381,8 +557,8 @@
                         );
                         workflowDomElement.classList.add("api-error");
                         const detailsDiv = document.createElement("div");
-                        detailsDiv.className = "run-details";
-                        detailsDiv.innerHTML = `<small>API Error: ${response.status} ${response.statusText}</small>`;
+                        detailsDiv.className = "workflow-details";
+                        detailsDiv.innerHTML = `<div class="error-message">API Error: ${response.status} ${response.statusText}</div>`;
                         workflowDomElement.appendChild(detailsDiv);
                         continue;
                     }
@@ -400,8 +576,8 @@
                         );
                         workflowDomElement.classList.add("api-error");
                         const detailsDiv = document.createElement("div");
-                        detailsDiv.className = "run-details";
-                        detailsDiv.innerHTML = `<small>No workflow runs data</small>`;
+                        detailsDiv.className = "workflow-details";
+                        detailsDiv.innerHTML = `<div class="error-message">No workflow runs data</div>`;
                         workflowDomElement.appendChild(detailsDiv);
                         continue;
                     }
@@ -423,7 +599,7 @@
 
                     // Clear existing content
                     const existingDetails =
-                        workflowDomElement.querySelector(".run-details");
+                        workflowDomElement.querySelector(".workflow-details");
                     if (existingDetails) {
                         existingDetails.remove();
                     }
@@ -431,28 +607,23 @@
                     // Reset classes
                     workflowDomElement.className =
                         workflowDomElement.className.replace(
-                            /\b(progress|success|failure|historic-view|no-runs)\b/g,
+                            /\b(progress|success|failure|no-runs)\b/g,
                             ""
                         );
 
                     if (targetRuns.length === 0) {
-                        // No runs for target date
+                        // Handles the case where targetRuns might be empty after filtering
                         workflowDomElement.classList.add("no-runs");
                         const detailsDiv = document.createElement("div");
-                        detailsDiv.className = "run-details";
+                        detailsDiv.className = "workflow-details";
                         const dateStr = targetDate.toLocaleDateString();
-                        detailsDiv.innerHTML = `<small>No runs found for ${
+                        detailsDiv.innerHTML = `<div class="no-runs-message">No runs found for ${
                             isHistoricView()
                                 ? `historic date ${dateStr}`
                                 : "today"
-                        }</small>`;
+                        }</div>`;
                         workflowDomElement.appendChild(detailsDiv);
                         continue;
-                    }
-
-                    // Add historic styling if needed
-                    if (isHistoricView()) {
-                        workflowDomElement.classList.add("historic-view");
                     }
 
                     // Determine overall status based on the most recent run
@@ -464,13 +635,13 @@
                         // Handles the case where targetRuns might be empty after filtering
                         workflowDomElement.classList.add("no-runs");
                         const detailsDiv = document.createElement("div");
-                        detailsDiv.className = "run-details";
+                        detailsDiv.className = "workflow-details";
                         const dateStr = targetDate.toLocaleDateString();
-                        detailsDiv.innerHTML = `<small>No runs found for ${
+                        detailsDiv.innerHTML = `<div class="no-runs-message">No runs found for ${
                             isHistoricView()
                                 ? `historic date ${dateStr}`
                                 : "today"
-                        }</small>`;
+                        }</div>`;
                         workflowDomElement.appendChild(detailsDiv);
                         continue;
                     }
@@ -491,7 +662,7 @@
 
                     // Create details section for all runs
                     const detailsDiv = document.createElement("div");
-                    detailsDiv.className = "run-details";
+                    detailsDiv.className = "workflow-details";
 
                     // Iterate over the sorted runs (descending by ID - newest first)
                     targetRuns.forEach(async (run, index) => {
@@ -571,15 +742,18 @@
                         }
 
                         runDiv.innerHTML = `
-                            <small class="run-status ${statusClass}">
-                                <a href="${run.html_url}" target="_blank">
-                                    ${statusText} - ${timeDisplay}
-                                </a>
-                                <br>
-                                <span class="branch-commit">
-                                    Branch: ${branch} | Commit: ${commitSha} | Run: ${run.id} | Trigger: ${triggerInfo}
-                                </span>
-                            </small>
+                            <a href="${run.html_url}" target="_blank" class="run-item-link">
+                                <div class="run-status-line">
+                                    <strong class="status-${statusClass}">${statusText}</strong>
+                                    <span class="run-time">${timeDisplay}</span>
+                                </div>
+                                <div class="run-meta">
+                                    <span>Branch: ${branch}</span> |
+                                    <span>Commit: ${commitSha}</span> |
+                                    <span>Run: ${run.id}</span> |
+                                    <span>Trigger: ${triggerInfo}</span>
+                                </div>
+                            </a>
                         `;
 
                         detailsDiv.appendChild(runDiv);
@@ -588,126 +762,530 @@
                     workflowDomElement.appendChild(detailsDiv);
                 }
 
-                updateTopBoxBorder();
+                // Update pipeline hierarchy after all workflow data is loaded
+                updatePipelineHierarchy();
             }
 
-            function updateTopBoxBorder() {
+            function updatePipelineHierarchy() {
                 /*
-                 * BORDER COLOR CODING SYSTEM (Priority Order - Highest to Lowest):
+                 * PIPELINE HIERARCHY SYSTEM - NEW STRUCTURE:
                  *
-                 * 🟡 YELLOW (status-progress) - HIGHEST PRIORITY
-                 *    - Any workflow is in progress or queued
-                 *    - Overrides all other states
+                 * Stage 1: Package Builds
+                 *   - If any package fails → All higher stages turn red
                  *
-                 * 🔴 RED (status-failure) - HIGH PRIORITY
-                 *    - Any publish step has failed (Publish to ghcr.io OR Publish to S3)
-                 *    - Critical for deployment pipeline
+                 * Stage 2: Repository (Sequential Sub-stages)
+                 *   - Sub-stage 1: Repo Update (must succeed first)
+                 *   - Sub-stage 2: Repo Build (only runs if update succeeds)
+                 *   - If either fails → Stages 3,4 turn red
                  *
-                 * 🟢 GREEN (status-success) - MEDIUM PRIORITY
-                 *    - "Build and publish a release" is successful (takes priority over nightly)
-                 *    - OR "Garden Linux Nightly" is successful (if build/publish not successful)
-                 *    - Green means at least one key workflow succeeded AND no publish failures
+                 * Stage 3: Nightly/Manual Release
+                 *   - If BOTH nightly AND manual fail → Stage 4 turns red
+                 *   - If either succeeds → Stage 4 can be evaluated normally
                  *
-                 * 🔴 RED (status-failure) - LOWER PRIORITY
-                 *    - Any key workflow has failed (Nightly OR Build/publish)
-                 *    - Only applies if no publish failures and no successes
-                 *
-                 * ⚫ GREY (status-unknown) - LOWEST PRIORITY
-                 *    - No runs, API errors, or unknown states
+                 * Stage 4: Publish
+                 *   - Both workflows must succeed for stage success
                  */
 
-                const nightlyElement = document.getElementById(
-                    "daily-info-28837699"
-                ); // Garden Linux Nightly
-                const releaseElement = document.getElementById(
-                    "daily-info-152444842"
-                ); // Build and publish a release
-                const publishGhcrElement = document.getElementById(
-                    "daily-info-152444846"
-                ); // Publish to ghcr.io
-                const publishS3Element = document.getElementById(
-                    "daily-info-152444850"
-                ); // Publish to S3
-                const repoUpdateElement = document.getElementById(
-                    "daily-info-84300234"
-                ); // Repo Update
-                const repoBuildElement = document.getElementById(
-                    "daily-info-84300233"
-                ); // Repo Build
+                // Get workflow elements
+                const workflows = {
+                    nightly: document.getElementById("daily-info-28837699"),
+                    release: document.getElementById("daily-info-152444842"),
+                    publishGhcr: document.getElementById(
+                        "daily-info-152444846"
+                    ),
+                    publishS3: document.getElementById("daily-info-152444850"),
+                    repoUpdate: document.getElementById("daily-info-84300234"),
+                    repoBuild: document.getElementById("daily-info-84300233"),
+                };
 
-                const topBox = document.querySelector(".boxed");
+                // Get stage elements
+                const stages = {
+                    stage1: document.getElementById("stage-1"),
+                    stage2: document.getElementById("stage-2"),
+                    stage3: document.getElementById("stage-3"),
+                    stage4: document.getElementById("stage-4"),
+                };
 
-                // Remove existing status classes
-                topBox.classList.remove(
-                    "status-success",
-                    "status-progress",
-                    "status-failure",
-                    "status-unknown"
+                // Get sub-stage elements
+                const subStages = {
+                    repoUpdate: document.getElementById(
+                        "sub-stage-repo-update"
+                    ),
+                    repoBuild: document.getElementById("sub-stage-repo-build"),
+                };
+
+                // Pipeline container element
+                const pipelineContainer =
+                    document.getElementById("pipeline-container");
+
+                // Reset all stage classes
+                Object.values(stages).forEach((stage) => {
+                    stage.classList.remove(
+                        "stage-success",
+                        "stage-failure",
+                        "stage-progress",
+                        "stage-unknown",
+                        "stage-cascaded-failure"
+                    );
+                });
+
+                // Reset sub-stage classes
+                Object.values(subStages).forEach((subStage) => {
+                    subStage.classList.remove(
+                        "success",
+                        "failure",
+                        "progress",
+                        "blocked",
+                        "unknown"
+                    );
+                });
+
+                // Reset pipeline container classes
+                pipelineContainer.classList.remove(
+                    "pipeline-success",
+                    "pipeline-failure",
+                    "pipeline-progress",
+                    "pipeline-unknown"
                 );
 
-                // 1. HIGHEST PRIORITY: Check if ANY workflow is in progress
-                const allElements = [
-                    nightlyElement,
-                    releaseElement,
-                    publishGhcrElement,
-                    publishS3Element,
-                    repoUpdateElement,
-                    repoBuildElement,
-                ];
+                // Helper function to get workflow status
+                function getWorkflowStatus(workflow) {
+                    if (!workflow) return "unknown";
+                    if (workflow.classList.contains("progress"))
+                        return "progress";
+                    if (workflow.classList.contains("queued"))
+                        return "progress";
+                    if (workflow.classList.contains("success"))
+                        return "success";
+                    if (workflow.classList.contains("failure"))
+                        return "failure";
+                    if (workflow.classList.contains("no-runs"))
+                        return "no-runs";
+                    if (workflow.classList.contains("api-error"))
+                        return "api-error";
+                    return "unknown";
+                }
 
-                const anyInProgress = allElements.some(
-                    (element) =>
-                        element &&
-                        !element.classList.contains("no-runs") &&
-                        (element.classList.contains("progress") ||
-                            element.classList.contains("queued"))
-                );
+                // Evaluate package builds status (Stage 1)
+                const packageStatus = evaluatePackageStatus();
+                const stage1Status = packageStatus.overallStatus;
 
-                if (anyInProgress) {
-                    topBox.classList.add("status-progress");
+                // Evaluate each workflow status
+                const statuses = {
+                    repoUpdate: getWorkflowStatus(workflows.repoUpdate),
+                    repoBuild: getWorkflowStatus(workflows.repoBuild),
+                    nightly: getWorkflowStatus(workflows.nightly),
+                    release: getWorkflowStatus(workflows.release),
+                    publishGhcr: getWorkflowStatus(workflows.publishGhcr),
+                    publishS3: getWorkflowStatus(workflows.publishS3),
+                };
+
+                // Debug logging
+                console.log("Workflow statuses:", statuses);
+                console.log("Stage 1 status:", stage1Status);
+
+                // Apply cascading failure logic
+                let cascadeFailure = false;
+                let cascadeWarning = false;
+
+                // Stage 1: Package builds
+                applyStageStatus(stages.stage1, stage1Status);
+                if (stage1Status === "failure") {
+                    cascadeFailure = true;
+                } else if (stage1Status === "progress") {
+                    cascadeWarning = true; // Package issues create warnings, not failures
+                }
+
+                // Stage 2: Repository with sequential sub-stages
+                let stage2Status;
+                if (cascadeFailure) {
+                    stage2Status = "cascaded-failure";
+                    applyStageStatus(stages.stage2, "cascaded-failure");
+                    subStages.repoUpdate.classList.add("blocked");
+                    subStages.repoBuild.classList.add("blocked");
                 } else {
-                    // 2. HIGH PRIORITY: Check if any publish step has failed
-                    const publishGhcrFailed =
-                        publishGhcrElement?.classList.contains("failure");
-                    const publishS3Failed =
-                        publishS3Element?.classList.contains("failure");
+                    // Evaluate sequential sub-stages
+                    const repoUpdateStatus = statuses.repoUpdate;
+                    const repoBuildStatus = statuses.repoBuild;
 
-                    if (publishGhcrFailed || publishS3Failed) {
-                        topBox.classList.add("status-failure");
+                    // Apply sub-stage statuses
+                    applySubStageStatus(subStages.repoUpdate, repoUpdateStatus);
+
+                    // Repo Build depends on Repo Update success
+                    if (repoUpdateStatus === "success") {
+                        applySubStageStatus(
+                            subStages.repoBuild,
+                            repoBuildStatus
+                        );
+                    } else if (
+                        repoUpdateStatus === "progress" ||
+                        repoUpdateStatus === "queued"
+                    ) {
+                        subStages.repoBuild.classList.add("blocked");
                     } else {
-                        // 3. MEDIUM PRIORITY: Check for successful workflows (Build/publish takes priority over nightly)
-                        const releaseSuccess =
-                            releaseElement?.classList.contains("success");
-                        const nightlySuccess =
-                            nightlyElement?.classList.contains("success");
-
-                        if (releaseSuccess || nightlySuccess) {
-                            topBox.classList.add("status-success");
-                        } else {
-                            // 4. LOWER PRIORITY: Check if any key workflow has failed
-                            const nightlyFailed =
-                                nightlyElement?.classList.contains("failure");
-                            const releaseFailed =
-                                releaseElement?.classList.contains("failure");
-
-                            if (nightlyFailed || releaseFailed) {
-                                topBox.classList.add("status-failure");
-                            } else {
-                                // 5. LOWEST PRIORITY: No runs, API errors, or unknown state
-                                topBox.classList.add("status-unknown");
-                            }
-                        }
+                        // Update failed, so build is blocked
+                        subStages.repoBuild.classList.add("blocked");
                     }
+
+                    // Determine overall Stage 2 status
+                    if (
+                        repoUpdateStatus === "failure" ||
+                        repoBuildStatus === "failure"
+                    ) {
+                        stage2Status = "failure";
+                        cascadeFailure = true;
+                    } else if (
+                        repoUpdateStatus === "progress" ||
+                        (repoUpdateStatus === "success" &&
+                            repoBuildStatus === "progress")
+                    ) {
+                        stage2Status = "progress";
+                    } else if (
+                        repoUpdateStatus === "success" &&
+                        repoBuildStatus === "success"
+                    ) {
+                        stage2Status = "success";
+                    } else {
+                        stage2Status = "unknown";
+                    }
+
+                    applyStageStatus(stages.stage2, stage2Status);
+                    if (cascadeWarning) {
+                        addStageWarning(
+                            stages.stage2,
+                            "Package issues detected"
+                        );
+                    }
+                }
+
+                // Stage 3: Nightly/Manual Release (either can succeed)
+                let stage3Status;
+                if (cascadeFailure) {
+                    stage3Status = "cascaded-failure";
+                    applyStageStatus(stages.stage3, "cascaded-failure");
+                } else {
+                    stage3Status = evaluateStage3Status(
+                        statuses.nightly,
+                        statuses.release
+                    );
+                    applyStageStatus(stages.stage3, stage3Status);
+                    if (cascadeWarning) {
+                        addStageWarning(
+                            stages.stage3,
+                            "Package issues detected"
+                        );
+                    }
+                    if (stage3Status === "failure") {
+                        cascadeFailure = true;
+                    }
+                }
+
+                // Stage 4: Publish (both must succeed)
+                let stage4Status;
+                if (cascadeFailure) {
+                    stage4Status = "cascaded-failure";
+                    applyStageStatus(stages.stage4, "cascaded-failure");
+                } else {
+                    stage4Status = evaluateStage4Status(
+                        statuses.publishGhcr,
+                        statuses.publishS3
+                    );
+                    applyStageStatus(stages.stage4, stage4Status);
+                    if (cascadeWarning) {
+                        addStageWarning(
+                            stages.stage4,
+                            "Package issues detected"
+                        );
+                    }
+                }
+
+                // Calculate overall pipeline health with actual stage statuses
+                updatePipelineHealth([
+                    stage1Status,
+                    stage2Status,
+                    stage3Status,
+                    stage4Status,
+                ]);
+            }
+
+            function applySubStageStatus(subStageElement, status) {
+                if (!subStageElement) return;
+
+                // First, remove all existing status classes
+                subStageElement.classList.remove(
+                    "success",
+                    "failure",
+                    "progress",
+                    "blocked",
+                    "unknown"
+                );
+
+                // Then apply the new status class
+                switch (status) {
+                    case "success":
+                        subStageElement.classList.add("success");
+                        break;
+                    case "failure":
+                        subStageElement.classList.add("failure");
+                        break;
+                    case "progress":
+                        subStageElement.classList.add("progress");
+                        break;
+                    default:
+                        subStageElement.classList.add("unknown");
+                }
+            }
+
+            function evaluatePackageStatus() {
+                // This will be updated when fillPackageTable runs
+                const packagesElement =
+                    document.getElementById("packages-table");
+
+                // Check if there are package issues by looking at the package issues section visibility
+                const packageIssuesSection = document.getElementById(
+                    "package-issues-section"
+                );
+                if (
+                    packageIssuesSection &&
+                    packageIssuesSection.style.display !== "none"
+                ) {
+                    return {
+                        overallStatus: "progress", // Yellow instead of red for package issues
+                        details: "Package builds have issues",
+                    };
+                } else {
+                    return {
+                        overallStatus: "success",
+                        details: "All packages building successfully",
+                    };
+                }
+            }
+
+            function evaluateStage4Status(ghcrStatus, s3Status) {
+                // Stage 4 succeeds only if both publish steps succeed
+                if (ghcrStatus === "progress" || s3Status === "progress")
+                    return "progress";
+                if (ghcrStatus === "success" && s3Status === "success")
+                    return "success";
+                if (ghcrStatus === "failure" || s3Status === "failure")
+                    return "failure";
+                return "unknown";
+            }
+
+            function evaluateStage3Status(nightlyStatus, releaseStatus) {
+                // Stage 3 succeeds if either nightly OR manual release succeeds
+                if (
+                    nightlyStatus === "progress" ||
+                    releaseStatus === "progress"
+                )
+                    return "progress";
+                if (nightlyStatus === "success" || releaseStatus === "success")
+                    return "success";
+                if (nightlyStatus === "failure" && releaseStatus === "failure")
+                    return "failure";
+
+                // If one is success and the other is no-runs/unknown, still count as success
+                if (
+                    (nightlyStatus === "success" &&
+                        (releaseStatus === "no-runs" ||
+                            releaseStatus === "unknown")) ||
+                    (releaseStatus === "success" &&
+                        (nightlyStatus === "no-runs" ||
+                            nightlyStatus === "unknown"))
+                ) {
+                    return "success";
+                }
+
+                return "unknown";
+            }
+
+            function applyStageStatus(stageElement, status) {
+                if (!stageElement) return;
+
+                // First, remove all existing stage status classes
+                stageElement.classList.remove(
+                    "stage-success",
+                    "stage-failure",
+                    "stage-progress",
+                    "stage-cascaded-failure",
+                    "stage-unknown"
+                );
+
+                // Then apply the new status class
+                switch (status) {
+                    case "success":
+                        stageElement.classList.add("stage-success");
+                        break;
+                    case "failure":
+                        stageElement.classList.add("stage-failure");
+                        break;
+                    case "progress":
+                        stageElement.classList.add("stage-progress");
+                        break;
+                    case "cascaded-failure":
+                        stageElement.classList.add("stage-cascaded-failure");
+                        break;
+                    default:
+                        stageElement.classList.add("stage-unknown");
+                }
+            }
+
+            function addStageWarning(stageElement, message) {
+                if (!stageElement) return;
+
+                // Remove any existing warning
+                const existingWarning =
+                    stageElement.querySelector(".stage-warning");
+                if (existingWarning) {
+                    existingWarning.remove();
+                }
+
+                // Add warning badge
+                const warningDiv = document.createElement("div");
+                warningDiv.className = "stage-warning";
+                warningDiv.innerHTML = `⚠️ ${message}`;
+                stageElement.appendChild(warningDiv);
+            }
+
+            function updatePipelineHealth(stageStatuses) {
+                /*
+                 * ===============================================
+                 * PIPELINE BORDER SYSTEM DOCUMENTATION
+                 * ===============================================
+                 *
+                 * STAGE BORDERS:
+                 * Each stage gets its individual border color based on its status:
+                 * - 🟢 GREEN (stage-success): All workflows in stage successful
+                 * - 🔴 RED (stage-failure): Any workflow in stage failed
+                 * - 🟡 YELLOW (stage-progress): Any workflow in stage in progress
+                 * - ⚫ GREY (stage-unknown): Unknown/no-runs/API errors
+                 * - 🔸 DARK RED (stage-cascaded-failure): Failed due to dependency
+                 *
+                 * STAGE STATUS EVALUATION:
+                 * - Stage 1: Based on package builds (success/progress if issues)
+                 * - Stage 2: Repo build workflow status
+                 * - Stage 3: Repo update workflow status
+                 * - Stage 4: Either nightly OR manual release succeeds = success
+                 * - Stage 5: Both publish workflows must succeed = success
+                 *
+                 * CASCADING LOGIC:
+                 * - Real failures cascade: Stage failure → All dependent stages show dark red
+                 * - Package issues (Stage 1 progress) → Warning badges on dependent stages
+                 *
+                 * OUTER BORDER PRIORITY:
+                 * 1. 🔴 RED: Any stage has real failure (highest priority)
+                 * 2. 🟡 YELLOW: Any workflow truly in progress (excluding package issues)
+                 * 3. 🟢 GREEN: All successful OR only package issues
+                 * 4. ⚫ GREY: Mixed/unknown states
+                 *
+                 * SPECIAL CASE - Package Issues:
+                 * - Stage 1 shows yellow (progress) when packages need attention
+                 * - Other stages show warning badges but keep their true status
+                 * - Outer border stays GREEN if only package issues exist
+                 * ===============================================
+                 */
+
+                const containerElement =
+                    document.getElementById("pipeline-container");
+
+                // Count statuses for priority determination
+                const progressStages = stageStatuses.filter(
+                    (status) => status === "progress"
+                ).length;
+                const failureStages = stageStatuses.filter(
+                    (status) =>
+                        status === "failure" || status === "cascaded-failure"
+                ).length;
+                const successStages = stageStatuses.filter(
+                    (status) => status === "success"
+                ).length;
+                const unknownStages = stageStatuses.filter(
+                    (status) =>
+                        status === "unknown" ||
+                        status === "no-runs" ||
+                        status === "api-error"
+                ).length;
+
+                // Check if the only "progress" is from Stage 1 (package issues)
+                const onlyStage1Progress =
+                    progressStages === 1 && stageStatuses[0] === "progress";
+
+                // Determine overall container border color
+                let containerClass;
+
+                // Priority order: failure > real progress > success > unknown
+                if (failureStages > 0) {
+                    // ANY stage failed = red border (highest priority)
+                    containerClass = "pipeline-failure";
+                } else if (progressStages > 0 && !onlyStage1Progress) {
+                    // Real workflow progress (not just package issues) = yellow border
+                    containerClass = "pipeline-progress";
+                } else if (successStages > 0 || onlyStage1Progress) {
+                    // All successful OR only package issues = green border
+                    containerClass = "pipeline-success";
+                } else {
+                    // Mixed or unknown states = grey border
+                    containerClass = "pipeline-unknown";
+                }
+
+                containerElement.classList.add(containerClass);
+
+                // Update header color to match pipeline status (unless historic)
+                updateHeaderColor(containerClass);
+            }
+
+            function updateHeaderColor(pipelineClass) {
+                const headerElement = document.getElementById("gl-days");
+
+                // Don't change color for historic views
+                if (isHistoricView()) {
+                    return;
+                }
+
+                // Remove existing header status classes
+                headerElement.classList.remove(
+                    "header-success",
+                    "header-failure",
+                    "header-progress",
+                    "header-unknown"
+                );
+
+                // Map pipeline classes to header classes
+                const statusMap = {
+                    "pipeline-success": "header-success",
+                    "pipeline-failure": "header-failure",
+                    "pipeline-progress": "header-progress",
+                    "pipeline-unknown": "header-unknown",
+                    "pipeline-error": "header-failure",
+                };
+
+                const headerClass = statusMap[pipelineClass];
+                if (headerClass) {
+                    headerElement.classList.add(headerClass);
                 }
             }
 
             async function fillPackageTable() {
-                // Set to invisible by default, and only make visible if we have packages with build-issues
-                let legend = document.getElementById("legend-issues");
-                legend.style.display = "none";
-
                 let table = document.getElementById("packages-table");
                 let file = "packages/" + getGlDays() + ".json";
+
+                // Calculate formatted date for error messages
+                const glDays = getGlDays();
+                const initialDay = new Date("2020-03-31");
+                const glDate = new Date(initialDay);
+                glDate.setDate(glDate.getDate() + glDays);
+                const formattedDate = glDate.toLocaleDateString("en-US", {
+                    weekday: "short",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                });
+
+                // Update package status in pipeline
+                const packageStatusElement =
+                    document.getElementById("package-status");
+                const packageSummary =
+                    document.getElementById("package-summary");
 
                 try {
                     const response = await fetch(file);
@@ -724,6 +1302,9 @@
                         ({ Status }) => Status
                     );
 
+                    let hasIssues = false;
+                    let issueCount = 0;
+
                     // two loops, first by status then iterate over array
                     for (const status of [
                         "progress",
@@ -734,8 +1315,8 @@
                         "failure",
                     ]) {
                         if (status in packageByStatus) {
-                            // We have at least one package-build that needs attention
-                            legend.style.display = "block";
+                            hasIssues = true;
+                            issueCount += packageByStatus[status].length;
 
                             for (const pkg of packageByStatus[status]) {
                                 let row = table.insertRow(0);
@@ -757,28 +1338,114 @@
                             }
                         }
                     }
-                    // Show no issues banner only if the issue banner is not shown
-                    let legendNoIssues =
-                        document.getElementById("legend-no-isues");
-                    legendNoIssues.style.display =
-                        legend.style.display === "block" ? "none" : "block";
+
+                    // Update pipeline package status
+                    if (hasIssues) {
+                        packageStatusElement.textContent = `${issueCount} packages need attention`;
+                        packageSummary.classList.remove("success");
+                        packageSummary.classList.add("progress"); // Use progress (yellow) instead of failure
+
+                        // Show the package issues section in Stage 1
+                        const packageIssuesSection = document.getElementById(
+                            "package-issues-section"
+                        );
+                        packageIssuesSection.style.display = "block";
+                    } else {
+                        packageStatusElement.textContent =
+                            "No package builds need attention. Continue doing awesome work :-)";
+                        packageSummary.classList.remove("progress");
+                        packageSummary.classList.add("success");
+
+                        // Hide the package issues section in Stage 1
+                        const packageIssuesSection = document.getElementById(
+                            "package-issues-section"
+                        );
+                        packageIssuesSection.style.display = "none";
+                    }
                 } catch (error) {
                     console.error("Failed to load package data:", error);
+
+                    // Enhanced error handling with more details
+                    const is404 = error.message.includes("404");
+
                     // Show error message in the packages section
                     let row = table.insertRow(0);
                     row.classList.add("api-error");
                     let errorCell = row.insertCell(0);
                     errorCell.colSpan = 2;
-                    errorCell.innerHTML = `<small>Failed to load package data for GL ${getGlDays()}: ${
-                        error.message
-                    }</small>`;
 
-                    // Hide both legends
-                    document.getElementById("legend-issues").style.display =
-                        "none";
-                    document.getElementById("legend-no-isues").style.display =
-                        "none";
+                    if (is404) {
+                        errorCell.innerHTML = `
+                            <div class="package-error-details">
+                                <strong>📄 No Package Data Available</strong>
+                                Package data for GL ${glDays} (${formattedDate}) is not available.
+                                <br><br>
+                                <em>This could mean:</em>
+                                <ul style="text-align: left; margin: 10px 0; padding-left: 20px;">
+                                    <li>The GL version is too far in the past</li>
+                                    <li>The GL version is in the future</li>
+                                    <li>Package data hasn't been generated yet</li>
+                                </ul>
+                            </div>
+                        `;
+                    } else {
+                        errorCell.innerHTML = `
+                            <div class="package-error-details">
+                                <strong>❌ Failed to Load Package Data</strong>
+                                GL ${glDays}: ${error.message}
+                                <br><br>
+                                <em>Please try refreshing the page or check your connection.</em>
+                            </div>
+                        `;
+                    }
+
+                    // Update pipeline package status for error
+                    if (is404) {
+                        packageStatusElement.textContent = `No package data available for GL ${glDays}`;
+                    } else {
+                        packageStatusElement.textContent = `Failed to load package data: ${error.message}`;
+                    }
+
+                    packageSummary.classList.remove(
+                        "success",
+                        "progress",
+                        "failure"
+                    );
+                    packageSummary.classList.add("api-error");
+
+                    // Set stage and pipeline to error state
+                    const stage1 = document.getElementById("stage-1");
+                    if (stage1) {
+                        stage1.classList.remove(
+                            "stage-success",
+                            "stage-progress",
+                            "stage-failure",
+                            "stage-unknown"
+                        );
+                        stage1.classList.add("stage-error");
+                    }
+
+                    const pipelineContainer =
+                        document.getElementById("pipeline-container");
+                    if (pipelineContainer) {
+                        pipelineContainer.classList.remove(
+                            "pipeline-success",
+                            "pipeline-progress",
+                            "pipeline-failure",
+                            "pipeline-unknown"
+                        );
+                        pipelineContainer.classList.add("pipeline-error");
+                    }
+
+                    // Also update the GL days header to show error state
+                    const glDaysElement = document.getElementById("gl-days");
+                    if (is404) {
+                        glDaysElement.classList.add("error");
+                    }
                 }
+
+                // Update pipeline hierarchy after package status is loaded
+                updatePipelineHierarchy();
             }
 
             // Always load workflow data (for both current and historic views)
@@ -800,7 +1467,11 @@
                 day: "numeric",
             });
 
+            // Apply appropriate styling classes
+            glDaysElement.classList.remove("historic", "error");
+
             if (isHistoricView()) {
+                glDaysElement.classList.add("historic");
                 const currentDate = new Date(initialDay);
                 currentDate.setDate(currentDate.getDate() + currentGlDays);
                 const currentFormattedDate = currentDate.toLocaleDateString(
@@ -812,13 +1483,14 @@
                         day: "numeric",
                     }
                 );
-                glDaysElement.innerText = `GL ${glDays} - ${formattedDate} (Historic - Current: GL ${currentGlDays} - ${currentFormattedDate})`;
+                glDaysElement.innerText = `Historic - GL ${glDays} \n ${formattedDate})`;
             } else {
-                glDaysElement.innerText = `GL ${glDays} - ${formattedDate}`;
+                glDaysElement.innerText = `GL ${glDays} \n ${formattedDate}`;
             }
 
             fillPackageTable();
             updateAuthStatus(); // Initialize auth status display
+            initializeGLSelector(); // Initialize GL version selector
         </script>
     </body>
 </html>

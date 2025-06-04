@@ -1,9 +1,72 @@
+/* ====== GARDEN LINUX DASHBOARD - UNIFIED COLOR SYSTEM ====== */
+/*
+ * GitHub-inspired color palette for consistency and accessibility:
+ *
+ * - Success: #28a745 (GitHub green) - completed workflows
+ * - Warning: #ffc107 (GitHub yellow) - in-progress workflows
+ * - Danger:  #dc3545 (GitHub red) - failed workflows
+ * - Info:    #007bff (GitHub blue) - informational elements
+ * - Secondary: #6c757d (GitHub grey) - unknown/no-data states
+ *
+ * Each color has light/dark variants for better contrast
+ * All elements use CSS custom properties for easy maintenance
+ */
+
+/* ====== GITHUB-INSPIRED COLOR SYSTEM ====== */
+:root {
+    /* Primary Status Colors */
+    --color-success: #28a745;
+    --color-success-light: #d4edda;
+    --color-success-dark: #155724;
+
+    --color-warning: #ffc107;
+    --color-warning-light: #fff3cd;
+    --color-warning-dark: #856404;
+
+    --color-danger: #dc3545;
+    --color-danger-light: #f8d7da;
+    --color-danger-dark: #721c24;
+
+    --color-info: #007bff;
+    --color-info-light: #d1ecf1;
+    --color-info-dark: #0c5460;
+
+    --color-secondary: #6c757d;
+    --color-secondary-light: #f8f9fa;
+    --color-secondary-dark: #495057;
+
+    /* Background Colors */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --bg-tertiary: #e9ecef;
+
+    /* Text Colors */
+    --text-primary: #212529;
+    --text-secondary: #6c757d;
+    --text-muted: #868e96;
+    --text-white: #ffffff;
+
+    /* Border Colors */
+    --border-light: #dee2e6;
+    --border-medium: #ced4da;
+    --border-dark: #6c757d;
+
+    /* Shadow */
+    --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    --shadow-md: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    --shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+}
+
+/* ====== BASE STYLES ====== */
 body,
 html {
     margin: 0;
     padding: 0;
     height: 100%;
-    font-family: Sans-Serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, sans-serif;
+    color: var(--text-primary);
+    background-color: var(--bg-secondary);
 }
 
 table {
@@ -13,249 +76,608 @@ table {
     justify-content: center;
 }
 
-.dashboard {
+/* ====== GL DAYS HEADER ====== */
+.days {
+    text-align: center;
+    margin: 20px auto;
+    max-width: 1200px;
+    padding: 20px;
+    background: linear-gradient(135deg, var(--color-info), #0056b3);
+    color: var(--text-white);
+    border-radius: 12px;
+    box-shadow: var(--shadow-md);
+    font-size: 1.4em;
+    font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    border: 3px solid var(--color-info);
+}
+
+/* Header status colors that match pipeline status */
+.days.header-success {
+    background: linear-gradient(135deg, var(--color-success), #22863a);
+    border-color: var(--color-success);
+}
+
+.days.header-failure {
+    background: linear-gradient(135deg, var(--color-danger), #bd2130);
+    border-color: var(--color-danger);
+}
+
+.days.header-progress {
+    background: linear-gradient(135deg, var(--color-warning), #e0a800);
+    border-color: var(--color-warning);
+}
+
+.days.header-unknown {
+    background: linear-gradient(135deg, var(--color-secondary), #5a6268);
+    border-color: var(--color-secondary);
+}
+
+.days.historic {
+    background: linear-gradient(135deg, var(--color-secondary), #5a6268);
+    border-color: var(--color-secondary);
+    position: relative;
+}
+
+.days.error {
+    background: linear-gradient(135deg, var(--color-danger), #bd2130);
+    border-color: var(--color-danger);
+}
+
+/* ====== PIPELINE HIERARCHY SYSTEM ====== */
+.pipeline-container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+    border: 4px solid var(--border-medium);
+    border-radius: 15px;
+    background: linear-gradient(
+        to bottom,
+        var(--bg-secondary) 0%,
+        var(--bg-tertiary) 100%
+    );
+    box-shadow: var(--shadow-md);
+}
+
+.pipeline-stage {
+    margin-bottom: 15px;
+    border: 4px solid var(--border-light);
+    border-radius: 12px;
+    background: var(--bg-primary);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.stage-header {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    background: rgba(108, 117, 125, 0.1);
+    border-bottom: 2px solid var(--border-light);
+}
+
+.stage-icon {
+    font-size: 1.8em;
+    margin-right: 15px;
+}
+
+.stage-header h3 {
+    margin: 0;
+    font-size: 1.3em;
+    color: var(--text-secondary);
+}
+
+.stage-workflows {
+    padding: 15px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+/* ====== WORKFLOW BOX STYLES ====== */
+.workflow-box {
+    flex: 1;
+    min-width: 250px;
+    padding: 20px;
+    border: 2px solid var(--border-light);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    transition: all 0.3s ease;
+    position: relative;
+    min-height: 80px;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    justify-content: space-between;
 }
 
-.days {
-    font-size: 1.5em;
+.workflow-box a {
+    text-decoration: none;
+    color: var(--text-secondary);
+    font-weight: bold;
+    font-size: 1.1em;
+    display: block;
+    margin-bottom: 10px;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
 }
 
-.boxed {
-    display: flex;
-    width: 70%;
-    margin-bottom: 20px;
-    padding: 18px;
-    align-items: stretch;
-    flex-flow: column;
-    border: 2px solid #a0a0a0;
-    border-radius: 10px;
+.workflow-box a:hover {
+    color: var(--color-info);
+    text-decoration: underline;
 }
 
-/* Dynamic border styles for top workflow box */
-.boxed.status-success {
-    border: 4px solid #5cb85c; /* Green border */
-    box-shadow: 0 0 10px rgba(92, 184, 92, 0.3);
-}
-
-.boxed.status-progress {
-    border: 4px solid #f3d000; /* Yellow border */
-    box-shadow: 0 0 10px rgba(243, 208, 0, 0.3);
-}
-
-.boxed.status-failure {
-    border: 4px solid #d9534f; /* Red border */
-    box-shadow: 0 0 10px rgba(217, 83, 79, 0.3);
-}
-
-.boxed.status-unknown {
-    border: 4px solid #6c757d; /* Grey border */
-    box-shadow: 0 0 10px rgba(108, 117, 125, 0.3);
-}
-
-.label {
-    font-size: 3em;
-    margin-bottom: 20px;
-    padding: 20px;
-    border-radius: 10px;
-    width: 70%;
-    text-align: center;
-}
-
-.boxed > .label {
-    width: 100%;
-    padding: 20px 0;
-}
-
-.lined-up {
-    display: flex;
-    justify-content: space-evenly;
-    flex-flow: row;
-    column-gap: 20px;
-    align-content: center;
-}
-
-.boxed > .lined-up {
-    width: 100%;
-    margin-bottom: -20px;
-}
-
-.label-5 {
-    width: 100%;
-}
-
-.success {
-    background-color: #5cb85c;
-    /* Green */
-    color: white;
-}
-
-.failure {
-    background-color: #d9534f;
-    /* Red */
-    color: white;
-}
-
-.progress {
-    animation: pulseProgress 5s infinite;
-    color: black;
-}
-
-.queued {
-    animation: pulseProgress 5s infinite;
-    color: black;
-}
-
-@keyframes pulseProgress {
-    0%,
-    100% {
-        background-color: #f3d000;
-    }
-
-    50% {
-        background-color: #f3d000;
-    }
-}
-
-.stale {
-    background-color: #f3d000;
-    /* Yellow */
-    color: black;
-}
-
-.legend {
-    font-size: 1.5em;
-    margin-bottom: 20px;
-    padding: 20px;
-    border-radius: 10px;
-    width: 70%;
-    text-align: center;
-}
-
-.noIssues {
-    background-color: #5cb85c;
-    /* Green */
-    color: white;
-}
-
-.issues {
-    background-color: #f3d000;
-    /* Yellow */
-    color: white;
-}
-
-/* Styles for run details */
-.run-details {
-    margin-top: 10px;
-    padding: 10px;
-    font-size: 0.4em;
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 5px;
-    max-height: 200px;
+/* Workflow Details Container */
+.workflow-details {
+    font-size: 0.9em;
+    line-height: 1.5;
+    background: var(--bg-primary);
+    padding: 12px;
+    border-radius: 6px;
+    margin-top: 12px;
+    border: 1px solid var(--border-light);
+    max-height: 300px;
     overflow-y: auto;
+    color: var(--text-primary);
 }
 
+/* Run Items */
 .run-item {
-    margin-bottom: 8px;
-    padding: 5px;
-    border-radius: 3px;
-    background-color: rgba(255, 255, 255, 0.1);
+    margin-bottom: 12px;
+    padding: 10px;
+    border-radius: 6px;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-light);
+    transition: all 0.2s ease;
+    cursor: pointer;
 }
 
 .run-item:last-child {
     margin-bottom: 0;
 }
 
-/* Color individual run items based on their status */
-.run-item .run-status.success {
-    background-color: #5cb85c;
-    color: white;
-    padding: 3px 6px;
-    border-radius: 3px;
-    display: inline-block;
+.run-item:hover {
+    background-color: var(--bg-secondary);
+    border-color: var(--color-info);
+    box-shadow: var(--shadow-sm);
 }
 
-.run-item .run-status.failure {
-    background-color: #d9534f;
-    color: white;
-    padding: 3px 6px;
-    border-radius: 3px;
-    display: inline-block;
-}
-
-.run-item .run-status.progress {
-    animation: pulseProgress 5s infinite;
-    color: black;
-    padding: 3px 6px;
-    border-radius: 3px;
-    display: inline-block;
-}
-
-.run-item .run-status.queued {
-    animation: pulseProgress 5s infinite;
-    color: black;
-    padding: 3px 6px;
-    border-radius: 3px;
-    display: inline-block;
-}
-
-.run-status a {
-    color: inherit;
+.run-item-link {
+    display: block;
     text-decoration: none;
+    color: inherit;
 }
 
-.run-status a:hover {
-    text-decoration: underline;
+.run-item-link:hover {
+    text-decoration: none;
+    color: inherit;
 }
 
-.branch-commit {
-    opacity: 0.8;
-    font-size: 0.9em;
+.run-status-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-light);
 }
 
-.no-runs {
-    background-color: #6c757d;
-    /* Grey - indicates no data available */
-    color: white;
-}
-
-.api-error {
-    background-color: #d9534f;
-    /* Red */
-    color: white;
-}
-
-/* Historic view styling */
-.historic-view {
-    border: 2px dashed #6c757d;
-    /* Add dashed border to indicate historic data */
-    position: relative;
-}
-
-.historic-view::before {
-    content: "📅 Historic";
-    position: absolute;
-    top: 5px;
-    right: 10px;
-    background-color: #6c757d;
-    color: white;
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-size: 0.3em;
+.run-status-line .status-success {
+    color: var(--color-success);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     font-weight: bold;
 }
 
-.historic-view .run-details {
-    background-color: rgba(0, 0, 0, 0.2);
+.run-status-line .status-failure {
+    color: var(--color-danger);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    font-weight: bold;
 }
 
-/* Error styling for packages table */
+.run-status-line .status-progress {
+    color: #d63384;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    font-weight: bold;
+}
+
+.run-status-line .status-queued {
+    color: #fd7e14;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    font-weight: bold;
+}
+
+.run-time {
+    font-size: 0.9em;
+    color: var(--text-secondary);
+}
+
+.run-meta {
+    font-size: 0.8em;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    line-height: 1.3;
+}
+
+.no-runs-message,
+.error-message {
+    padding: 8px 12px;
+    border-radius: 4px;
+    text-align: center;
+    font-style: italic;
+}
+
+.no-runs-message {
+    background-color: rgba(108, 117, 125, 0.1);
+    color: var(--text-secondary);
+}
+
+.error-message {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: var(--color-danger);
+}
+
+/* ====== WORKFLOW BOX STATUS STYLES - FIXED CONTRAST ====== */
+.workflow-box.success {
+    background: linear-gradient(135deg, var(--color-success), #22863a);
+    color: var(--text-white);
+    border-color: var(--color-success);
+}
+
+.workflow-box.success a {
+    color: var(--text-white);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.workflow-box.failure {
+    background: linear-gradient(135deg, var(--color-danger), #bd2130);
+    color: var(--text-white);
+    border-color: var(--color-danger);
+}
+
+.workflow-box.failure a {
+    color: var(--text-white);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.workflow-box.progress {
+    background: linear-gradient(135deg, var(--color-warning), #e0a800);
+    color: var(--text-primary);
+    border-color: var(--color-warning);
+    animation: workflowPulse 2s infinite;
+}
+
+.workflow-box.progress a {
+    color: var(--text-primary);
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6);
+    font-weight: bold;
+}
+
+.workflow-box.queued {
+    background: linear-gradient(135deg, #fd7e14, #e8590c);
+    color: var(--text-white);
+    border-color: #fd7e14;
+}
+
+.workflow-box.queued a {
+    color: var(--text-white);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.workflow-box.no-runs {
+    background: linear-gradient(135deg, var(--color-secondary), #5a6268);
+    color: var(--text-white);
+    border-color: var(--color-secondary);
+}
+
+.workflow-box.no-runs a {
+    color: var(--text-white);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.workflow-box.no-runs .no-runs-message {
+    color: var(--text-primary);
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--border-light);
+    padding: 8px 12px;
+    border-radius: 4px;
+}
+
+.workflow-box.api-error {
+    background: linear-gradient(135deg, var(--color-danger), #bd2130);
+    color: var(--text-white);
+    border-color: var(--color-danger);
+}
+
+.workflow-box.api-error a {
+    color: var(--text-white);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* CRITICAL: Override workflow details for colored backgrounds - FIXED CONTRAST */
+.workflow-box.success .workflow-details,
+.workflow-box.failure .workflow-details,
+.workflow-box.progress .workflow-details,
+.workflow-box.queued .workflow-details,
+.workflow-box.no-runs .workflow-details,
+.workflow-box.api-error .workflow-details {
+    background: rgba(255, 255, 255, 0.98) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* CRITICAL: Ensure ALL text in workflow details is dark and readable */
+.workflow-box .workflow-details *,
+.workflow-box .run-item,
+.workflow-box .run-item *,
+.workflow-box .run-status-line,
+.workflow-box .run-time,
+.workflow-box .run-meta {
+    color: var(--text-primary) !important;
+}
+
+.workflow-box .run-time,
+.workflow-box .run-meta {
+    color: var(--text-secondary) !important;
+}
+
+/* Status indicators in colored workflow boxes */
+.workflow-box .run-status-line .status-success {
+    color: var(--color-success) !important;
+    font-weight: bold;
+}
+
+.workflow-box .run-status-line .status-failure {
+    color: var(--color-danger) !important;
+    font-weight: bold;
+}
+
+.workflow-box .run-status-line .status-progress {
+    color: var(--color-warning-dark) !important;
+    font-weight: bold;
+}
+
+.workflow-box .run-status-line .status-queued {
+    color: #fd7e14 !important;
+    font-weight: bold;
+}
+
+@keyframes workflowPulse {
+    0%,
+    100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.02);
+    }
+}
+
+/* ====== PIPELINE STAGE STATUS STYLES ====== */
+.pipeline-stage.stage-success {
+    border-color: var(--color-success);
+    background: linear-gradient(
+        to right,
+        rgba(40, 167, 69, 0.1),
+        var(--bg-primary)
+    );
+    box-shadow: 0 0 8px rgba(40, 167, 69, 0.4);
+}
+
+.pipeline-stage.stage-failure {
+    border-color: var(--color-danger);
+    background: linear-gradient(
+        to right,
+        rgba(220, 53, 69, 0.1),
+        var(--bg-primary)
+    );
+    box-shadow: 0 0 8px rgba(220, 53, 69, 0.4);
+}
+
+.pipeline-stage.stage-progress {
+    border-color: var(--color-warning);
+    background: linear-gradient(
+        to right,
+        rgba(255, 193, 7, 0.1),
+        var(--bg-primary)
+    );
+    animation: stagePulse 3s infinite;
+    box-shadow: 0 0 8px rgba(255, 193, 7, 0.4);
+}
+
+.pipeline-stage.stage-unknown {
+    border-color: var(--color-secondary);
+    background: linear-gradient(
+        to right,
+        rgba(108, 117, 125, 0.1),
+        var(--bg-primary)
+    );
+    box-shadow: 0 0 8px rgba(108, 117, 125, 0.4);
+}
+
+.pipeline-stage.stage-cascaded-failure {
+    border-color: var(--color-danger);
+    background: linear-gradient(
+        to right,
+        rgba(220, 53, 69, 0.15),
+        var(--bg-primary)
+    );
+}
+
+.pipeline-stage.stage-cascaded-failure::before {
+    content: "⚠️ Failed due to dependency";
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: var(--color-danger);
+    color: var(--text-white);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+.pipeline-stage.stage-error {
+    border-color: var(--color-danger);
+    background: linear-gradient(
+        to right,
+        rgba(220, 53, 69, 0.1),
+        var(--bg-primary)
+    );
+    box-shadow: 0 0 8px rgba(220, 53, 69, 0.4);
+}
+
+@keyframes stagePulse {
+    0%,
+    100% {
+        box-shadow: 0 0 8px rgba(255, 193, 7, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 15px rgba(255, 193, 7, 0.8);
+    }
+}
+
+/* ====== PIPELINE CONTAINER STATUS STYLES ====== */
+.pipeline-container.pipeline-success {
+    border-color: var(--color-success);
+    box-shadow: 0 0 15px rgba(40, 167, 69, 0.3);
+}
+
+.pipeline-container.pipeline-failure {
+    border-color: var(--color-danger);
+    box-shadow: 0 0 15px rgba(220, 53, 69, 0.3);
+}
+
+.pipeline-container.pipeline-progress {
+    border-color: var(--color-warning);
+    box-shadow: 0 0 15px rgba(255, 193, 7, 0.3);
+}
+
+.pipeline-container.pipeline-unknown {
+    border-color: var(--color-secondary);
+    box-shadow: 0 0 15px rgba(108, 117, 125, 0.3);
+}
+
+.pipeline-container.pipeline-error {
+    border-color: var(--color-danger);
+    box-shadow: 0 0 15px rgba(220, 53, 69, 0.3);
+}
+
+@keyframes pipelinePulse {
+    0%,
+    100% {
+        border-color: var(--color-danger);
+    }
+    50% {
+        border-color: #ffdd33;
+    }
+}
+
+/* ====== PACKAGE SUMMARY STYLES ====== */
+.package-summary {
+    width: 100%;
+    padding: 20px;
+    border: 2px solid var(--border-light);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    text-align: center;
+}
+
+.package-status {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: var(--text-primary);
+}
+
+.package-summary.success {
+    background: linear-gradient(135deg, var(--color-success-light), #c3e6cb);
+    border-color: var(--color-success);
+    color: var(--color-success-dark);
+}
+
+.package-summary.success .package-status {
+    color: var(--color-success-dark);
+}
+
+.package-summary.progress {
+    background: linear-gradient(135deg, var(--color-warning), #e0a800);
+    color: var(--text-primary);
+    border-color: var(--color-warning);
+}
+
+.package-summary.progress .package-status {
+    color: var(--text-primary);
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3);
+}
+
+.package-summary.api-error {
+    background: linear-gradient(135deg, var(--color-danger), #bd2130);
+    color: var(--text-white);
+    border-color: var(--color-danger);
+}
+
+.package-summary.api-error .package-status {
+    color: var(--text-white);
+    font-weight: bold;
+}
+
+.package-issues-header {
+    margin: 15px 0 10px 0;
+    font-size: 1.1em;
+    color: var(--text-primary);
+    font-weight: bold;
+}
+
+.package-table-container {
+    margin-top: 10px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 6px;
+    padding: 10px;
+    border: 1px solid var(--border-light);
+}
+
+.package-table-container table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.package-table-container td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.package-table-container tr:last-child td {
+    border-bottom: none;
+}
+
+.package-table-container tr.progress {
+    background-color: rgba(255, 193, 7, 0.2);
+}
+
+.package-table-container tr.failure {
+    background-color: rgba(220, 53, 69, 0.2);
+}
+
+.package-table-container tr.stale {
+    background-color: rgba(255, 193, 7, 0.15);
+}
+
+.package-error-details {
+    margin-top: 15px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    font-size: 0.9em;
+    line-height: 1.4;
+}
+
+.package-error-details strong {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-white);
+}
+
 #packages-table .api-error {
-    background-color: #d9534f;
-    color: white;
+    background-color: var(--color-danger);
+    color: var(--text-white);
 }
 
 #packages-table .api-error td {
@@ -264,7 +686,7 @@ table {
     font-style: italic;
 }
 
-/* Settings panel styles */
+/* ====== SETTINGS PANEL ====== */
 #settings-container {
     position: fixed;
     top: 20px;
@@ -273,13 +695,14 @@ table {
 }
 
 #settings-btn {
-    background-color: #007bff;
-    color: white;
+    background-color: var(--color-info);
+    color: var(--text-white);
     border: none;
     padding: 10px 15px;
     border-radius: 5px;
     cursor: pointer;
     font-size: 16px;
+    box-shadow: var(--shadow-sm);
 }
 
 #settings-btn:hover {
@@ -290,18 +713,18 @@ table {
     position: absolute;
     top: 50px;
     right: 0;
-    background: white;
-    border: 2px solid #007bff;
+    background: var(--bg-primary);
+    border: 2px solid var(--color-info);
     border-radius: 8px;
     padding: 20px;
     min-width: 300px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-lg);
 }
 
 #settings-panel h3 {
     margin-top: 0;
     margin-bottom: 15px;
-    color: #333;
+    color: var(--text-primary);
 }
 
 .token-status {
@@ -316,20 +739,29 @@ table {
 .token-input-group input {
     width: 100%;
     padding: 8px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border-medium);
     border-radius: 4px;
     margin-bottom: 10px;
     font-family: monospace;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.token-input-group input:focus {
+    outline: none;
+    border-color: var(--color-info);
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
 }
 
 .token-input-group button {
-    background-color: #28a745;
-    color: white;
+    background-color: var(--color-success);
+    color: var(--text-white);
     border: none;
     padding: 8px 12px;
     border-radius: 4px;
     cursor: pointer;
     margin-right: 5px;
+    transition: background-color 0.2s;
 }
 
 .token-input-group button:hover {
@@ -337,18 +769,264 @@ table {
 }
 
 .token-input-group button:last-child {
-    background-color: #dc3545;
+    background-color: var(--color-danger);
 }
 
 .token-input-group button:last-child:hover {
-    background-color: #c82333;
+    background-color: #bd2130;
 }
 
 #settings-panel small {
-    color: #666;
+    color: var(--text-secondary);
     line-height: 1.4;
 }
 
 #settings-panel a {
-    color: #007bff;
+    color: var(--color-info);
+}
+
+/* GL Version Selector */
+.gl-selector {
+    margin-top: 15px;
+}
+
+.gl-selector label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: var(--text-primary);
+}
+
+.gl-input-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.gl-btn {
+    background-color: var(--color-secondary);
+    color: var(--text-white);
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    min-width: 35px;
+    transition: background-color 0.2s;
+}
+
+.gl-btn:hover {
+    background-color: #5a6268;
+}
+
+.gl-btn:active {
+    background-color: #495057;
+}
+
+#gl-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--border-medium);
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 14px;
+    text-align: center;
+    min-width: 80px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+#gl-input:focus {
+    outline: none;
+    border-color: var(--color-info);
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+}
+
+.gl-info {
+    margin-bottom: 10px;
+}
+
+.gl-info small {
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.gl-actions {
+    text-align: center;
+}
+
+.today-btn {
+    background-color: var(--color-info);
+    color: var(--text-white);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.today-btn:hover {
+    background-color: #0056b3;
+}
+
+.stage-warning {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: #fd7e14;
+    color: var(--text-white);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: bold;
+    z-index: 10;
+}
+
+/* ====== RESPONSIVE DESIGN ====== */
+@media (max-width: 768px) {
+    .stage-workflows {
+        flex-direction: column;
+    }
+
+    .workflow-box {
+        min-width: auto;
+    }
+
+    .pipeline-container {
+        margin: 10px;
+        padding: 15px;
+    }
+
+    .stage-header h3 {
+        font-size: 1.1em;
+    }
+}
+
+/* ====== SEQUENTIAL WORKFLOW STYLES ====== */
+.sequential-workflows {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sub-stage {
+    border: 2px solid var(--border-light);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    padding: 15px;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.sub-stage-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.sub-stage-icon {
+    font-size: 1.4em;
+    margin-right: 10px;
+}
+
+.sub-stage-header h4 {
+    margin: 0;
+    flex: 1;
+    font-size: 1.1em;
+    color: var(--text-secondary);
+}
+
+.sequence-indicator {
+    background: var(--color-info);
+    color: var(--text-white);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+.sequential-arrow {
+    text-align: center;
+    font-size: 2em;
+    color: var(--color-info);
+    margin: 5px 0;
+    animation: arrowPulse 2s infinite;
+}
+
+@keyframes arrowPulse {
+    0%,
+    100% {
+        opacity: 0.7;
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+}
+
+/* Sub-stage status styles */
+.sub-stage.success {
+    border-color: var(--color-success);
+    background: linear-gradient(
+        135deg,
+        rgba(40, 167, 69, 0.1),
+        var(--bg-primary)
+    );
+}
+
+.sub-stage.failure {
+    border-color: var(--color-danger);
+    background: linear-gradient(
+        135deg,
+        rgba(220, 53, 69, 0.1),
+        var(--bg-primary)
+    );
+}
+
+.sub-stage.progress {
+    border-color: var(--color-danger);
+    background: linear-gradient(
+        135deg,
+        rgba(255, 193, 7, 0.1),
+        var(--bg-primary)
+    );
+    animation: subStagePulse 3s infinite;
+}
+
+.sub-stage.blocked {
+    border-color: var(--color-secondary);
+    background: linear-gradient(
+        135deg,
+        rgba(108, 117, 125, 0.1),
+        var(--bg-primary)
+    );
+    opacity: 0.7;
+}
+
+.sub-stage.blocked::after {
+    content: "⏸️ Waiting for previous step";
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: var(--color-secondary);
+    color: var(--text-white);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+@keyframes subStagePulse {
+    0%,
+    100% {
+        border-color: var(--color-danger);
+    }
+    50% {
+        border-color: #ffdd33;
+    }
 }
