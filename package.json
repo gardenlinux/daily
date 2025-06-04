@@ -1,0 +1,36 @@
+{
+    "name": "gardenlinux-dashboard",
+    "version": "1.0.0",
+    "description": "Garden Linux Daily Dashboard - Pipeline status and package monitoring",
+    "type": "module",
+    "main": "dist/dashboard.js",
+    "scripts": {
+        "build": "rollup -c",
+        "dev": "rollup -c -w",
+        "serve": "python3 -m http.server 8000",
+        "start": "npm run build && npm run serve",
+        "lint": "npm run lint:js && npm run lint:format",
+        "lint:js": "eslint src/**/*.js",
+        "lint:format": "prettier --check .",
+        "lint:fix": "eslint src/**/*.js --fix && prettier --write .",
+        "fix": "prettier --write ."
+    },
+    "keywords": [
+        "garden-linux",
+        "dashboard",
+        "ci-cd",
+        "monitoring"
+    ],
+    "author": "Garden Linux Team",
+    "license": "MIT",
+    "devDependencies": {
+        "rollup": "^4.0.0",
+        "@rollup/plugin-terser": "^0.4.0",
+        "eslint": "^8.57.0",
+        "@eslint/js": "^8.57.0",
+        "prettier": "^3.2.5"
+    },
+    "engines": {
+        "node": ">=16.0.0"
+    }
+}

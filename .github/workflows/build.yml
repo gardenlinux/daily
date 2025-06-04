@@ -1,0 +1,73 @@
+name: Build and Deploy Dashboard
+
+on:
+    push:
+        branches: [main, feat/build_and_publish_a_release]
+    pull_request:
+        branches: [main]
+    workflow_dispatch:
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "18"
+                  cache: "npm"
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Build dashboard
+              run: npm run build
+              env:
+                  NODE_ENV: production
+
+            - name: List build output
+              run: |
+                  echo "Build completed. Output files:"
+                  ls -la dist/
+
+            - name: Upload build artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: dashboard-build
+                  path: |
+                      index.html
+                      style.css
+                      dist/
+                  retention-days: 30
+
+            - name: Setup Pages (if deploying to GitHub Pages)
+              if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+              uses: actions/configure-pages@v4
+
+            - name: Upload to GitHub Pages
+              if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+              uses: actions/upload-pages-artifact@v3
+              with:
+                  path: "."
+
+    deploy:
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        needs: build
+        runs-on: ubuntu-latest
+
+        permissions:
+            pages: write
+            id-token: write
+
+        environment:
+            name: github-pages
+            url: ${{ steps.deployment.outputs.page_url }}
+
+        steps:
+            - name: Deploy to GitHub Pages
+              id: deployment
+              uses: actions/deploy-pages@v4

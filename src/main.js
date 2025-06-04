@@ -1,0 +1,318 @@
+/**
+ * ========================================
+ * GARDEN LINUX DASHBOARD - MAIN ENTRY POINT
+ * ========================================
+ *
+ * This file contains:
+ * - Application initialization
+ * - Settings panel management
+ * - GL version selector functionality
+ * - UI event handlers and global functions
+ */
+
+import {
+    // getAuthHeaders, // Not used in main.js but available for future use
+    // getTriggerInfo, // Not used in main.js but available for future use
+    getGlDays,
+    getCurrentGlDays,
+    isHistoricView,
+    formatGLDate,
+    updateGLDateInfo,
+    shouldLoadHistoricReleases,
+} from "./utils.js";
+
+import {
+    getRun,
+    fillPackageTable,
+    loadHistoricReleases,
+    // updatePipelineHierarchy, // Called automatically from dashboard functions
+    // updateHeaderColor, // Called automatically from dashboard functions
+} from "./dashboard.js";
+
+// ========================================
+// SETTINGS PANEL MANAGEMENT
+// ========================================
+// Settings panel functions (need to be global for onclick handlers)
+window.toggleSettings = function () {
+    const panel = document.getElementById("settings-panel");
+    panel.style.display = panel.style.display === "none" ? "block" : "none";
+    updateAuthStatus();
+};
+
+window.saveToken = function () {
+    const tokenInput = document.getElementById("token-input");
+    const token = tokenInput.value.trim();
+
+    if (!token) {
+        alert("Please enter a token");
+        return;
+    }
+
+    // Validate token format
+    if (!token.startsWith("ghp_") && !token.startsWith("github_pat_")) {
+        const confirmSave = confirm(
+            "Warning: This doesn't look like a valid GitHub token.\n" +
+                'GitHub tokens start with "ghp_" (classic) or "github_pat_" (fine-grained).\n\n' +
+                "Do you want to save it anyway?"
+        );
+        if (!confirmSave) {
+            return;
+        }
+    }
+
+    localStorage.setItem("github_token", token);
+    tokenInput.value = "";
+    updateAuthStatus();
+    alert("Token saved successfully! Refreshing data...");
+    location.reload(); // Refresh to use new token
+};
+
+window.clearToken = function () {
+    localStorage.removeItem("github_token");
+    updateAuthStatus();
+    alert("Token cleared! Page will reload...");
+    location.reload();
+};
+
+function updateAuthStatus() {
+    const token = localStorage.getItem("github_token");
+    const statusElement = document.getElementById("auth-status");
+
+    if (token) {
+        statusElement.textContent = "Authenticated ✅";
+        statusElement.style.color = "#5cb85c";
+    } else {
+        statusElement.textContent = "Not authenticated ❌";
+        statusElement.style.color = "#d9534f";
+    }
+}
+
+// ========================================
+// GL VERSION SELECTOR FUNCTIONALITY
+// ========================================
+// GL Version Selector Functions (need to be global for onclick handlers)
+function initializeGLSelector() {
+    const glInput = document.getElementById("gl-input");
+    const currentGL = getGlDays();
+    glInput.value = currentGL;
+    updateGLDateInfo(currentGL);
+}
+
+window.incrementGL = function () {
+    const glInput = document.getElementById("gl-input");
+    const currentValue = parseInt(glInput.value) || getCurrentGlDays();
+    const newValue = currentValue + 1;
+    glInput.value = newValue;
+    updateGLDateInfo(newValue);
+};
+
+window.decrementGL = function () {
+    const glInput = document.getElementById("gl-input");
+    const currentValue = parseInt(glInput.value) || getCurrentGlDays();
+    const newValue = Math.max(1, currentValue - 1);
+    glInput.value = newValue;
+    updateGLDateInfo(newValue);
+};
+
+window.handleGLKeypress = function (event) {
+    if (event.key === "Enter") {
+        goToGL();
+    }
+    // Update date info as user types
+    setTimeout(() => {
+        const glInput = document.getElementById("gl-input");
+        const value = parseInt(glInput.value);
+        if (!isNaN(value) && value > 0) {
+            updateGLDateInfo(value);
+        }
+    }, 10);
+};
+
+window.handleGLInput = function () {
+    // Update date info as user types
+    const glInput = document.getElementById("gl-input");
+    const value = parseInt(glInput.value);
+    if (!isNaN(value) && value > 0) {
+        updateGLDateInfo(value);
+    }
+};
+
+window.goToGL = function () {
+    const glInput = document.getElementById("gl-input");
+    const glValue = parseInt(glInput.value);
+
+    if (isNaN(glValue) || glValue < 1) {
+        alert("Please enter a valid GL version (positive number)");
+        glInput.value = getCurrentGlDays();
+        return;
+    }
+
+    // Navigate to the URL with the GL parameter
+    const url = new URL(window.location.href);
+    url.searchParams.set("gl", glValue);
+    window.location.href = url.toString();
+};
+
+window.goToToday = function () {
+    // Navigate to today's version (remove GL parameter)
+    const url = new URL(window.location.href);
+    url.searchParams.delete("gl");
+    window.location.href = url.toString();
+};
+
+// ========================================
+// UI EVENT HANDLERS AND GLOBAL FUNCTIONS
+// ========================================
+// Toggle current details section (pipeline stages)
+function toggleCurrentDetails() {
+    const content = document.getElementById("current-details-content");
+    const icon = document.getElementById("current-details-toggle-icon");
+
+    if (
+        content.style.display === "none" ||
+        !content.classList.contains("expanded")
+    ) {
+        content.style.display = "block";
+        content.classList.add("expanded");
+        icon.classList.add("expanded");
+        icon.textContent = "▲";
+    } else {
+        content.classList.remove("expanded");
+        icon.classList.remove("expanded");
+        icon.textContent = "▼";
+        setTimeout(() => {
+            if (!content.classList.contains("expanded")) {
+                content.style.display = "none";
+            }
+        }, 400);
+    }
+}
+
+// Toggle historic releases section
+function toggleHistoricReleases() {
+    const content = document.getElementById("historic-releases-content");
+    const icon = document.getElementById("historic-toggle-icon");
+
+    if (
+        content.style.display === "none" ||
+        !content.classList.contains("expanded")
+    ) {
+        content.style.display = "block";
+        content.classList.add("expanded");
+        icon.classList.add("expanded");
+        icon.textContent = "▲";
+
+        // Load historic data if not already loaded
+        if (!content.dataset.loaded) {
+            loadHistoricReleases();
+            content.dataset.loaded = "true";
+        }
+    } else {
+        content.classList.remove("expanded");
+        icon.classList.remove("expanded");
+        icon.textContent = "▼";
+        setTimeout(() => {
+            if (!content.classList.contains("expanded")) {
+                content.style.display = "none";
+            }
+        }, 400);
+    }
+}
+
+// ========================================
+// APPLICATION INITIALIZATION
+// ========================================
+// Main initialization
+function initDashboard() {
+    // Update the display text
+    const glDays = getGlDays();
+    const glDaysElement = document.getElementById("gl-days");
+
+    // Calculate the date for the GL version
+    const formattedDate = formatGLDate(glDays);
+
+    // Apply appropriate styling classes
+    glDaysElement.classList.remove("historic", "error");
+
+    if (isHistoricView()) {
+        glDaysElement.classList.add("historic");
+        glDaysElement.innerText = `Historic - GL ${glDays} \n ${formattedDate}`;
+
+        // Update section headings for historic view
+        const currentReleaseHeader = document.querySelector(
+            "#current-release-header h2"
+        );
+        const currentDetailsHeader = document.querySelector(
+            "#current-details-header h2"
+        );
+
+        if (currentReleaseHeader) {
+            currentReleaseHeader.textContent = "🚀 Historic Daily Release";
+        }
+        if (currentDetailsHeader) {
+            currentDetailsHeader.textContent =
+                "🔧 Historic Daily Release Details";
+        }
+
+        // Update historic releases header for historic view
+        const historicReleaseHeader = document.querySelector(
+            ".historic-releases-header h2"
+        );
+        if (historicReleaseHeader) {
+            historicReleaseHeader.textContent = `📅 Historic Daily Releases (14 Days Before GL ${glDays})`;
+        }
+    } else {
+        glDaysElement.innerText = `GL ${glDays} \n ${formattedDate}`;
+
+        // Ensure headings are set to "Current" for non-historic view
+        const currentReleaseHeader = document.querySelector(
+            "#current-release-header h2"
+        );
+        const currentDetailsHeader = document.querySelector(
+            "#current-details-header h2"
+        );
+
+        if (currentReleaseHeader) {
+            currentReleaseHeader.textContent = "🚀 Current Daily Release";
+        }
+        if (currentDetailsHeader) {
+            currentDetailsHeader.textContent =
+                "🔧 Current Daily Release Details";
+        }
+
+        // Update historic releases header for current view
+        const historicReleaseHeader = document.querySelector(
+            ".historic-releases-header h2"
+        );
+        if (historicReleaseHeader) {
+            historicReleaseHeader.textContent = `📅 Historic Daily Releases (14 Days Before Today)`;
+        }
+    }
+
+    // Current release section is always visible now (no initialization needed)
+
+    // Hide historic releases section if disabled
+    const historicContainer = document.getElementById(
+        "historic-releases-container"
+    );
+    if (!shouldLoadHistoricReleases()) {
+        historicContainer.style.display = "none";
+    }
+
+    // Load data
+    getRun();
+    fillPackageTable();
+    updateAuthStatus(); // Initialize auth status display
+    initializeGLSelector(); // Initialize GL version selector
+}
+
+// Start the application when DOM is ready
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initDashboard);
+} else {
+    initDashboard();
+}
+
+// Make functions globally available
+window.toggleCurrentDetails = toggleCurrentDetails;
+window.toggleHistoricReleases = toggleHistoricReleases;
