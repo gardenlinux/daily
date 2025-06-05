@@ -225,6 +225,37 @@ function toggleHistoricReleases() {
     }
 }
 
+// Toggle platform test cleanup section
+function togglePlatformCleanup() {
+    const content = document.getElementById("platform-cleanup-content");
+    const icon = document.getElementById("platform-cleanup-toggle-icon");
+
+    if (
+        content.style.display === "none" ||
+        !content.classList.contains("expanded")
+    ) {
+        content.style.display = "block";
+        content.classList.add("expanded");
+        icon.classList.add("expanded");
+        icon.textContent = "▲";
+
+        // Load platform cleanup data if not already loaded
+        if (!content.dataset.loaded) {
+            getRun();
+            content.dataset.loaded = "true";
+        }
+    } else {
+        content.classList.remove("expanded");
+        icon.classList.remove("expanded");
+        icon.textContent = "▼";
+        setTimeout(() => {
+            if (!content.classList.contains("expanded")) {
+                content.style.display = "none";
+            }
+        }, 400);
+    }
+}
+
 // ========================================
 // DYNAMIC HTML GENERATION
 // ========================================
@@ -382,3 +413,4 @@ if (document.readyState === "loading") {
 // Make functions globally available
 window.toggleCurrentDetails = toggleCurrentDetails;
 window.toggleHistoricReleases = toggleHistoricReleases;
+window.togglePlatformCleanup = togglePlatformCleanup;

@@ -84,9 +84,15 @@ export async function getRun() {
 
     for await (const workflow of reposWorkflows) {
         let apiUrl;
+        let isPlatformCleanup =
+            workflow.id === WORKFLOW_IDS.PLATFORM_TEST_CLEANUP;
 
+        // Special handling for Platform Test Cleanup - get more runs for date filtering
+        if (isPlatformCleanup) {
+            apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50&branch=main`;
+        }
         // Only filter by daily tag for the repo build workflow
-        if (workflow.id === WORKFLOW_IDS.REPO_BUILD) {
+        else if (workflow.id === WORKFLOW_IDS.REPO_BUILD) {
             try {
                 const tagResponse = await fetch(
                     `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/git/ref/tags/${tagName}`,
@@ -125,6 +131,20 @@ export async function getRun() {
 
             // Track status for color coding
             workflowStatuses[workflow.id] = "api-error";
+
+            // Update Platform Test Cleanup header if it's that workflow
+            if (isPlatformCleanup) {
+                const headerElement = document.getElementById(
+                    "platform-cleanup-header"
+                );
+                if (headerElement) {
+                    headerElement.className = headerElement.className.replace(
+                        /\bstatus-(progress|success|failure|warning|unknown)\b/g,
+                        ""
+                    );
+                    headerElement.classList.add("status-failure");
+                }
+            }
             continue;
         }
 
@@ -148,15 +168,28 @@ export async function getRun() {
 
             // Track status for color coding
             workflowStatuses[workflow.id] = "api-error";
+
+            // Update Platform Test Cleanup header if it's that workflow
+            if (isPlatformCleanup) {
+                const headerElement = document.getElementById(
+                    "platform-cleanup-header"
+                );
+                if (headerElement) {
+                    headerElement.className = headerElement.className.replace(
+                        /\bstatus-(progress|success|failure|warning|unknown)\b/g,
+                        ""
+                    );
+                    headerElement.classList.add("status-failure");
+                }
+            }
             continue;
         }
 
-        // Filter runs for the target date (current day or historic day)
+        // Filter runs for the target date (current day or historic day) - applies to all workflows
         const targetRunsUnsorted = workflowRuns.filter((run) => {
             const runDate = new Date(run.created_at);
             return runDate >= targetDate && runDate < nextDay;
         });
-
         // Sort target runs by run.id in descending order (newest first)
         const targetRuns = targetRunsUnsorted.sort((a, b) => b.id - a.id);
 
@@ -177,6 +210,19 @@ export async function getRun() {
             ""
         );
 
+        // Reset Platform Test Cleanup header classes
+        if (isPlatformCleanup) {
+            const headerElement = document.getElementById(
+                "platform-cleanup-header"
+            );
+            if (headerElement) {
+                headerElement.className = headerElement.className.replace(
+                    /\bstatus-(progress|success|failure|warning|unknown)\b/g,
+                    ""
+                );
+            }
+        }
+
         if (targetRuns.length === 0) {
             // Handles the case where targetRuns might be empty after filtering
             workflowDomElement.classList.add("no-runs");
@@ -190,6 +236,16 @@ export async function getRun() {
 
             // Track status for color coding
             workflowStatuses[workflow.id] = "no-runs";
+
+            // Update Platform Test Cleanup header
+            if (isPlatformCleanup) {
+                const headerElement = document.getElementById(
+                    "platform-cleanup-header"
+                );
+                if (headerElement) {
+                    headerElement.classList.add("status-unknown");
+                }
+            }
             continue;
         }
 
@@ -210,27 +266,46 @@ export async function getRun() {
 
             // Track status for color coding
             workflowStatuses[workflow.id] = "no-runs";
+
+            // Update Platform Test Cleanup header
+            if (isPlatformCleanup) {
+                const headerElement = document.getElementById(
+                    "platform-cleanup-header"
+                );
+                if (headerElement) {
+                    headerElement.classList.add("status-unknown");
+                }
+            }
             continue;
         }
 
         let workflowStatus = "unknown";
-        if (mostRecentRun.status === "in_progress") {
+        const { statusClass } = getRunStatus(mostRecentRun);
+        workflowStatus = statusClass;
+
+        if (statusClass === "progress") {
             workflowDomElement.classList.add("progress");
-            workflowStatus = "progress";
-        } else if (mostRecentRun.status === "queued") {
+        } else if (statusClass === "queued") {
             workflowDomElement.classList.add("queued");
-            workflowStatus = "queued";
-        } else if (mostRecentRun.status === "completed") {
-            if (mostRecentRun.conclusion === "success") {
-                workflowDomElement.classList.add("success");
-                workflowStatus = "success";
-            } else {
-                workflowDomElement.classList.add("failure");
-                workflowStatus = "failure";
-            }
+        } else if (statusClass === "success") {
+            workflowDomElement.classList.add("success");
+        } else if (statusClass === "failure") {
+            workflowDomElement.classList.add("failure");
         } else {
             workflowDomElement.classList.add("queued");
             workflowStatus = "queued";
+        }
+
+        // Update Platform Test Cleanup header color
+        if (isPlatformCleanup) {
+            const headerElement = document.getElementById(
+                "platform-cleanup-header"
+            );
+            if (headerElement) {
+                let headerStatus = statusClass;
+                if (statusClass === "queued") headerStatus = "progress";
+                headerElement.classList.add(`status-${headerStatus}`);
+            }
         }
 
         // Track status for color coding
@@ -245,85 +320,12 @@ export async function getRun() {
             const runDiv = document.createElement("div");
             runDiv.className = "run-item";
 
-            let statusClass = "";
-            let statusText = "";
-
-            if (run.status === "in_progress") {
-                statusClass = "progress";
-                statusText = "In Progress";
-            } else if (run.status === "queued") {
-                statusClass = "queued";
-                statusText = "Queued";
-            } else if (run.status === "completed") {
-                if (run.conclusion === "success") {
-                    statusClass = "success";
-                    statusText = "Success";
-                } else {
-                    statusClass = "failure";
-                    statusText = run.conclusion || "Failed";
-                }
-            } else {
-                statusClass = "queued";
-                statusText = run.status;
-            }
-
-            const createdTime = new Date(run.created_at).toLocaleTimeString();
-            const updatedTime = new Date(run.updated_at).toLocaleTimeString();
-
-            // Calculate duration for completed runs
-            let durationText = "";
-            if (run.status === "completed") {
-                const startTime = new Date(run.created_at);
-                const endTime = new Date(run.updated_at);
-                const durationMs = endTime - startTime;
-
-                const durationHours = Math.floor(durationMs / 3600000); // 1 hour = 3600000ms
-                const durationMinutes = Math.floor(
-                    (durationMs % 3600000) / 60000
-                );
-                const durationSeconds = Math.floor((durationMs % 60000) / 1000);
-
-                if (durationHours > 0) {
-                    durationText = ` (${durationHours}h ${durationMinutes}m ${durationSeconds}s)`;
-                } else {
-                    durationText = ` (${durationMinutes}m ${durationSeconds}s)`;
-                }
-            }
-
-            const branch = run.head_branch || "main";
-            const commitSha = run.head_sha
-                ? run.head_sha.substring(0, 7)
-                : "unknown";
-
-            // Get trigger information for all workflows
-            const triggerInfo = await getTriggerInfo(
-                API_CONFIG.GARDENLINUX_ORG,
-                workflow.repo,
-                run
+            // Use full date for Platform Test Cleanup, time only for others
+            runDiv.innerHTML = await createRunItemHTML(
+                run,
+                workflow,
+                isPlatformCleanup
             );
-
-            let timeDisplay = `Start: ${createdTime}`;
-            if (run.status === "completed") {
-                timeDisplay += ` | End: ${updatedTime}${durationText}`;
-            } else if (run.status === "in_progress") {
-                timeDisplay += " | Running...";
-            }
-
-            runDiv.innerHTML = `
-                <a href="${run.html_url}" target="_blank" class="run-item-link">
-                    <div class="run-status-line">
-                        <strong class="status-${statusClass}">${statusText}</strong>
-                        <span class="run-time">${timeDisplay}</span>
-                    </div>
-                    <div class="run-meta">
-                        <span>Branch: ${branch}</span> |
-                        <span>Commit: ${commitSha}</span> |
-                        <span>Run: ${run.id}</span> |
-                        <span>Trigger: ${triggerInfo}</span>
-                    </div>
-                </a>
-            `;
-
             detailsDiv.appendChild(runDiv);
         });
 
@@ -496,6 +498,96 @@ export async function fillPackageTable() {
 
     // Update pipeline hierarchy and colors after package status is loaded
     updatePipelineHierarchy();
+}
+
+// ========================================
+// SHARED WORKFLOW UTILITIES
+// ========================================
+function getRunStatus(run) {
+    let statusClass = "";
+    let statusText = "";
+
+    if (run.status === "in_progress") {
+        statusClass = "progress";
+        statusText = "In Progress";
+    } else if (run.status === "queued") {
+        statusClass = "queued";
+        statusText = "Queued";
+    } else if (run.status === "completed") {
+        if (run.conclusion === "success") {
+            statusClass = "success";
+            statusText = "Success";
+        } else {
+            statusClass = "failure";
+            statusText = run.conclusion || "Failed";
+        }
+    } else {
+        statusClass = "queued";
+        statusText = run.status;
+    }
+
+    return { statusClass, statusText };
+}
+
+function calculateDuration(run) {
+    if (run.status !== "completed") return "";
+
+    const startTime = new Date(run.created_at);
+    const endTime = new Date(run.updated_at);
+    const durationMs = endTime - startTime;
+
+    const durationHours = Math.floor(durationMs / 3600000);
+    const durationMinutes = Math.floor((durationMs % 3600000) / 60000);
+    const durationSeconds = Math.floor((durationMs % 60000) / 1000);
+
+    if (durationHours > 0) {
+        return ` (${durationHours}h ${durationMinutes}m ${durationSeconds}s)`;
+    } else {
+        return ` (${durationMinutes}m ${durationSeconds}s)`;
+    }
+}
+
+async function createRunItemHTML(run, workflow, useFullDate = false) {
+    const { statusClass, statusText } = getRunStatus(run);
+
+    const createdTime = useFullDate
+        ? new Date(run.created_at).toLocaleString()
+        : new Date(run.created_at).toLocaleTimeString();
+    const updatedTime = useFullDate
+        ? new Date(run.updated_at).toLocaleString()
+        : new Date(run.updated_at).toLocaleTimeString();
+
+    const durationText = calculateDuration(run);
+    const branch = run.head_branch || "main";
+    const commitSha = run.head_sha ? run.head_sha.substring(0, 7) : "unknown";
+
+    const triggerInfo = await getTriggerInfo(
+        API_CONFIG.GARDENLINUX_ORG,
+        workflow.repo,
+        run
+    );
+
+    let timeDisplay = `Start: ${createdTime}`;
+    if (run.status === "completed") {
+        timeDisplay += ` | End: ${updatedTime}${durationText}`;
+    } else if (run.status === "in_progress") {
+        timeDisplay += " | Running...";
+    }
+
+    return `
+        <a href="${run.html_url}" target="_blank" class="run-item-link">
+            <div class="run-status-line">
+                <strong class="status-${statusClass}">${statusText}</strong>
+                <span class="run-time">${timeDisplay}</span>
+            </div>
+            <div class="run-meta">
+                <span>Branch: ${branch}</span> |
+                <span>Commit: ${commitSha}</span> |
+                <span>Run: ${run.id}</span> |
+                <span>Trigger: ${triggerInfo}</span>
+            </div>
+        </a>
+    `;
 }
 
 // ========================================

@@ -189,7 +189,8 @@ table {
 /* CURRENT DAILY RELEASE SECTION             */
 /* ========================================= */
 .current-release-container,
-.current-details-container {
+.current-details-container,
+.platform-cleanup-container {
     margin: 20px auto;
     max-width: 1200px;
     background: var(--bg-secondary);
@@ -201,7 +202,8 @@ table {
 }
 
 .current-release-header,
-.current-details-header {
+.current-details-header,
+.platform-cleanup-header {
     padding: 15px 20px;
     background: linear-gradient(135deg, var(--color-secondary), #5a6268);
     color: var(--text-white);
@@ -215,7 +217,8 @@ table {
 
 /* Ensure headers without status class default to grey */
 .current-release-header:not([class*="status-"]),
-.current-details-header:not([class*="status-"]) {
+.current-details-header:not([class*="status-"]),
+.platform-cleanup-header:not([class*="status-"]) {
     background: linear-gradient(
         135deg,
         var(--color-secondary),
@@ -224,7 +227,8 @@ table {
     border-color: var(--color-secondary);
 }
 
-.current-details-header:hover {
+.current-details-header:hover,
+.platform-cleanup-header:hover {
     background: linear-gradient(
         135deg,
         #5a6268,
@@ -233,7 +237,8 @@ table {
 }
 
 .current-release-header h2,
-.current-details-header h2 {
+.current-details-header h2,
+.platform-cleanup-header h2 {
     margin: 0;
     font-size: 1.2em;
     color: var(--text-white);
@@ -243,7 +248,8 @@ table {
 
 /* Status-based header colors for current sections */
 .current-release-header.status-success,
-.current-details-header.status-success {
+.current-details-header.status-success,
+.platform-cleanup-header.status-success {
     background: linear-gradient(
         135deg,
         var(--color-success),
@@ -253,7 +259,8 @@ table {
 }
 
 .current-release-header.status-failure,
-.current-details-header.status-failure {
+.current-details-header.status-failure,
+.platform-cleanup-header.status-failure {
     background: linear-gradient(
         135deg,
         var(--color-danger),
@@ -263,7 +270,8 @@ table {
 }
 
 .current-release-header.status-progress,
-.current-details-header.status-progress {
+.current-details-header.status-progress,
+.platform-cleanup-header.status-progress {
     background: linear-gradient(
         135deg,
         var(--color-progress),
@@ -273,7 +281,8 @@ table {
 }
 
 .current-release-header.status-warning,
-.current-details-header.status-warning {
+.current-details-header.status-warning,
+.platform-cleanup-header.status-warning {
     background: linear-gradient(
         135deg,
         var(--color-warning),
@@ -283,7 +292,8 @@ table {
 }
 
 .current-release-header.status-unknown,
-.current-details-header.status-unknown {
+.current-details-header.status-unknown,
+.platform-cleanup-header.status-unknown {
     background: linear-gradient(
         135deg,
         var(--color-secondary),
@@ -293,7 +303,8 @@ table {
 }
 
 .current-release-content,
-.current-details-content {
+.current-details-content,
+.platform-cleanup-content {
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.4s ease;
@@ -305,9 +316,16 @@ table {
     overflow-y: auto;
 }
 
-.current-details-content.expanded {
+.current-details-content.expanded,
+.platform-cleanup-content.expanded {
     max-height: none;
     overflow-y: visible;
+}
+
+/* Platform Test Cleanup specific styling */
+.platform-cleanup-workflow {
+    padding: 20px;
+    background: var(--bg-primary);
 }
 
 /* Current Release Summary Styles */
