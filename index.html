@@ -4,12 +4,22 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Garden Linux Daily Dashboard</title>
+        <link
+            rel="icon"
+            type="image/svg+xml"
+            href="https://raw.githubusercontent.com/gardenlinux/gardenlinux/main/logo/gardenlinux.svg"
+        />
         <link rel="stylesheet" href="style.css" />
     </head>
 
     <body>
         <div class="header-title">
-            <h1>Garden Linux Daily Dashboard</h1>
+            <img
+                src="https://raw.githubusercontent.com/gardenlinux/gardenlinux/main/logo/gardenlinux.svg"
+                alt="Garden Linux Logo"
+                class="header-logo"
+            />
+            <h1>Daily Dashboard</h1>
         </div>
 
         <!-- Settings Container -->
@@ -191,28 +201,7 @@
                                     <h3>Stage 4: Publish Images</h3>
                                 </div>
                                 <div class="stage-workflows">
-                                    <div
-                                        id="daily-info-152444846"
-                                        class="workflow-box"
-                                    >
-                                        <a
-                                            href="https://github.com/gardenlinux/gardenlinux/actions/workflows/publish.yml"
-                                            target="_blank"
-                                        >
-                                            Publish to ghcr.io
-                                        </a>
-                                    </div>
-                                    <div
-                                        id="daily-info-152444850"
-                                        class="workflow-box"
-                                    >
-                                        <a
-                                            href="https://github.com/gardenlinux/gardenlinux/actions/workflows/publish_s3.yml"
-                                            target="_blank"
-                                        >
-                                            Publish to S3
-                                        </a>
-                                    </div>
+                                    <!-- Workflow boxes will be generated dynamically from constants -->
                                 </div>
                             </div>
 
@@ -223,28 +212,7 @@
                                     <h3>Stage 3: Build & Release Images</h3>
                                 </div>
                                 <div class="stage-workflows">
-                                    <div
-                                        id="daily-info-28837699"
-                                        class="workflow-box"
-                                    >
-                                        <a
-                                            href="https://github.com/gardenlinux/gardenlinux/actions/workflows/nightly.yml"
-                                            target="_blank"
-                                        >
-                                            Garden Linux Nightly - Schedule
-                                        </a>
-                                    </div>
-                                    <div
-                                        id="daily-info-152444842"
-                                        class="workflow-box"
-                                    >
-                                        <a
-                                            href="https://github.com/gardenlinux/gardenlinux/actions/workflows/manual_release.yml"
-                                            target="_blank"
-                                        >
-                                            Build and publish a release - Manual
-                                        </a>
-                                    </div>
+                                    <!-- Workflow boxes will be generated dynamically from constants -->
                                 </div>
                             </div>
 
@@ -270,16 +238,8 @@
                                                 >2nd</span
                                             >
                                         </div>
-                                        <div
-                                            id="daily-info-84300233"
-                                            class="workflow-box"
-                                        >
-                                            <a
-                                                href="https://github.com/gardenlinux/repo/actions/workflows/build.yml"
-                                                target="_blank"
-                                            >
-                                                Repo Build
-                                            </a>
+                                        <div class="workflow-box">
+                                            <!-- Workflow box will be generated dynamically -->
                                         </div>
                                     </div>
                                     <div class="sequential-arrow">↑</div>
@@ -296,16 +256,8 @@
                                                 >1st</span
                                             >
                                         </div>
-                                        <div
-                                            id="daily-info-84300234"
-                                            class="workflow-box"
-                                        >
-                                            <a
-                                                href="https://github.com/gardenlinux/repo/actions/workflows/update.yml"
-                                                target="_blank"
-                                            >
-                                                Repo Update
-                                            </a>
+                                        <div class="workflow-box">
+                                            <!-- Workflow box will be generated dynamically -->
                                         </div>
                                     </div>
                                 </div>

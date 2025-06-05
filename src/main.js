@@ -29,6 +29,12 @@ import {
     // updateHeaderColor, // Called automatically from dashboard functions
 } from "./dashboard.js";
 
+import {
+    generateWorkflowBoxHTML,
+    getWorkflowsByStageForHTML,
+    WORKFLOW_IDS,
+} from "./constants.js";
+
 // ========================================
 // SETTINGS PANEL MANAGEMENT
 // ========================================
@@ -220,6 +226,65 @@ function toggleHistoricReleases() {
 }
 
 // ========================================
+// DYNAMIC HTML GENERATION
+// ========================================
+function generateWorkflowHTML() {
+    console.log("Generating workflow HTML from constants...");
+
+    // Stage 4: Publish Images
+    const stage4Workflows = getWorkflowsByStageForHTML("stage-4");
+    const stage4Container = document.querySelector("#stage-4 .stage-workflows");
+    if (stage4Container && stage4Workflows.length > 0) {
+        stage4Container.innerHTML = stage4Workflows
+            .map((workflow) => generateWorkflowBoxHTML(workflow))
+            .join("");
+    }
+
+    // Stage 3: Build & Release Images
+    const stage3Workflows = getWorkflowsByStageForHTML("stage-3");
+    const stage3Container = document.querySelector("#stage-3 .stage-workflows");
+    if (stage3Container && stage3Workflows.length > 0) {
+        stage3Container.innerHTML = stage3Workflows
+            .map((workflow) => generateWorkflowBoxHTML(workflow))
+            .join("");
+    }
+
+    // Stage 2: Repository (special handling for sequential workflows)
+    const stage2Workflows = getWorkflowsByStageForHTML("stage-2");
+    if (stage2Workflows.length >= 2) {
+        // Find repo build and repo update workflows using constants
+        const repoBuild = stage2Workflows.find(
+            (w) => w.id === WORKFLOW_IDS.REPO_BUILD
+        );
+        const repoUpdate = stage2Workflows.find(
+            (w) => w.id === WORKFLOW_IDS.REPO_UPDATE
+        );
+
+        if (repoBuild) {
+            const repoBuildContainer = document.querySelector(
+                "#sub-stage-repo-build .workflow-box"
+            );
+            if (repoBuildContainer) {
+                repoBuildContainer.outerHTML =
+                    generateWorkflowBoxHTML(repoBuild);
+            }
+        }
+
+        if (repoUpdate) {
+            const repoUpdateContainer = document.querySelector(
+                "#sub-stage-repo-update .workflow-box"
+            );
+            if (repoUpdateContainer) {
+                repoUpdateContainer.outerHTML =
+                    generateWorkflowBoxHTML(repoUpdate);
+            }
+        }
+    }
+
+    console.log("Workflow HTML generation complete");
+}
+
+// ========================================
 // APPLICATION INITIALIZATION
 // ========================================
 // Main initialization
@@ -304,6 +369,7 @@ function initDashboard() {
     fillPackageTable();
     updateAuthStatus(); // Initialize auth status display
     initializeGLSelector(); // Initialize GL version selector
+    generateWorkflowHTML(); // Generate workflow HTML
 }
 
 // Start the application when DOM is ready

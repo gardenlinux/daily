@@ -91,6 +91,43 @@ table {
     margin-bottom: 20px;
     font-size: 0.9em;
     color: #666;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: nowrap;
+}
+
+.header-logo {
+    height: 60px;
+    width: auto;
+    max-width: 250px;
+    object-fit: contain;
+    order: 1;
+}
+
+.header-title h1 {
+    order: 2;
+    margin: 0;
+    font-size: 2.5em;
+    color: var(--text-primary);
+    font-weight: bold;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+    .header-title {
+        gap: 15px;
+    }
+
+    .header-logo {
+        height: 45px;
+        max-width: 180px;
+    }
+
+    .header-title h1 {
+        font-size: 2em;
+    }
 }
 
 /* ========================================= */

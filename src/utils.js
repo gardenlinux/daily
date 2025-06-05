@@ -10,6 +10,8 @@
  * - Data formatting utilities
  */
 
+import { GL_INITIAL_DATE } from "./constants.js";
+
 // ========================================
 // DATE AND GL VERSION CALCULATIONS
 // ========================================
@@ -33,7 +35,7 @@ export function getGlDaysFromUrl() {
 export function getCurrentGlDays() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const initialDay = new Date("2020-03-31");
+    const initialDay = new Date(GL_INITIAL_DATE);
 
     const todayTime = today.getTime();
     const initialTime = initialDay.getTime();
@@ -42,23 +44,31 @@ export function getCurrentGlDays() {
 }
 
 export function getGlDays() {
-    // Check if GL version is specified in URL, otherwise use current day
-    const urlGlDays = getGlDaysFromUrl();
-    return urlGlDays !== null ? urlGlDays : getCurrentGlDays();
+    // Check for gl parameter in URL first
+    const urlParams = new URLSearchParams(window.location.search);
+    const glParam = urlParams.get("gl");
+
+    if (glParam && !isNaN(glParam)) {
+        return parseInt(glParam, 10);
+    }
+
+    // Fall back to current GL days
+    return getCurrentGlDays();
 }
 
 // Date formatting helpers
 export function formatGLDate(glDays) {
-    const initialDay = new Date("2020-03-31");
-    const glDate = new Date(initialDay);
-    glDate.setDate(glDate.getDate() + glDays);
+    const initialDay = new Date(GL_INITIAL_DATE);
+    const targetDate = new Date(initialDay);
+    targetDate.setDate(targetDate.getDate() + glDays);
 
-    return glDate.toLocaleDateString("en-US", {
+    const options = {
         weekday: "short",
         year: "numeric",
-        month: "long",
+        month: "short",
         day: "numeric",
-    });
+    };
+    return targetDate.toLocaleDateString("en-US", options);
 }
 
 export function updateGLDateInfo(glDays) {

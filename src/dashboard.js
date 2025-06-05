@@ -20,6 +20,18 @@ import {
     shouldLoadHistoricReleases,
 } from "./utils.js";
 
+import {
+    GL_INITIAL_DATE,
+    WORKFLOWS,
+    WORKFLOW_IDS,
+    STAGE_WORKFLOWS,
+    EXPECTED_WORKFLOW_IDS,
+    API_CONFIG,
+    PACKAGE_STATUSES,
+    UI_CONFIG,
+    getAllWorkflowConfigs,
+} from "./constants.js";
+
 // ========================================
 // GLOBAL STATE MANAGEMENT
 // ========================================
@@ -31,45 +43,15 @@ let packageStatus = "unknown";
 // WORKFLOW STATUS MANAGEMENT
 // ========================================
 export async function getRun() {
-    const reposWorkflows = [
-        // nightly.yml
-        {
-            repo: "gardenlinux",
-            workflowId: "28837699",
-        },
-        // Build and publish a release -  manual_release.yml
-        {
-            repo: "gardenlinux",
-            workflowId: "152444842",
-        },
-        // Publish to ghcr.io - publish.yml
-        {
-            repo: "gardenlinux",
-            workflowId: "152444846",
-        },
-        // Publish to S3 - publish_s3.yml
-        {
-            repo: "gardenlinux",
-            workflowId: "152444850",
-        },
-        // nightly
-        {
-            repo: "repo",
-            workflowId: "84300234",
-        },
-        // nightly
-        {
-            repo: "repo",
-            workflowId: "84300233",
-        },
-    ];
+    // Use workflow configurations from constants
+    const reposWorkflows = getAllWorkflowConfigs();
 
     // Reset workflow statuses
     workflowStatuses = {};
 
     // Calculate the target date based on GL version
     const glDays = getGlDays();
-    const initialDay = new Date("2020-03-31");
+    const initialDay = new Date(GL_INITIAL_DATE);
     const targetDate = new Date(initialDay);
     targetDate.setDate(targetDate.getDate() + glDays);
     targetDate.setHours(0, 0, 0, 0);
@@ -87,7 +69,7 @@ export async function getRun() {
     // let nightlyRuns = [];
     try {
         const nightlyResponse = await fetch(
-            "https://api.github.com/repos/gardenlinux/gardenlinux/actions/workflows/28837699/runs?per_page=200&branch=main",
+            `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/gardenlinux/actions/workflows/${WORKFLOW_IDS.NIGHTLY}/runs?per_page=${API_CONFIG.MAX_RUNS_PER_PAGE}&branch=main`,
             {
                 headers: getAuthHeaders(),
             }
@@ -104,22 +86,22 @@ export async function getRun() {
         let apiUrl;
 
         // Only filter by daily tag for the repo build workflow
-        if (workflow.workflowId === "84300233") {
+        if (workflow.id === WORKFLOW_IDS.REPO_BUILD) {
             try {
                 const tagResponse = await fetch(
-                    `https://api.github.com/repos/gardenlinux/${workflow.repo}/git/ref/tags/${tagName}`,
+                    `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/git/ref/tags/${tagName}`,
                     {
                         headers: getAuthHeaders(),
                     }
                 );
                 const tagData = await tagResponse.json();
                 const commitSha = tagData.object.sha;
-                apiUrl = `https://api.github.com/repos/gardenlinux/${workflow.repo}/actions/workflows/${workflow.workflowId}/runs?per_page=50&head_sha=${commitSha}`;
+                apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50&head_sha=${commitSha}`;
             } catch (error) {
-                apiUrl = `https://api.github.com/repos/gardenlinux/${workflow.repo}/actions/workflows/${workflow.workflowId}/runs?per_page=50&branch=main`;
+                apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50&branch=main`;
             }
         } else {
-            apiUrl = `https://api.github.com/repos/gardenlinux/${workflow.repo}/actions/workflows/${workflow.workflowId}/runs?per_page=50&branch=main`;
+            apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50&branch=main`;
         }
 
         const response = await fetch(apiUrl, {
@@ -128,12 +110,12 @@ export async function getRun() {
 
         if (!response.ok) {
             console.error(
-                `API Error for workflow ${workflow.workflowId}:`,
+                `API Error for workflow ${workflow.id}:`,
                 response.status,
                 response.statusText
             );
             const workflowDomElement = document.getElementById(
-                `daily-info-${workflow.workflowId}`
+                `daily-info-${workflow.id}`
             );
             workflowDomElement.classList.add("api-error");
             const detailsDiv = document.createElement("div");
@@ -142,7 +124,7 @@ export async function getRun() {
             workflowDomElement.appendChild(detailsDiv);
 
             // Track status for color coding
-            workflowStatuses[workflow.workflowId] = "api-error";
+            workflowStatuses[workflow.id] = "api-error";
             continue;
         }
 
@@ -151,11 +133,11 @@ export async function getRun() {
 
         if (!workflowRuns) {
             console.error(
-                `No workflow_runs in response for workflow ${workflow.workflowId}:`,
+                `No workflow_runs in response for workflow ${workflow.id}:`,
                 runs
             );
             const workflowDomElement = document.getElementById(
-                `daily-info-${workflow.workflowId}`
+                `daily-info-${workflow.id}`
             );
             workflowDomElement.classList.add("api-error");
             const detailsDiv = document.createElement("div");
@@ -165,7 +147,7 @@ export async function getRun() {
             workflowDomElement.appendChild(detailsDiv);
 
             // Track status for color coding
-            workflowStatuses[workflow.workflowId] = "api-error";
+            workflowStatuses[workflow.id] = "api-error";
             continue;
         }
 
@@ -179,7 +161,7 @@ export async function getRun() {
         const targetRuns = targetRunsUnsorted.sort((a, b) => b.id - a.id);
 
         const workflowDomElement = document.getElementById(
-            `daily-info-${workflow.workflowId}`
+            `daily-info-${workflow.id}`
         );
 
         // Clear existing content
@@ -207,7 +189,7 @@ export async function getRun() {
             workflowDomElement.appendChild(detailsDiv);
 
             // Track status for color coding
-            workflowStatuses[workflow.workflowId] = "no-runs";
+            workflowStatuses[workflow.id] = "no-runs";
             continue;
         }
 
@@ -227,7 +209,7 @@ export async function getRun() {
             workflowDomElement.appendChild(detailsDiv);
 
             // Track status for color coding
-            workflowStatuses[workflow.workflowId] = "no-runs";
+            workflowStatuses[workflow.id] = "no-runs";
             continue;
         }
 
@@ -252,7 +234,7 @@ export async function getRun() {
         }
 
         // Track status for color coding
-        workflowStatuses[workflow.workflowId] = workflowStatus;
+        workflowStatuses[workflow.id] = workflowStatus;
 
         // Create details section for all runs
         const detailsDiv = document.createElement("div");
@@ -315,7 +297,7 @@ export async function getRun() {
 
             // Get trigger information for all workflows
             const triggerInfo = await getTriggerInfo(
-                "gardenlinux",
+                API_CONFIG.GARDENLINUX_ORG,
                 workflow.repo,
                 run
             );
@@ -398,14 +380,7 @@ export async function fillPackageTable() {
         let issueCount = 0;
 
         // two loops, first by status then iterate over array
-        for (const status of [
-            "progress",
-            "workFlowNotFound",
-            "noRunFound",
-            "brokenTimestamp",
-            "stale",
-            "failure",
-        ]) {
+        for (const status of PACKAGE_STATUSES.PROBLEMATIC) {
             if (status in packageByStatus) {
                 console.log(
                     `- Found ${packageByStatus[status].length} packages with status: ${status}`
@@ -422,7 +397,7 @@ export async function fillPackageTable() {
 
                     const a = document.createElement("a");
                     a.innerHTML = pkg.Name;
-                    a.href = `https://github.com/gardenlinux/${
+                    a.href = `${API_CONFIG.GITHUB_API_BASE.replace("/api.github.com", "")}/repos/${API_CONFIG.GARDENLINUX_ORG}/${
                         pkg.Name
                     }/actions/workflows/build.yml`;
                     a.target = "_blank";
@@ -532,14 +507,6 @@ export function updatePipelineHierarchy() {
     console.log("Workflow statuses:", workflowStatuses);
     console.log("Package status:", packageStatus);
 
-    // Map workflow IDs to stages
-    const stageWorkflows = {
-        "stage-1": [], // Stage 1: Package Builds (handled separately)
-        "stage-2": ["84300234", "84300233"], // Stage 2: Repository workflows
-        "stage-3": ["28837699", "152444842"], // Stage 3: Build & Release
-        "stage-4": ["152444846", "152444850"], // Stage 4: Publish
-    };
-
     // Evaluate each stage status
     const stageStatuses = {};
 
@@ -552,8 +519,8 @@ export function updatePipelineHierarchy() {
     }
     stageStatuses["stage-1"] = stage1Status;
 
-    // Stages 2-4: Based on workflow statuses
-    for (const [stageId, workflowIds] of Object.entries(stageWorkflows)) {
+    // Stages 2-4: Based on workflow statuses using constants
+    for (const [stageId, workflowIds] of Object.entries(STAGE_WORKFLOWS)) {
         if (stageId === "stage-1") continue; // Already handled above
 
         const relevantStatuses = workflowIds.map(
@@ -616,22 +583,14 @@ export function updatePipelineHierarchy() {
     let pipelineStatus = "unknown";
 
     // Count expected vs actual workflow statuses to avoid premature success
-    const expectedWorkflowIds = [
-        "84300234",
-        "84300233",
-        "28837699",
-        "152444842",
-        "152444846",
-        "152444850",
-    ];
-    const loadedWorkflowStatuses = expectedWorkflowIds.filter(
+    const loadedWorkflowStatuses = EXPECTED_WORKFLOW_IDS.filter(
         (id) => workflowStatuses[id] && workflowStatuses[id] !== "unknown"
     );
     const allWorkflowsLoaded =
-        loadedWorkflowStatuses.length === expectedWorkflowIds.length;
+        loadedWorkflowStatuses.length === EXPECTED_WORKFLOW_IDS.length;
 
     console.log("Pipeline status evaluation:");
-    console.log("- Expected workflows:", expectedWorkflowIds.length);
+    console.log("- Expected workflows:", EXPECTED_WORKFLOW_IDS.length);
     console.log("- Loaded workflows:", loadedWorkflowStatuses.length);
     console.log("- All workflows loaded:", allWorkflowsLoaded);
     console.log("- Stage statuses:", allStatuses);
@@ -904,7 +863,7 @@ export async function loadHistoricReleases() {
     try {
         // Load data for the last 14 days (excluding current day)
         const historicPromises = [];
-        for (let i = 1; i <= 14; i++) {
+        for (let i = 1; i <= UI_CONFIG.HISTORIC_RELEASES_COUNT; i++) {
             const historicGL = baseGL - i;
             if (historicGL > 0) {
                 historicPromises.push(loadHistoricDay(historicGL));
@@ -912,17 +871,22 @@ export async function loadHistoricReleases() {
         }
 
         // Process in smaller batches to avoid rate limiting
-        const batchSize = 3;
         const historicData = [];
 
-        for (let i = 0; i < historicPromises.length; i += batchSize) {
-            const batch = historicPromises.slice(i, i + batchSize);
+        for (
+            let i = 0;
+            i < historicPromises.length;
+            i += UI_CONFIG.BATCH_SIZE
+        ) {
+            const batch = historicPromises.slice(i, i + UI_CONFIG.BATCH_SIZE);
             const batchResults = await Promise.all(batch);
             historicData.push(...batchResults);
 
             // Small delay between batches to avoid rate limiting
-            if (i + batchSize < historicPromises.length) {
-                await new Promise((resolve) => setTimeout(resolve, 200));
+            if (i + UI_CONFIG.BATCH_SIZE < historicPromises.length) {
+                await new Promise((resolve) =>
+                    setTimeout(resolve, UI_CONFIG.BATCH_DELAY)
+                );
             }
         }
 
@@ -1019,61 +983,63 @@ async function getHistoricWorkflowStatus(glDays) {
     nextDayExpanded.setHours(4, 0, 0, 0); // End at 4 AM next day
 
     try {
-        // Check multiple workflows per stage for better coverage
+        // Check multiple workflows per stage for better coverage using constants
         const workflowChecks = [
             // Stage 2: Repository workflows
             {
-                id: "84300234",
+                id: WORKFLOW_IDS.REPO_UPDATE,
                 stage: "stage-2",
-                repo: "repo",
-                name: "Repo Update",
+                repo: WORKFLOWS.REPO_UPDATE.repo,
+                name: WORKFLOWS.REPO_UPDATE.name,
             },
             {
-                id: "84300233",
+                id: WORKFLOW_IDS.REPO_BUILD,
                 stage: "stage-2",
-                repo: "repo",
-                name: "Repo Build",
+                repo: WORKFLOWS.REPO_BUILD.repo,
+                name: WORKFLOWS.REPO_BUILD.name,
             },
 
             // Stage 3: Build & Release workflows
             {
-                id: "28837699",
+                id: WORKFLOW_IDS.NIGHTLY,
                 stage: "stage-3",
-                repo: "gardenlinux",
-                name: "Nightly",
+                repo: WORKFLOWS.NIGHTLY.repo,
+                name: WORKFLOWS.NIGHTLY.name,
             },
             {
-                id: "152444842",
+                id: WORKFLOW_IDS.MANUAL_RELEASE,
                 stage: "stage-3",
-                repo: "gardenlinux",
-                name: "Manual Release",
+                repo: WORKFLOWS.MANUAL_RELEASE.repo,
+                name: WORKFLOWS.MANUAL_RELEASE.name,
             },
 
             // Stage 4: Publish workflows
             {
-                id: "152444846",
+                id: WORKFLOW_IDS.PUBLISH_GHCR,
                 stage: "stage-4",
-                repo: "gardenlinux",
-                name: "Publish GHCR",
+                repo: WORKFLOWS.PUBLISH_GHCR.repo,
+                name: WORKFLOWS.PUBLISH_GHCR.name,
             },
             {
-                id: "152444850",
+                id: WORKFLOW_IDS.PUBLISH_S3,
                 stage: "stage-4",
-                repo: "gardenlinux",
-                name: "Publish S3",
+                repo: WORKFLOWS.PUBLISH_S3.repo,
+                name: WORKFLOWS.PUBLISH_S3.name,
             },
         ];
 
         // Process workflows with timeout and better error handling
-        const timeout = 5000; // 5 second timeout per request
         const promises = workflowChecks.map(async (workflow) => {
             try {
                 // eslint-disable-next-line no-undef
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), timeout);
+                const timeoutId = setTimeout(
+                    () => controller.abort(),
+                    API_CONFIG.TIMEOUT
+                );
 
                 const response = await fetch(
-                    `https://api.github.com/repos/gardenlinux/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=100&branch=main`,
+                    `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=${API_CONFIG.HISTORIC_RUNS_PER_PAGE}&branch=main`,
                     {
                         headers: getAuthHeaders(),
                         signal: controller.signal,
@@ -1234,7 +1200,7 @@ async function getHistoricWorkflowStatus(glDays) {
 }
 
 function calculateTargetDate(glDays) {
-    const initialDay = new Date("2020-03-31");
+    const initialDay = new Date(GL_INITIAL_DATE);
     const targetDate = new Date(initialDay);
     targetDate.setDate(targetDate.getDate() + glDays);
     targetDate.setHours(0, 0, 0, 0);
