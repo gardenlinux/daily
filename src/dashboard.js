@@ -18,6 +18,8 @@ import {
     getGlDays,
     formatGLDate,
     shouldLoadHistoricReleases,
+    setElementStatus,
+    bulkSetElementStatus,
 } from "./utils.js";
 
 import {
@@ -123,7 +125,7 @@ export async function getRun() {
             const workflowDomElement = document.getElementById(
                 `daily-info-${workflow.id}`
             );
-            workflowDomElement.classList.add("api-error");
+            setElementStatus(workflowDomElement, "api-error");
             const detailsDiv = document.createElement("div");
             detailsDiv.className = "workflow-details";
             detailsDiv.innerHTML = `<div class="error-message">API Error: ${response.status} ${response.statusText}</div>`;
@@ -137,13 +139,7 @@ export async function getRun() {
                 const headerElement = document.getElementById(
                     "platform-cleanup-header"
                 );
-                if (headerElement) {
-                    headerElement.className = headerElement.className.replace(
-                        /\bstatus-(progress|success|failure|warning|unknown)\b/g,
-                        ""
-                    );
-                    headerElement.classList.add("status-failure");
-                }
+                setElementStatus(headerElement, "failure", "status-");
             }
             continue;
         }
@@ -159,7 +155,7 @@ export async function getRun() {
             const workflowDomElement = document.getElementById(
                 `daily-info-${workflow.id}`
             );
-            workflowDomElement.classList.add("api-error");
+            setElementStatus(workflowDomElement, "api-error");
             const detailsDiv = document.createElement("div");
             detailsDiv.className = "workflow-details";
             detailsDiv.innerHTML =
@@ -174,13 +170,7 @@ export async function getRun() {
                 const headerElement = document.getElementById(
                     "platform-cleanup-header"
                 );
-                if (headerElement) {
-                    headerElement.className = headerElement.className.replace(
-                        /\bstatus-(progress|success|failure|warning|unknown)\b/g,
-                        ""
-                    );
-                    headerElement.classList.add("status-failure");
-                }
+                setElementStatus(headerElement, "failure", "status-");
             }
             continue;
         }
@@ -204,28 +194,20 @@ export async function getRun() {
             existingDetails.remove();
         }
 
-        // Reset classes
-        workflowDomElement.className = workflowDomElement.className.replace(
-            /\b(progress|success|failure|no-runs|api-error)\b/g,
-            ""
-        );
+        // Reset all status classes
+        setElementStatus(workflowDomElement, null); // Clear all status classes
 
         // Reset Platform Test Cleanup header classes
         if (isPlatformCleanup) {
             const headerElement = document.getElementById(
                 "platform-cleanup-header"
             );
-            if (headerElement) {
-                headerElement.className = headerElement.className.replace(
-                    /\bstatus-(progress|success|failure|warning|unknown)\b/g,
-                    ""
-                );
-            }
+            setElementStatus(headerElement, null, "status-");
         }
 
         if (targetRuns.length === 0) {
             // Handles the case where targetRuns might be empty after filtering
-            workflowDomElement.classList.add("no-runs");
+            setElementStatus(workflowDomElement, "no-runs");
             const detailsDiv = document.createElement("div");
             detailsDiv.className = "workflow-details";
             const dateStr = targetDate.toLocaleDateString();
@@ -242,9 +224,7 @@ export async function getRun() {
                 const headerElement = document.getElementById(
                     "platform-cleanup-header"
                 );
-                if (headerElement) {
-                    headerElement.classList.add("status-unknown");
-                }
+                setElementStatus(headerElement, "unknown", "status-");
             }
             continue;
         }
@@ -255,7 +235,7 @@ export async function getRun() {
 
         if (!mostRecentRun) {
             // Handles the case where targetRuns might be empty after filtering
-            workflowDomElement.classList.add("no-runs");
+            setElementStatus(workflowDomElement, "no-runs");
             const detailsDiv = document.createElement("div");
             detailsDiv.className = "workflow-details";
             const dateStr = targetDate.toLocaleDateString();
@@ -272,9 +252,7 @@ export async function getRun() {
                 const headerElement = document.getElementById(
                     "platform-cleanup-header"
                 );
-                if (headerElement) {
-                    headerElement.classList.add("status-unknown");
-                }
+                setElementStatus(headerElement, "unknown", "status-");
             }
             continue;
         }
@@ -283,29 +261,16 @@ export async function getRun() {
         const { statusClass } = getRunStatus(mostRecentRun);
         workflowStatus = statusClass;
 
-        if (statusClass === "progress") {
-            workflowDomElement.classList.add("progress");
-        } else if (statusClass === "queued") {
-            workflowDomElement.classList.add("queued");
-        } else if (statusClass === "success") {
-            workflowDomElement.classList.add("success");
-        } else if (statusClass === "failure") {
-            workflowDomElement.classList.add("failure");
-        } else {
-            workflowDomElement.classList.add("queued");
-            workflowStatus = "queued";
-        }
+        setElementStatus(workflowDomElement, statusClass);
 
         // Update Platform Test Cleanup header color
         if (isPlatformCleanup) {
             const headerElement = document.getElementById(
                 "platform-cleanup-header"
             );
-            if (headerElement) {
-                let headerStatus = statusClass;
-                if (statusClass === "queued") headerStatus = "progress";
-                headerElement.classList.add(`status-${headerStatus}`);
-            }
+            let headerStatus = statusClass;
+            if (statusClass === "queued") headerStatus = "progress";
+            setElementStatus(headerElement, headerStatus, "status-");
         }
 
         // Track status for color coding
@@ -423,8 +388,7 @@ export async function fillPackageTable() {
         // Update pipeline package status
         if (hasIssues) {
             packageStatusElement.textContent = `${issueCount} packages need attention`;
-            packageSummary.classList.remove("success", "api-error");
-            packageSummary.classList.add("warning"); // Use warning (orange) instead of progress
+            setElementStatus(packageSummary, "warning");
             packageStatus = "warning";
 
             // Show the package issues section in Stage 1
@@ -436,8 +400,7 @@ export async function fillPackageTable() {
         } else {
             packageStatusElement.textContent =
                 "No package builds need attention. Continue doing awesome work :-)";
-            packageSummary.classList.remove("warning", "api-error");
-            packageSummary.classList.add("success");
+            setElementStatus(packageSummary, "success");
             packageStatus = "success";
 
             // Hide the package issues section in Stage 1
@@ -492,8 +455,7 @@ export async function fillPackageTable() {
             packageStatusElement.textContent = `Failed to load package data: ${error.message}`;
         }
 
-        packageSummary.classList.remove("success", "progress");
-        packageSummary.classList.add("api-error");
+        setElementStatus(packageSummary, "api-error");
     }
 
     // Update pipeline hierarchy and colors after package status is loaded
@@ -732,23 +694,9 @@ function updateCurrentReleaseHeaderColors(status) {
     const releaseHeader = document.getElementById("current-release-header");
     const detailsHeader = document.getElementById("current-details-header");
 
-    // Remove all status classes
-    const statusClasses = [
-        "status-success",
-        "status-failure",
-        "status-progress",
-        "status-warning",
-        "status-unknown",
-    ];
-    statusClasses.forEach((cls) => {
-        releaseHeader.classList.remove(cls);
-        detailsHeader.classList.remove(cls);
-    });
-
-    // Add the current status class
-    const statusClass = `status-${status}`;
-    releaseHeader.classList.add(statusClass);
-    detailsHeader.classList.add(statusClass);
+    // Update headers with status
+    setElementStatus(releaseHeader, status, "status-");
+    setElementStatus(detailsHeader, status, "status-");
 }
 
 function updateCurrentReleaseSummary(stageStatuses, pipelineStatus) {
@@ -763,14 +711,7 @@ function updateCurrentReleaseSummary(stageStatuses, pipelineStatus) {
     if (currentGlVersionElement) {
         currentGlVersionElement.textContent = `GL ${glDays}`;
         // Add status class to GL version badge
-        currentGlVersionElement.classList.remove(
-            "success",
-            "failure",
-            "progress",
-            "warning",
-            "unknown"
-        );
-        currentGlVersionElement.classList.add(pipelineStatus);
+        setElementStatus(currentGlVersionElement, pipelineStatus);
     }
 
     if (currentDateElement) {
@@ -782,14 +723,7 @@ function updateCurrentReleaseSummary(stageStatuses, pipelineStatus) {
         "current-status-indicator"
     );
     if (currentStatusIndicator) {
-        currentStatusIndicator.classList.remove(
-            "success",
-            "failure",
-            "progress",
-            "warning",
-            "unknown"
-        );
-        currentStatusIndicator.classList.add(pipelineStatus);
+        setElementStatus(currentStatusIndicator, pipelineStatus);
         currentStatusIndicator.title = `Overall Status: ${pipelineStatus}`;
     }
 
@@ -798,14 +732,7 @@ function updateCurrentReleaseSummary(stageStatuses, pipelineStatus) {
         const stageDot = document.getElementById(`current-stage-${i}`);
         if (stageDot) {
             const stageStatus = stageStatuses[`stage-${i}`] || "unknown";
-            stageDot.classList.remove(
-                "success",
-                "failure",
-                "progress",
-                "warning",
-                "unknown"
-            );
-            stageDot.classList.add(stageStatus);
+            setElementStatus(stageDot, stageStatus);
         }
     }
 
@@ -857,38 +784,12 @@ function updateCurrentReleaseSummary(stageStatuses, pipelineStatus) {
 // ========================================
 function updateStageColor(stageId, status) {
     const stage = document.getElementById(stageId);
-    if (!stage) return;
-
-    // Remove all existing stage status classes
-    stage.classList.remove(
-        "stage-success",
-        "stage-failure",
-        "stage-progress",
-        "stage-warning",
-        "stage-unknown",
-        "stage-error"
-    );
-
-    // Add the appropriate status class
-    stage.classList.add(`stage-${status}`);
+    setElementStatus(stage, status, "stage-");
 }
 
 function updatePipelineColor(status) {
     const pipelineContainer = document.getElementById("pipeline-container");
-    if (!pipelineContainer) return;
-
-    // Remove all existing pipeline status classes
-    pipelineContainer.classList.remove(
-        "pipeline-success",
-        "pipeline-failure",
-        "pipeline-progress",
-        "pipeline-warning",
-        "pipeline-unknown",
-        "pipeline-error"
-    );
-
-    // Add the appropriate status class
-    pipelineContainer.classList.add(`pipeline-${status}`);
+    setElementStatus(pipelineContainer, status, "pipeline-");
 }
 
 export function updateHeaderColor(status) {

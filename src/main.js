@@ -19,6 +19,7 @@ import {
     formatGLDate,
     updateGLDateInfo,
     shouldLoadHistoricReleases,
+    toggleSection,
 } from "./utils.js";
 
 import {
@@ -171,89 +172,25 @@ window.goToToday = function () {
 // ========================================
 // Toggle current details section (pipeline stages)
 function toggleCurrentDetails() {
-    const content = document.getElementById("current-details-content");
-    const icon = document.getElementById("current-details-toggle-icon");
-
-    if (
-        content.style.display === "none" ||
-        !content.classList.contains("expanded")
-    ) {
-        content.style.display = "block";
-        content.classList.add("expanded");
-        icon.classList.add("expanded");
-        icon.textContent = "▲";
-    } else {
-        content.classList.remove("expanded");
-        icon.classList.remove("expanded");
-        icon.textContent = "▼";
-        setTimeout(() => {
-            if (!content.classList.contains("expanded")) {
-                content.style.display = "none";
-            }
-        }, 400);
-    }
+    toggleSection("current-details-content", "current-details-toggle-icon");
 }
 
 // Toggle historic releases section
 function toggleHistoricReleases() {
-    const content = document.getElementById("historic-releases-content");
-    const icon = document.getElementById("historic-toggle-icon");
-
-    if (
-        content.style.display === "none" ||
-        !content.classList.contains("expanded")
-    ) {
-        content.style.display = "block";
-        content.classList.add("expanded");
-        icon.classList.add("expanded");
-        icon.textContent = "▲";
-
-        // Load historic data if not already loaded
-        if (!content.dataset.loaded) {
-            loadHistoricReleases();
-            content.dataset.loaded = "true";
-        }
-    } else {
-        content.classList.remove("expanded");
-        icon.classList.remove("expanded");
-        icon.textContent = "▼";
-        setTimeout(() => {
-            if (!content.classList.contains("expanded")) {
-                content.style.display = "none";
-            }
-        }, 400);
-    }
+    toggleSection(
+        "historic-releases-content",
+        "historic-toggle-icon",
+        loadHistoricReleases
+    );
 }
 
 // Toggle platform test cleanup section
 function togglePlatformCleanup() {
-    const content = document.getElementById("platform-cleanup-content");
-    const icon = document.getElementById("platform-cleanup-toggle-icon");
-
-    if (
-        content.style.display === "none" ||
-        !content.classList.contains("expanded")
-    ) {
-        content.style.display = "block";
-        content.classList.add("expanded");
-        icon.classList.add("expanded");
-        icon.textContent = "▲";
-
-        // Load platform cleanup data if not already loaded
-        if (!content.dataset.loaded) {
-            getRun();
-            content.dataset.loaded = "true";
-        }
-    } else {
-        content.classList.remove("expanded");
-        icon.classList.remove("expanded");
-        icon.textContent = "▼";
-        setTimeout(() => {
-            if (!content.classList.contains("expanded")) {
-                content.style.display = "none";
-            }
-        }, 400);
-    }
+    toggleSection(
+        "platform-cleanup-content",
+        "platform-cleanup-toggle-icon",
+        getRun
+    );
 }
 
 // ========================================

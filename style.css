@@ -246,6 +246,155 @@ table {
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
+/* ========================================= */
+/* SHARED STATUS UTILITY CLASSES             */
+/* ========================================= */
+
+/* Base status colors - consolidated for all status elements */
+.status-success {
+    border-color: var(--color-success);
+    color: var(--text-white);
+}
+
+.status-failure {
+    border-color: var(--color-danger);
+    color: var(--text-white);
+}
+
+.status-progress {
+    border-color: var(--color-progress);
+    color: var(--text-primary);
+}
+
+.status-warning {
+    border-color: var(--color-warning);
+    color: var(--text-white);
+}
+
+.status-unknown {
+    border-color: var(--color-secondary);
+    color: var(--text-white);
+}
+
+/* Status indicators (dots) */
+.status-indicator {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: var(--color-secondary);
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s ease;
+}
+
+/* Status variants using shared color variables */
+.status-indicator.success,
+.current-status-indicator.success,
+.historic-status-indicator.success {
+    background-color: var(--color-success);
+    border-color: var(--color-success-dark);
+    box-shadow: 0 0 6px rgba(40, 167, 69, 0.4);
+}
+
+.status-indicator.failure,
+.current-status-indicator.failure,
+.historic-status-indicator.failure {
+    background-color: var(--color-danger);
+    border-color: var(--color-danger-dark);
+    box-shadow: 0 0 6px rgba(220, 53, 69, 0.4);
+}
+
+.status-indicator.progress,
+.current-status-indicator.progress,
+.historic-status-indicator.progress {
+    background-color: var(--color-progress);
+    border-color: var(--color-progress-dark);
+    box-shadow: 0 0 6px rgba(255, 193, 7, 0.4);
+    animation: statusPulse 2s infinite;
+}
+
+.status-indicator.warning,
+.current-status-indicator.warning,
+.historic-status-indicator.warning {
+    background-color: var(--color-warning);
+    border-color: var(--color-warning-dark);
+    box-shadow: 0 0 6px rgba(253, 126, 20, 0.4);
+}
+
+.status-indicator.unknown,
+.current-status-indicator.unknown,
+.historic-status-indicator.unknown {
+    background-color: var(--color-secondary);
+    border-color: var(--color-secondary-dark);
+}
+
+/* Status text colors for run status lines */
+.status-text.success {
+    color: var(--color-success);
+}
+.status-text.failure {
+    color: var(--color-danger);
+}
+.status-text.progress {
+    color: var(--color-progress);
+}
+.status-text.warning {
+    color: var(--color-warning);
+}
+.status-text.queued {
+    color: var(--color-info);
+}
+
+/* Stage dots (smaller indicators) */
+.stage-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: var(--color-secondary);
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm);
+}
+
+.stage-dot.success {
+    background-color: var(--color-success);
+}
+.stage-dot.failure {
+    background-color: var(--color-danger);
+}
+.stage-dot.progress {
+    background-color: var(--color-progress);
+    animation: statusPulse 2s infinite;
+}
+.stage-dot.warning {
+    background-color: var(--color-warning);
+}
+.stage-dot.unknown {
+    background-color: var(--color-secondary);
+}
+
+/* GL Version status utility classes */
+.gl-version-status.success {
+    background: var(--color-success);
+}
+
+.gl-version-status.failure {
+    background: var(--color-danger);
+}
+
+.gl-version-status.progress {
+    background: var(--color-progress);
+    color: var(--text-primary);
+}
+
+.gl-version-status.warning {
+    background: var(--color-warning);
+}
+
+.gl-version-status.unknown {
+    background: var(--color-secondary);
+}
+
 /* Status-based header colors for current sections */
 .current-release-header.status-success,
 .current-details-header.status-success,
@@ -357,24 +506,35 @@ table {
     transition: all 0.3s ease;
 }
 
-.current-gl-version.success {
+/* Status variants using shared color variables */
+.gl-version.success,
+.current-gl-version.success,
+.historic-gl-version.success {
     background: var(--color-success);
 }
 
-.current-gl-version.failure {
+.gl-version.failure,
+.current-gl-version.failure,
+.historic-gl-version.failure {
     background: var(--color-danger);
 }
 
-.current-gl-version.progress {
+.gl-version.progress,
+.current-gl-version.progress,
+.historic-gl-version.progress {
     background: var(--color-progress);
     color: var(--text-primary);
 }
 
-.current-gl-version.warning {
+.gl-version.warning,
+.current-gl-version.warning,
+.historic-gl-version.warning {
     background: var(--color-warning);
 }
 
-.current-gl-version.unknown {
+.gl-version.unknown,
+.current-gl-version.unknown,
+.historic-gl-version.unknown {
     background: var(--color-secondary);
 }
 
@@ -393,6 +553,7 @@ table {
     align-items: center;
 }
 
+/* Use shared .status-indicator class - extend for current status specific styling */
 .current-status-indicator {
     display: inline-block;
     width: 16px;
@@ -405,6 +566,7 @@ table {
     margin-right: 8px;
 }
 
+/* Status variants using shared color variables */
 .current-status-indicator.success {
     background-color: var(--color-success);
     border-color: var(--color-success-dark);
@@ -421,7 +583,7 @@ table {
     background-color: var(--color-progress);
     border-color: var(--color-progress-dark);
     box-shadow: 0 0 6px rgba(255, 193, 7, 0.4);
-    animation: currentStatusPulse 2s infinite;
+    animation: statusPulse 2s infinite;
 }
 
 .current-status-indicator.warning {
@@ -435,18 +597,6 @@ table {
     border-color: var(--color-secondary-dark);
 }
 
-@keyframes currentStatusPulse {
-    0%,
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    50% {
-        transform: scale(1.1);
-        opacity: 0.8;
-    }
-}
-
 .current-stages {
     display: flex;
     gap: 6px;
@@ -455,55 +605,69 @@ table {
     align-items: center;
 }
 
+/* Use shared .stage-dot class - extend for current stage specific styling */
 .current-stage-dot {
     width: 10px;
     height: 10px;
     border-radius: 50%;
     background-color: var(--color-secondary);
     transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm);
     border: 1px solid rgba(255, 255, 255, 0.6);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-.current-stage-dot.success {
+/* Status variants using shared color variables */
+.stage-dot.success,
+.current-stage-dot.success,
+.historic-stage-dot.success {
     background-color: var(--color-success);
     border-color: var(--color-success-dark);
     box-shadow: 0 0 4px rgba(40, 167, 69, 0.4);
 }
 
-.current-stage-dot.failure {
+.stage-dot.failure,
+.current-stage-dot.failure,
+.historic-stage-dot.failure {
     background-color: var(--color-danger);
     border-color: var(--color-danger-dark);
     box-shadow: 0 0 4px rgba(220, 53, 69, 0.4);
 }
 
-.current-stage-dot.progress {
+.stage-dot.progress,
+.current-stage-dot.progress,
+.historic-stage-dot.progress {
     background-color: var(--color-progress);
     border-color: var(--color-progress-dark);
     box-shadow: 0 0 4px rgba(255, 193, 7, 0.4);
-    animation: currentStageProgressPulse 2s infinite;
+    animation: statusPulse 2s infinite;
 }
 
-.current-stage-dot.warning {
+.stage-dot.warning,
+.current-stage-dot.warning,
+.historic-stage-dot.warning {
     background-color: var(--color-warning);
     border-color: var(--color-warning-dark);
     box-shadow: 0 0 4px rgba(253, 126, 20, 0.4);
 }
 
-.current-stage-dot.unknown {
+.stage-dot.unknown,
+.current-stage-dot.unknown,
+.historic-stage-dot.unknown {
     background-color: var(--color-secondary);
     border-color: var(--color-secondary-dark);
 }
 
-@keyframes currentStageProgressPulse {
+/* Shared pulse animation for progress states */
+@keyframes statusPulse {
     0%,
     100% {
         transform: scale(1);
         opacity: 1;
     }
     50% {
-        transform: scale(1.15);
-        opacity: 0.7;
+        transform: scale(1.1);
+        opacity: 0.8;
     }
 }
 
@@ -1805,48 +1969,6 @@ table {
     margin-right: 8px;
 }
 
-.historic-status-indicator.success {
-    background-color: var(--color-success);
-    border-color: var(--color-success-dark);
-    box-shadow: 0 0 6px rgba(40, 167, 69, 0.4);
-}
-
-.historic-status-indicator.failure {
-    background-color: var(--color-danger);
-    border-color: var(--color-danger-dark);
-    box-shadow: 0 0 6px rgba(220, 53, 69, 0.4);
-}
-
-.historic-status-indicator.progress {
-    background-color: var(--color-progress);
-    border-color: var(--color-progress-dark);
-    box-shadow: 0 0 6px rgba(255, 193, 7, 0.4);
-    animation: historicStatusPulse 2s infinite;
-}
-
-.historic-status-indicator.warning {
-    background-color: var(--color-warning);
-    border-color: var(--color-warning-dark);
-    box-shadow: 0 0 6px rgba(253, 126, 20, 0.4);
-}
-
-.historic-status-indicator.unknown {
-    background-color: var(--color-secondary);
-    border-color: var(--color-secondary-dark);
-}
-
-@keyframes historicStatusPulse {
-    0%,
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    50% {
-        transform: scale(1.1);
-        opacity: 0.8;
-    }
-}
-
 /* Match current stages styling */
 .historic-stages {
     display: flex;
@@ -1856,65 +1978,16 @@ table {
     align-items: center;
 }
 
+/* Use shared .stage-dot class - extend for historic stage specific styling */
 .historic-stage-dot {
     width: 10px;
     height: 10px;
     border-radius: 50%;
     background-color: var(--color-secondary);
     transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm);
     border: 1px solid rgba(255, 255, 255, 0.6);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-.historic-stage-dot.success {
-    background-color: var(--color-success);
-    border-color: var(--color-success-dark);
-    box-shadow: 0 0 4px rgba(40, 167, 69, 0.4);
-}
-
-.historic-stage-dot.failure {
-    background-color: var(--color-danger);
-    border-color: var(--color-danger-dark);
-    box-shadow: 0 0 4px rgba(220, 53, 69, 0.4);
-}
-
-.historic-stage-dot.progress {
-    background-color: var(--color-progress);
-    border-color: var(--color-progress-dark);
-    box-shadow: 0 0 4px rgba(255, 193, 7, 0.4);
-}
-
-.historic-stage-dot.warning {
-    background-color: var(--color-warning);
-    border-color: var(--color-warning-dark);
-    box-shadow: 0 0 4px rgba(253, 126, 20, 0.4);
-}
-
-.historic-stage-dot.unknown {
-    background-color: var(--color-secondary);
-    border-color: var(--color-secondary-dark);
-}
-
-/* GL Version status coloring to match current release */
-.historic-gl-version.success {
-    background: var(--color-success);
-}
-
-.historic-gl-version.failure {
-    background: var(--color-danger);
-}
-
-.historic-gl-version.progress {
-    background: var(--color-progress);
-    color: var(--text-primary);
-}
-
-.historic-gl-version.warning {
-    background: var(--color-warning);
-}
-
-.historic-gl-version.unknown {
-    background: var(--color-secondary);
 }
 
 /* Match current package status styling */

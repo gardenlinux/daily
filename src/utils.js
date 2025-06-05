@@ -157,3 +157,89 @@ export async function getTriggerInfo(owner, repo, runData) {
         return "unknown";
     }
 }
+
+// ========================================
+// DOM UTILITY FUNCTIONS
+// ========================================
+
+/**
+ * Sets the status class on an element, removing previous status classes
+ * @param {HTMLElement} element - Target element
+ * @param {string} status - Status to apply (success, failure, progress, warning, unknown)
+ * @param {string} prefix - Optional prefix (e.g. 'status-', 'stage-', etc.)
+ */
+export function setElementStatus(element, status, prefix = "") {
+    if (!element) return;
+
+    const statusClasses = [
+        "success",
+        "failure",
+        "progress",
+        "warning",
+        "unknown",
+        "error",
+        "api-error",
+        "no-runs",
+        "queued",
+    ];
+
+    // Remove all existing status classes with prefix
+    statusClasses.forEach((cls) => {
+        element.classList.remove(`${prefix}${cls}`);
+    });
+
+    // Add new status class
+    if (status) {
+        element.classList.add(`${prefix}${status}`);
+    }
+}
+
+/**
+ * Generic toggle function for collapsible sections
+ * @param {string} contentId - ID of content element to toggle
+ * @param {string} iconId - ID of toggle icon element
+ * @param {Function} onExpand - Optional callback when section expands
+ */
+export function toggleSection(contentId, iconId, onExpand = null) {
+    const content = document.getElementById(contentId);
+    const icon = document.getElementById(iconId);
+
+    if (!content || !icon) return;
+
+    if (
+        content.style.display === "none" ||
+        !content.classList.contains("expanded")
+    ) {
+        // Expand section
+        content.style.display = "block";
+        content.classList.add("expanded");
+        icon.classList.add("expanded");
+        icon.textContent = "▲";
+
+        // Execute callback if provided
+        if (onExpand && !content.dataset.loaded) {
+            onExpand();
+            content.dataset.loaded = "true";
+        }
+    } else {
+        // Collapse section
+        content.classList.remove("expanded");
+        icon.classList.remove("expanded");
+        icon.textContent = "▼";
+        setTimeout(() => {
+            if (!content.classList.contains("expanded")) {
+                content.style.display = "none";
+            }
+        }, 400);
+    }
+}
+
+/**
+ * Bulk update status classes on multiple elements
+ * @param {Array} updates - Array of {element, status, prefix} objects
+ */
+export function bulkSetElementStatus(updates) {
+    updates.forEach(({ element, status, prefix = "" }) => {
+        setElementStatus(element, status, prefix);
+    });
+}
