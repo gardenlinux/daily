@@ -364,9 +364,7 @@ export async function fillPackageTable() {
 
                     const a = document.createElement("a");
                     a.innerHTML = pkg.Name;
-                    a.href = `${API_CONFIG.GITHUB_API_BASE.replace("/api.github.com", "")}/repos/${API_CONFIG.GARDENLINUX_ORG}/${
-                        pkg.Name
-                    }/actions/workflows/build.yml`;
+                    a.href = `${API_CONFIG.GITHUB_BASE}/${API_CONFIG.GARDENLINUX_ORG}/${pkg.Name}/actions/workflows/build.yml`;
                     a.target = "_blank";
 
                     const pkgName = row.insertCell(0);
