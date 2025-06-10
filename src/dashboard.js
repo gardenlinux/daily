@@ -17,9 +17,12 @@ import {
     isHistoricView,
     getGlDays,
     formatGLDate,
+    formatDetailedDate,
+    formatDateTimeDetailed,
     shouldLoadHistoricReleases,
     setElementStatus,
     bulkSetElementStatus,
+    getBranchParameter,
 } from "./utils.js";
 
 import {
@@ -31,14 +34,19 @@ import {
     API_CONFIG,
     PACKAGE_STATUSES,
     UI_CONFIG,
+    ALLOWED_ARTIFACT_NAMES,
     getAllWorkflowConfigs,
 } from "./constants.js";
+
+// Import JSZip for artifact extraction
+import JSZip from "jszip";
 
 // ========================================
 // GLOBAL STATE MANAGEMENT
 // ========================================
 // Global state for tracking workflow and package status
 let workflowStatuses = {};
+let workflowRunData = {}; // Store actual run data for duration calculations
 let packageStatus = "unknown";
 
 // ========================================
@@ -50,6 +58,7 @@ export async function getRun() {
 
     // Reset workflow statuses
     workflowStatuses = {};
+    workflowRunData = {};
 
     // Calculate the target date based on GL version
     const glDays = getGlDays();
@@ -64,6 +73,15 @@ export async function getRun() {
     nextDay.setDate(nextDay.getDate() + 1);
     // const nextDayStart = nextDay.toISOString();
 
+    // For Stage 4, extend date range to GL + 7 days
+    const extendedDate = new Date(targetDate);
+    extendedDate.setDate(extendedDate.getDate() + 7);
+    const extendedNextDay = new Date(extendedDate);
+    extendedNextDay.setDate(extendedNextDay.getDate() + 1);
+
+    // Collect Stage 3 run IDs for parent matching in Stage 4
+    const stage3RunIds = new Set();
+
     const tagName = `${glDays}.0`;
 
     // First, fetch nightly workflow runs to use for SHA matching
@@ -71,7 +89,7 @@ export async function getRun() {
     // let nightlyRuns = [];
     try {
         const nightlyResponse = await fetch(
-            `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/gardenlinux/actions/workflows/${WORKFLOW_IDS.NIGHTLY}/runs?per_page=${API_CONFIG.MAX_RUNS_PER_PAGE}&branch=main`,
+            `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/gardenlinux/actions/workflows/${WORKFLOW_IDS.NIGHTLY}/runs?per_page=${API_CONFIG.MAX_RUNS_PER_PAGE}${getBranchParameter()}`,
             {
                 headers: getAuthHeaders(),
             }
@@ -91,7 +109,7 @@ export async function getRun() {
 
         // Special handling for Platform Test Cleanup - get more runs for date filtering
         if (isPlatformCleanup) {
-            apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50&branch=main`;
+            apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50${getBranchParameter()}`;
         }
         // Only filter by daily tag for the repo build workflow
         else if (workflow.id === WORKFLOW_IDS.REPO_BUILD) {
@@ -106,10 +124,10 @@ export async function getRun() {
                 const commitSha = tagData.object.sha;
                 apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50&head_sha=${commitSha}`;
             } catch (error) {
-                apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50&branch=main`;
+                apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50${getBranchParameter()}`;
             }
         } else {
-            apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50&branch=main`;
+            apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50${getBranchParameter()}`;
         }
 
         const response = await fetch(apiUrl, {
@@ -176,12 +194,154 @@ export async function getRun() {
         }
 
         // Filter runs for the target date (current day or historic day) - applies to all workflows
-        const targetRunsUnsorted = workflowRuns.filter((run) => {
-            const runDate = new Date(run.created_at);
-            return runDate >= targetDate && runDate < nextDay;
-        });
-        // Sort target runs by run.id in descending order (newest first)
-        const targetRuns = targetRunsUnsorted.sort((a, b) => b.id - a.id);
+        // Check if this is a Stage 4 workflow
+        const isStage4Workflow = [
+            WORKFLOW_IDS.PUBLISH_GHCR,
+            WORKFLOW_IDS.PUBLISH_S3,
+        ].includes(workflow.id);
+
+        // Check if this is a Stage 3 workflow to collect run IDs
+        const isStage3Workflow = [
+            WORKFLOW_IDS.NIGHTLY,
+            WORKFLOW_IDS.MANUAL_RELEASE,
+        ].includes(workflow.id);
+
+        let targetRunsUnsorted;
+
+        if (isStage4Workflow) {
+            // For Stage 4: Look at GL date AND GL+7 days, filter by parent run IDs
+            const baseRuns = workflowRuns.filter((run) => {
+                const runDate = new Date(run.created_at);
+                return runDate >= targetDate && runDate < nextDay;
+            });
+
+            const extendedRuns = workflowRuns.filter((run) => {
+                const runDate = new Date(run.created_at);
+                return runDate >= targetDate && runDate < extendedNextDay;
+            });
+
+            console.log(
+                `🔍 [Stage 4] ${workflow.name}: Found ${baseRuns.length} base runs (GL date: ${targetDate.toISOString().split("T")[0]})`
+            );
+            console.log(
+                `🔍 [Stage 4] ${workflow.name}: Found ${extendedRuns.length} extended runs (GL date to GL+7: ${targetDate.toISOString().split("T")[0]} to ${extendedDate.toISOString().split("T")[0]})`
+            );
+            console.log(
+                `🔍 [Stage 4] ${workflow.name}: Stage 3 run IDs collected so far:`,
+                Array.from(stage3RunIds)
+            );
+
+            // If we have Stage 3 run IDs, filter extended runs by parent ID matching
+            if (stage3RunIds.size > 0) {
+                const parentMatchedRuns = [];
+
+                for (const run of extendedRuns) {
+                    try {
+                        // Get parent workflow info for this run
+                        const parentInfo = await getParentWorkflowInfo(
+                            API_CONFIG.GARDENLINUX_ORG,
+                            workflow.repo,
+                            run.id
+                        );
+
+                        if (
+                            parentInfo &&
+                            parentInfo.parentRunId &&
+                            stage3RunIds.has(parentInfo.parentRunId.toString())
+                        ) {
+                            parentMatchedRuns.push(run);
+                            console.log(
+                                `🔍 [Stage 4] Found matching parent run ${parentInfo.parentRunId} for Stage 4 run ${run.id}`
+                            );
+                        } else {
+                            console.log(
+                                `🔍 [Stage 4] Run ${run.id}: No matching parent found. Parent info:`,
+                                parentInfo
+                            );
+                        }
+                    } catch (error) {
+                        console.log(
+                            `🔍 [Stage 4] Failed to get parent info for run ${run.id}:`,
+                            error.message
+                        );
+                    }
+                }
+
+                // Combine base runs (from GL date) with parent-matched runs from extended period
+                targetRunsUnsorted = [...baseRuns, ...parentMatchedRuns];
+
+                // Remove duplicates based on run ID
+                const uniqueRuns = [];
+                const seenIds = new Set();
+                for (const run of targetRunsUnsorted) {
+                    if (!seenIds.has(run.id)) {
+                        seenIds.add(run.id);
+                        uniqueRuns.push(run);
+                    }
+                }
+                targetRunsUnsorted = uniqueRuns;
+
+                console.log(
+                    `🔍 [Stage 4] ${workflow.name}: Found ${baseRuns.length} base runs + ${parentMatchedRuns.length} parent-matched runs = ${targetRunsUnsorted.length} total`
+                );
+            } else {
+                // No Stage 3 runs yet collected - include ALL runs from extended period for debugging
+                // This allows us to see Stage 4 runs even when Stage 3 hasn't run yet
+                console.log(
+                    `🔍 [Stage 4] ${workflow.name}: No Stage 3 runs collected yet, including all extended runs for debugging`
+                );
+
+                // Include all extended runs, but log which ones might be relevant
+                for (const run of extendedRuns) {
+                    console.log(
+                        `🔍 [Stage 4] Extended run ${run.id} created at ${run.created_at} (${run.status}/${run.conclusion})`
+                    );
+
+                    // Try to get parent info for debugging
+                    try {
+                        const parentInfo = await getParentWorkflowInfo(
+                            API_CONFIG.GARDENLINUX_ORG,
+                            workflow.repo,
+                            run.id
+                        );
+                        if (parentInfo && parentInfo.found) {
+                            console.log(
+                                `🔍 [Stage 4] Run ${run.id} parent info:`,
+                                parentInfo
+                            );
+                        }
+                    } catch (error) {
+                        // Ignore errors during debugging
+                    }
+                }
+
+                targetRunsUnsorted = extendedRuns; // Include all extended runs when no Stage 3 runs
+                console.log(
+                    `🔍 [Stage 4] ${workflow.name}: Using all ${extendedRuns.length} extended runs (no Stage 3 filter applied)`
+                );
+            }
+        } else {
+            // Standard date filtering for non-Stage 4 workflows
+            targetRunsUnsorted = workflowRuns.filter((run) => {
+                const runDate = new Date(run.created_at);
+                return runDate >= targetDate && runDate < nextDay;
+            });
+        }
+
+        // Collect Stage 3 run IDs for later Stage 4 matching
+        if (isStage3Workflow && targetRunsUnsorted.length > 0) {
+            targetRunsUnsorted.forEach((run) => {
+                stage3RunIds.add(run.id.toString());
+                console.log(
+                    `🔍 [Stage 3] Collected run ID ${run.id} from ${workflow.name}`
+                );
+            });
+        }
+
+        // Sort target runs by creation date in descending order (newest first)
+        const targetRuns = targetRunsUnsorted.sort(
+            (a, b) => new Date(b.created_at) - new Date(a.created_at)
+        );
 
         const workflowDomElement = document.getElementById(
             `daily-info-${workflow.id}`
@@ -274,6 +434,8 @@ export async function getRun() {
         }
 
         // Track status for color coding
+        // Store the most recent run data for duration calculations
+        workflowRunData[workflow.id] = mostRecentRun;
         workflowStatuses[workflow.id] = workflowStatus;
 
         // Create details section for all runs
@@ -281,7 +443,8 @@ export async function getRun() {
         detailsDiv.className = "workflow-details";
 
         // Iterate over the sorted runs (descending by ID - newest first)
-        targetRuns.forEach(async (run, _index) => {
+        // Use for...of instead of forEach with async to maintain order
+        for (const run of targetRuns) {
             const runDiv = document.createElement("div");
             runDiv.className = "run-item";
 
@@ -292,7 +455,7 @@ export async function getRun() {
                 isPlatformCleanup
             );
             detailsDiv.appendChild(runDiv);
-        });
+        }
 
         workflowDomElement.appendChild(detailsDiv);
     }
@@ -496,25 +659,42 @@ function calculateDuration(run) {
     const endTime = new Date(run.updated_at);
     const durationMs = endTime - startTime;
 
+    // Handle negative durations (shouldn't happen but just in case)
+    if (durationMs < 0) return "Invalid duration";
+
     const durationHours = Math.floor(durationMs / 3600000);
     const durationMinutes = Math.floor((durationMs % 3600000) / 60000);
     const durationSeconds = Math.floor((durationMs % 60000) / 1000);
 
+    // Format duration cleanly without parentheses since it's now on its own line
     if (durationHours > 0) {
-        return ` (${durationHours}h ${durationMinutes}m ${durationSeconds}s)`;
+        return `${durationHours}h ${durationMinutes}m ${durationSeconds}s`;
+    } else if (durationMinutes > 0) {
+        return `${durationMinutes}m ${durationSeconds}s`;
     } else {
-        return ` (${durationMinutes}m ${durationSeconds}s)`;
+        return `${durationSeconds}s`;
     }
 }
 
 async function createRunItemHTML(run, workflow, useFullDate = false) {
     const { statusClass, statusText } = getRunStatus(run);
 
-    const createdTime = useFullDate
-        ? new Date(run.created_at).toLocaleString()
+    // Check if this is a Stage 4 workflow or platform cleanup
+    const isStage4Workflow = [
+        WORKFLOW_IDS.PUBLISH_GHCR,
+        WORKFLOW_IDS.PUBLISH_S3,
+    ].includes(workflow.id);
+    const isPlatformCleanup =
+        workflow.id === WORKFLOW_IDS.PLATFORM_TEST_CLEANUP;
+
+    // Use detailed date/time format for all stages and platform cleanup
+    const useDetailedDateTime = true; // Always use detailed format now
+
+    const createdTime = useDetailedDateTime
+        ? formatDateTimeDetailed(new Date(run.created_at))
         : new Date(run.created_at).toLocaleTimeString();
-    const updatedTime = useFullDate
-        ? new Date(run.updated_at).toLocaleString()
+    const updatedTime = useDetailedDateTime
+        ? formatDateTimeDetailed(new Date(run.updated_at))
         : new Date(run.updated_at).toLocaleTimeString();
 
     const durationText = calculateDuration(run);
@@ -528,24 +708,79 @@ async function createRunItemHTML(run, workflow, useFullDate = false) {
     );
 
     let timeDisplay = `Start: ${createdTime}`;
+    let durationDisplay = "";
+
     if (run.status === "completed") {
-        timeDisplay += ` | End: ${updatedTime}${durationText}`;
+        timeDisplay += ` | End: ${updatedTime}`;
+        if (durationText) {
+            durationDisplay = `Duration: ${durationText}`;
+        }
     } else if (run.status === "in_progress") {
-        timeDisplay += " | Running...";
+        timeDisplay += ` | Running...`;
+    }
+
+    // Check if this is a Stage 4 workflow and attempt to get parent run information
+    let parentRunInfo = null;
+
+    if (isStage4Workflow) {
+        try {
+            console.log(
+                `🔍 [Stage 4] Checking for parent run in workflow ${workflow.name} (${run.id})`
+            );
+            parentRunInfo = await getParentWorkflowInfo(
+                API_CONFIG.GARDENLINUX_ORG,
+                workflow.repo,
+                run.id
+            );
+            if (parentRunInfo && parentRunInfo.parentRunId) {
+                console.log(
+                    `🔍 [Stage 4] Found parent run ID: ${parentRunInfo.parentRunId} for run ${run.id}`
+                );
+            }
+        } catch (error) {
+            console.log(
+                `🔍 [Stage 4] Error getting parent info for run ${run.id}:`,
+                error.message
+            );
+        }
+    }
+
+    // Build the parent run display
+    let parentRunDisplay = "";
+    if (parentRunInfo && parentRunInfo.parentRunId) {
+        parentRunDisplay = `
+            <div class="parent-run-info">
+                parent run: <a href="https://github.com/gardenlinux/gardenlinux/actions/runs/${parentRunInfo.parentRunId}"
+                   target="_blank"
+                   class="parent-run-link"
+                   title="View parent workflow run that triggered this">${parentRunInfo.parentRunId}</a>
+            </div>
+        `;
+    } else if (isStage4Workflow) {
+        // Always show parent run info for Stage 4 workflows, even if not found
+        parentRunDisplay = `
+            <div class="parent-run-info">
+                <span class="parent-run-unavailable" title="${parentRunInfo?.message || "No parent run information available"}">parent run: Not found</span>
+            </div>
+        `;
     }
 
     return `
         <a href="${run.html_url}" target="_blank" class="run-item-link">
             <div class="run-status-line">
                 <strong class="status-${statusClass}">${statusText}</strong>
-                <span class="run-time">${timeDisplay}</span>
             </div>
+            <div class="run-timing-line">
+                ${timeDisplay}
+            </div>
+            ${durationDisplay ? `<div class="run-duration-line">${durationDisplay}</div>` : ""}
             <div class="run-meta">
                 <span>Branch: ${branch}</span> |
                 <span>Commit: ${commitSha}</span> |
                 <span>Run: ${run.id}</span> |
                 <span>Trigger: ${triggerInfo}</span>
             </div>
+            ${parentRunDisplay}
         </a>
     `;
 }
@@ -699,7 +934,7 @@ function updateCurrentReleaseHeaderColors(status) {
 
 function updateCurrentReleaseSummary(stageStatuses, pipelineStatus) {
     const glDays = getGlDays();
-    const formattedDate = formatGLDate(glDays);
+    const formattedDate = formatDetailedDate(glDays);
 
     // Update GL version and date
     const currentGlVersionElement =
@@ -775,6 +1010,125 @@ function updateCurrentReleaseSummary(stageStatuses, pipelineStatus) {
             currentPackageStatusElement.textContent = "Loading packages...";
         }
     }
+
+    // Update duration with calculated pipeline duration
+    const currentDurationElement = document.getElementById("current-duration");
+    if (currentDurationElement) {
+        const duration = calculatePipelineDuration(
+            stageStatuses,
+            pipelineStatus
+        );
+        currentDurationElement.textContent = duration;
+        currentDurationElement.title = "Duration of stages 3 and 4";
+    }
+}
+
+// Helper function to calculate overall pipeline duration
+function calculatePipelineDuration(stageStatuses, pipelineStatus) {
+    // Always try to calculate actual duration from Stage 3 to Stage 4 first
+    const stage3Workflows = [WORKFLOW_IDS.NIGHTLY, WORKFLOW_IDS.MANUAL_RELEASE];
+    const stage4Workflows = [
+        WORKFLOW_IDS.PUBLISH_GHCR,
+        WORKFLOW_IDS.PUBLISH_S3,
+    ];
+    let earliestStage3Start = null;
+    let latestStage4End = null;
+    let hasInProgressWorkflows = false;
+
+    // Find earliest Stage 3 start time and check for in-progress workflows
+    for (const workflowId of stage3Workflows) {
+        if (workflowRunData && workflowRunData[workflowId]) {
+            const runData = workflowRunData[workflowId];
+
+            // Check if workflow is in progress
+            if (
+                runData.status === "in_progress" ||
+                runData.status === "queued"
+            ) {
+                hasInProgressWorkflows = true;
+            }
+
+            // Get start time from completed or in-progress workflows
+            if (
+                runData.status === "completed" ||
+                runData.status === "in_progress" ||
+                runData.status === "queued"
+            ) {
+                const startTime = new Date(runData.created_at);
+                if (!earliestStage3Start || startTime < earliestStage3Start) {
+                    earliestStage3Start = startTime;
+                }
+            }
+        }
+    }
+
+    // Find latest Stage 4 end time and check for in-progress workflows
+    for (const workflowId of stage4Workflows) {
+        if (workflowRunData && workflowRunData[workflowId]) {
+            const runData = workflowRunData[workflowId];
+
+            // Check if workflow is in progress
+            if (
+                runData.status === "in_progress" ||
+                runData.status === "queued"
+            ) {
+                hasInProgressWorkflows = true;
+            }
+
+            // Only use end time from completed workflows
+            if (runData.status === "completed") {
+                const endTime = new Date(runData.updated_at);
+                if (!latestStage4End || endTime > latestStage4End) {
+                    latestStage4End = endTime;
+                }
+            }
+        }
+    }
+
+    // If we have a start time, calculate duration
+    if (earliestStage3Start) {
+        let endTime;
+        let isRunning = false;
+
+        // If there are in-progress workflows or no completed Stage 4, use current time
+        if (hasInProgressWorkflows || !latestStage4End) {
+            endTime = new Date(); // Current time
+            isRunning = true;
+        } else {
+            endTime = latestStage4End; // Completed pipeline
+        }
+
+        const durationMs = endTime - earliestStage3Start;
+        if (durationMs > 0) {
+            const durationHours = Math.floor(durationMs / 3600000);
+            const durationMinutes = Math.floor((durationMs % 3600000) / 60000);
+
+            let durationText;
+            if (durationHours > 0) {
+                durationText = `${durationHours}h ${durationMinutes}m`;
+            } else {
+                durationText = `${durationMinutes}m`;
+            }
+
+            // Add "(running)" indicator if pipeline is still in progress
+            if (isRunning) {
+                durationText += " (running)";
+            }
+
+            return durationText;
+        }
+    }
+
+    // Fallback to status-based messages only if duration calculation isn't possible
+    if (pipelineStatus === "progress" || pipelineStatus === "unknown") {
+        return "In progress...";
+    } else if (pipelineStatus === "failure") {
+        return "Pipeline failed";
+    } else if (pipelineStatus === "warning") {
+        return "Issues detected";
+    }
+
+    return "Completed";
 }
 
 // ========================================
@@ -891,22 +1245,95 @@ export async function loadHistoricReleases() {
     }
 }
 
+function calculateTargetDate(glDays) {
+    const initialDay = new Date(GL_INITIAL_DATE);
+    const targetDate = new Date(initialDay);
+    targetDate.setDate(targetDate.getDate() + glDays);
+    targetDate.setHours(0, 0, 0, 0);
+    return targetDate;
+}
+
+// Helper function to calculate historic pipeline duration
+function calculateHistoricPipelineDuration(workflowRunData) {
+    const stage3Workflows = [WORKFLOW_IDS.NIGHTLY, WORKFLOW_IDS.MANUAL_RELEASE];
+    const stage4Workflows = [
+        WORKFLOW_IDS.PUBLISH_GHCR,
+        WORKFLOW_IDS.PUBLISH_S3,
+    ];
+    let earliestStage3Start = null;
+    let latestStage4End = null;
+
+    // Find earliest Stage 3 start time
+    for (const workflowId of stage3Workflows) {
+        if (workflowRunData && workflowRunData[workflowId]) {
+            const runData = workflowRunData[workflowId];
+            if (
+                runData.status === "completed" ||
+                runData.status === "in_progress" ||
+                runData.status === "queued"
+            ) {
+                const startTime = new Date(runData.created_at);
+                if (!earliestStage3Start || startTime < earliestStage3Start) {
+                    earliestStage3Start = startTime;
+                }
+            }
+        }
+    }
+
+    // Find latest Stage 4 end time (only from completed workflows for historic data)
+    for (const workflowId of stage4Workflows) {
+        if (workflowRunData && workflowRunData[workflowId]) {
+            const runData = workflowRunData[workflowId];
+            if (runData.status === "completed") {
+                const endTime = new Date(runData.updated_at);
+                if (!latestStage4End || endTime > latestStage4End) {
+                    latestStage4End = endTime;
+                }
+            }
+        }
+    }
+
+    // Calculate duration if we have both start and end times
+    if (earliestStage3Start && latestStage4End) {
+        const durationMs = latestStage4End - earliestStage3Start;
+        if (durationMs > 0) {
+            const durationHours = Math.floor(durationMs / 3600000);
+            const durationMinutes = Math.floor((durationMs % 3600000) / 60000);
+
+            if (durationHours > 0) {
+                return `${durationHours}h ${durationMinutes}m`;
+            } else {
+                return `${durationMinutes}m`;
+            }
+        }
+    }
+
+    // Return null if duration can't be calculated
+    return null;
+}
+
 async function loadHistoricDay(glDays) {
     try {
         // Get basic info
-        const glDate = formatGLDate(glDays);
+        const glDate = formatDetailedDate(glDays);
 
         // Load package status for this day
         const packageStatus = await getHistoricPackageStatus(glDays);
 
-        // Load workflow statuses for this day (simplified)
-        const workflowStatus = await getHistoricWorkflowStatus(glDays);
+        // Load workflow statuses for this day (now returns both statuses and run data)
+        const workflowResult = await getHistoricWorkflowStatus(glDays);
+        const workflowStatus = workflowResult.stageStatuses;
+        const workflowRunData = workflowResult.workflowRunData;
+
+        // Calculate pipeline duration
+        const duration = calculateHistoricPipelineDuration(workflowRunData);
 
         return {
             glDays,
             date: glDate,
             packageStatus,
             workflowStatus,
+            duration, // Add duration to the historic data
             overallStatus: calculateOverallStatus(
                 packageStatus,
                 workflowStatus
@@ -960,6 +1387,9 @@ async function getHistoricWorkflowStatus(glDays) {
         "stage-3": "unknown",
         "stage-4": "unknown",
     };
+
+    // Store actual run data for duration calculation
+    const workflowRunData = {};
 
     const targetDate = calculateTargetDate(glDays);
     const nextDay = new Date(targetDate);
@@ -1030,7 +1460,7 @@ async function getHistoricWorkflowStatus(glDays) {
                 );
 
                 const response = await fetch(
-                    `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=${API_CONFIG.HISTORIC_RUNS_PER_PAGE}&branch=main`,
+                    `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=${API_CONFIG.HISTORIC_RUNS_PER_PAGE}${getBranchParameter()}`,
                     {
                         headers: getAuthHeaders(),
                         signal: controller.signal,
@@ -1047,6 +1477,7 @@ async function getHistoricWorkflowStatus(glDays) {
                         workflow,
                         status: "unknown",
                         reason: `API Error ${response.status}`,
+                        runData: null,
                     };
                 }
 
@@ -1086,6 +1517,7 @@ async function getHistoricWorkflowStatus(glDays) {
                         workflow,
                         status,
                         reason: `Found ${dayRuns.length} runs`,
+                        runData: latestRun, // Store the actual run data
                     };
                 } else {
                     console.log(
@@ -1095,6 +1527,7 @@ async function getHistoricWorkflowStatus(glDays) {
                         workflow,
                         status: "unknown",
                         reason: "No runs found",
+                        runData: null,
                     };
                 }
             } catch (error) {
@@ -1102,7 +1535,12 @@ async function getHistoricWorkflowStatus(glDays) {
                     console.warn(
                         `Historic ${workflow.name} (${workflow.id}) timed out`
                     );
-                    return { workflow, status: "unknown", reason: "Timeout" };
+                    return {
+                        workflow,
+                        status: "unknown",
+                        reason: "Timeout",
+                        runData: null,
+                    };
                 } else {
                     console.warn(
                         `Historic ${workflow.name} (${workflow.id}) failed:`,
@@ -1112,6 +1550,7 @@ async function getHistoricWorkflowStatus(glDays) {
                         workflow,
                         status: "unknown",
                         reason: error.message,
+                        runData: null,
                     };
                 }
             }
@@ -1120,7 +1559,7 @@ async function getHistoricWorkflowStatus(glDays) {
         // Wait for all API calls to complete
         const results = await Promise.allSettled(promises);
 
-        // Process results with stage-specific logic
+        // Process results with stage-specific logic and collect run data
         const stageResults = {
             "stage-2": [],
             "stage-3": [],
@@ -1129,8 +1568,13 @@ async function getHistoricWorkflowStatus(glDays) {
 
         for (const result of results) {
             if (result.status === "fulfilled" && result.value) {
-                const { workflow, status } = result.value;
+                const { workflow, status, runData } = result.value;
                 stageResults[workflow.stage].push(status);
+
+                // Store run data for duration calculation
+                if (runData) {
+                    workflowRunData[workflow.id] = runData;
+                }
             }
         }
 
@@ -1179,23 +1623,23 @@ async function getHistoricWorkflowStatus(glDays) {
         }
 
         console.log(`Historic GL${glDays} workflow statuses:`, stageStatuses);
+
+        // Return both stage statuses and run data for duration calculation
+        return {
+            stageStatuses,
+            workflowRunData,
+        };
     } catch (error) {
         console.warn(
             `Failed to load historic workflow status for GL ${glDays}:`,
             error
         );
         // On error, all stages remain unknown - no assumptions
+        return {
+            stageStatuses,
+            workflowRunData: {},
+        };
     }
-
-    return stageStatuses;
-}
-
-function calculateTargetDate(glDays) {
-    const initialDay = new Date(GL_INITIAL_DATE);
-    const targetDate = new Date(initialDay);
-    targetDate.setDate(targetDate.getDate() + glDays);
-    targetDate.setHours(0, 0, 0, 0);
-    return targetDate;
 }
 
 function calculateOverallStatus(packageStatus, workflowStatus) {
@@ -1288,6 +1732,10 @@ function renderHistoricReleases(historicData) {
                 }
             </div>
 
+            <div class="historic-duration" title="Duration of stages 3 and 4">
+                ${day.duration || "No data"}
+            </div>
+
             <div class="historic-summary">
                 ${
                     day.overallStatus === "success"
@@ -1320,5 +1768,1026 @@ function getStageColorClass(packageStatus) {
             return "unknown";
         default:
             return "unknown";
+    }
+}
+
+// ========================================
+// DEBUG AND SEARCH FUNCTIONS
+// ========================================
+
+/**
+ * Search function specifically for run 15552596024 with artifact retrieval
+ */
+export async function searchRun15552596024() {
+    console.log("🔍 [RUN-SEARCH] Starting search for run 15552596024...");
+
+    const resultsDiv = document.getElementById("run-search-results");
+    if (!resultsDiv) {
+        console.error("🔍 [RUN-SEARCH] Results div not found");
+        return;
+    }
+
+    // Show loading state
+    resultsDiv.innerHTML = `
+        <div class="search-loading">
+            <div class="loading-spinner"></div>
+            <span>Searching for run 15552596024 across all repositories...</span>
+        </div>
+    `;
+
+    try {
+        const targetRunId = "15552596024";
+        const searchResults = [];
+
+        // Search across all repositories that could contain this run
+        const repos = ["gardenlinux", "repo", "build-deb"];
+
+        for (const repo of repos) {
+            console.log(`🔍 [RUN-SEARCH] Searching in ${repo}...`);
+
+            try {
+                // Try to fetch the specific run directly
+                const runResponse = await fetch(
+                    `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${repo}/actions/runs/${targetRunId}`,
+                    {
+                        headers: getAuthHeaders(),
+                    }
+                );
+
+                if (runResponse.ok) {
+                    const runData = await runResponse.json();
+                    searchResults.push({
+                        repo,
+                        found: true,
+                        run: runData,
+                        directMatch: true,
+                    });
+
+                    console.log(
+                        `🔍 [RUN-SEARCH] Found run ${targetRunId} in ${repo}!`
+                    );
+
+                    // Get artifacts for this run
+                    try {
+                        const artifactsResponse = await fetch(
+                            `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${repo}/actions/runs/${targetRunId}/artifacts`,
+                            {
+                                headers: getAuthHeaders(),
+                            }
+                        );
+
+                        if (artifactsResponse.ok) {
+                            const artifactsData =
+                                await artifactsResponse.json();
+                            searchResults[searchResults.length - 1].artifacts =
+                                artifactsData.artifacts || [];
+                        }
+                    } catch (artifactError) {
+                        console.warn(
+                            `🔍 [RUN-SEARCH] Failed to get artifacts from ${repo}:`,
+                            artifactError
+                        );
+                    }
+                } else if (runResponse.status !== 404) {
+                    // Log non-404 errors
+                    console.warn(
+                        `🔍 [RUN-SEARCH] Error searching ${repo}: ${runResponse.status}`
+                    );
+                    searchResults.push({
+                        repo,
+                        found: false,
+                        error: `API Error: ${runResponse.status}`,
+                        directMatch: false,
+                    });
+                } else {
+                    // 404 - run not found in this repo
+                    searchResults.push({
+                        repo,
+                        found: false,
+                        error: "Run not found",
+                        directMatch: false,
+                    });
+                }
+            } catch (error) {
+                console.error(
+                    `🔍 [RUN-SEARCH] Error searching ${repo}:`,
+                    error
+                );
+                searchResults.push({
+                    repo,
+                    found: false,
+                    error: error.message,
+                    directMatch: false,
+                });
+            }
+        }
+
+        // Render results
+        const foundResults = searchResults.filter((r) => r.found);
+        const notFoundResults = searchResults.filter((r) => !r.found);
+
+        let resultsHTML = `<div class="search-results">`;
+
+        if (foundResults.length > 0) {
+            resultsHTML += `
+                <div class="search-section">
+                    <h3>✅ Found Run 15552596024</h3>
+            `;
+
+            for (const result of foundResults) {
+                const run = result.run;
+                const { statusClass, statusText } = getRunStatus(run);
+                const artifacts = result.artifacts || [];
+
+                resultsHTML += `
+                    <div class="search-result found">
+                        <div class="result-header">
+                            <strong>Repository: ${result.repo}</strong>
+                            <span class="status-${statusClass}">${statusText}</span>
+                        </div>
+                        <div class="result-details">
+                            <div><strong>Workflow:</strong> ${run.name}</div>
+                            <div><strong>Branch:</strong> ${run.head_branch}</div>
+                            <div><strong>Created:</strong> ${formatDateTimeDetailed(new Date(run.created_at))}</div>
+                            <div><strong>Updated:</strong> ${formatDateTimeDetailed(new Date(run.updated_at))}</div>
+                            <div><strong>Duration:</strong> ${calculateDuration(run)}</div>
+                            <div><strong>Trigger:</strong> ${run.event}</div>
+                            <div><strong>URL:</strong> <a href="${run.html_url}" target="_blank">${run.html_url}</a></div>
+                        </div>
+                        <div class="result-artifacts">
+                            <strong>Artifacts (${artifacts.length}):</strong>
+                `;
+
+                if (artifacts.length > 0) {
+                    resultsHTML += `<ul>`;
+                    for (const artifact of artifacts) {
+                        resultsHTML += `
+                            <li>
+                                <strong>${artifact.name}</strong> (${artifact.size_in_bytes} bytes)
+                                <br><small>Expires: ${new Date(artifact.expires_at).toLocaleDateString()}</small>
+                            </li>
+                        `;
+                    }
+                    resultsHTML += `</ul>`;
+                } else {
+                    resultsHTML += `<div>No artifacts found</div>`;
+                }
+
+                resultsHTML += `</div></div>`;
+            }
+
+            resultsHTML += `</div>`;
+        }
+
+        if (notFoundResults.length > 0) {
+            resultsHTML += `
+                <div class="search-section">
+                    <h3>❌ Repositories Without Run 15552596024</h3>
+            `;
+
+            for (const result of notFoundResults) {
+                resultsHTML += `
+                    <div class="search-result not-found">
+                        <strong>${result.repo}:</strong> ${result.error}
+                    </div>
+                `;
+            }
+
+            resultsHTML += `</div>`;
+        }
+
+        resultsHTML += `</div>`;
+
+        resultsDiv.innerHTML = resultsHTML;
+
+        console.log(
+            `🔍 [RUN-SEARCH] Search complete. Found in ${foundResults.length}/${searchResults.length} repositories.`
+        );
+    } catch (error) {
+        console.error("🔍 [RUN-SEARCH] Search failed:", error);
+        resultsDiv.innerHTML = `
+            <div class="search-error">
+                <h3>❌ Search Failed</h3>
+                <p>Error: ${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+/**
+ * Debug function to analyze run 15552596024
+ */
+export async function debugRun15552596024() {
+    console.log("🔍 [DEBUG] Starting debug analysis for run 15552596024...");
+
+    const resultsDiv = document.getElementById("debug-results");
+    if (!resultsDiv) {
+        console.error("🔍 [DEBUG] Results div not found");
+        return;
+    }
+
+    // Show loading state
+    resultsDiv.innerHTML = `
+        <div class="debug-loading">
+            <div class="loading-spinner"></div>
+            <span>Analyzing run 15552596024...</span>
+        </div>
+    `;
+
+    try {
+        const targetRunId = "15552596024";
+        let debugData = {
+            runFound: false,
+            artifacts: [],
+            downloadAttempts: [],
+            parentWorkflows: [],
+            childWorkflows: [],
+            analysis: [],
+            artifactData: null,
+            jobId: null,
+            parentRunId: null,
+        };
+
+        // First, search for the run
+        await searchRun15552596024();
+
+        // Try to find the run in gardenlinux repo specifically
+        console.log("🔍 [DEBUG] Looking for run in gardenlinux repo...");
+
+        try {
+            const runResponse = await fetch(
+                `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/gardenlinux/actions/runs/${targetRunId}`,
+                {
+                    headers: getAuthHeaders(),
+                }
+            );
+
+            if (runResponse.ok) {
+                const runData = await runResponse.json();
+                debugData.runFound = true;
+                debugData.runData = runData;
+
+                console.log("🔍 [DEBUG] Run found! Analyzing...");
+
+                // Get artifacts
+                try {
+                    const artifactsResponse = await fetch(
+                        `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/gardenlinux/actions/runs/${targetRunId}/artifacts`,
+                        {
+                            headers: getAuthHeaders(),
+                        }
+                    );
+
+                    if (artifactsResponse.ok) {
+                        const artifactsData = await artifactsResponse.json();
+                        debugData.artifacts = artifactsData.artifacts || [];
+
+                        console.log(
+                            `🔍 [DEBUG] Found ${debugData.artifacts.length} artifacts`
+                        );
+
+                        // Find allowed artifacts for download
+                        const allowedArtifacts = debugData.artifacts.filter(
+                            (artifact) =>
+                                artifact.name &&
+                                ALLOWED_ARTIFACT_NAMES.some((allowedName) =>
+                                    artifact.name
+                                        .toLowerCase()
+                                        .includes(allowedName.toLowerCase())
+                                )
+                        );
+
+                        if (allowedArtifacts.length > 0) {
+                            for (const artifact of allowedArtifacts) {
+                                console.log(
+                                    `🔍 [DEBUG] Found allowed artifact: ${artifact.name}`
+                                );
+
+                                // Record download attempt
+                                debugData.downloadAttempts.push({
+                                    artifactName: artifact.name,
+                                    artifactId: artifact.id,
+                                    status: "attempting",
+                                });
+
+                                // Use the new reusable function
+                                const extractionResult =
+                                    await downloadAndExtractArtifact(
+                                        API_CONFIG.GARDENLINUX_ORG,
+                                        "gardenlinux",
+                                        artifact
+                                    );
+
+                                // Update download attempt status
+                                const attemptIndex =
+                                    debugData.downloadAttempts.length - 1;
+
+                                if (extractionResult.success) {
+                                    debugData.downloadAttempts[
+                                        attemptIndex
+                                    ].status = "success";
+                                    debugData.downloadAttempts[
+                                        attemptIndex
+                                    ].fileCount = extractionResult.fileCount;
+
+                                    // Store extracted data
+                                    debugData.artifactData =
+                                        extractionResult.extractedData;
+
+                                    // Store job_id and parent run ID if found
+                                    if (extractionResult.jobId) {
+                                        debugData.jobId =
+                                            extractionResult.jobId;
+                                    }
+                                    if (extractionResult.parentRunId) {
+                                        debugData.parentRunId =
+                                            extractionResult.parentRunId;
+                                    }
+                                } else {
+                                    debugData.downloadAttempts[
+                                        attemptIndex
+                                    ].status =
+                                        extractionResult.reason || "failed";
+                                    debugData.downloadAttempts[
+                                        attemptIndex
+                                    ].error = extractionResult.message;
+                                }
+                            }
+                        }
+                    }
+                } catch (artifactError) {
+                    console.warn(
+                        "🔍 [DEBUG] Failed to get artifacts:",
+                        artifactError
+                    );
+                }
+
+                // Look for related workflow runs (potential children)
+                try {
+                    const created = new Date(runData.created_at);
+                    const searchStart = new Date(created);
+                    searchStart.setHours(created.getHours() - 1); // 1 hour before
+                    const searchEnd = new Date(created);
+                    searchEnd.setHours(created.getHours() + 24); // 24 hours after
+
+                    console.log(
+                        `🔍 [DEBUG] Looking for related workflow runs between ${searchStart.toISOString()} and ${searchEnd.toISOString()}`
+                    );
+
+                    // Check Stage 4 workflows for potential children
+                    const stage4Workflows = [
+                        { id: WORKFLOW_IDS.PUBLISH_GHCR, name: "Publish GHCR" },
+                        { id: WORKFLOW_IDS.PUBLISH_S3, name: "Publish S3" },
+                    ];
+
+                    for (const workflow of stage4Workflows) {
+                        try {
+                            const workflowResponse = await fetch(
+                                `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/gardenlinux/actions/workflows/${workflow.id}/runs?per_page=50${getBranchParameter()}`,
+                                {
+                                    headers: getAuthHeaders(),
+                                }
+                            );
+
+                            if (workflowResponse.ok) {
+                                const workflowData =
+                                    await workflowResponse.json();
+                                const runs = workflowData.workflow_runs || [];
+
+                                // Filter runs in time range
+                                const relatedRuns = runs.filter((run) => {
+                                    const runDate = new Date(run.created_at);
+                                    return (
+                                        runDate >= searchStart &&
+                                        runDate <= searchEnd
+                                    );
+                                });
+
+                                if (relatedRuns.length > 0) {
+                                    debugData.childWorkflows.push({
+                                        workflow: workflow.name,
+                                        runs: relatedRuns.map((run) => ({
+                                            id: run.id,
+                                            status: run.status,
+                                            conclusion: run.conclusion,
+                                            created_at: run.created_at,
+                                            html_url: run.html_url,
+                                        })),
+                                    });
+                                }
+                            }
+                        } catch (error) {
+                            console.warn(
+                                `🔍 [DEBUG] Error checking ${workflow.name}:`,
+                                error
+                            );
+                        }
+                    }
+                } catch (error) {
+                    console.warn(
+                        "🔍 [DEBUG] Error looking for related runs:",
+                        error
+                    );
+                }
+            } else {
+                console.log(
+                    `🔍 [DEBUG] Run not found in gardenlinux repo (${runResponse.status})`
+                );
+            }
+        } catch (error) {
+            console.error("🔍 [DEBUG] Error fetching run:", error);
+        }
+
+        // Render debug results
+        let debugHTML = `<div class="debug-analysis">`;
+
+        if (debugData.runFound) {
+            const run = debugData.runData;
+            const { statusClass, statusText } = getRunStatus(run);
+
+            debugHTML += `
+                <div class="debug-section">
+                    <h3>🎯 Run 15552596024 Analysis</h3>
+                    <div class="debug-details">
+                        <div><strong>Status:</strong> <span class="status-${statusClass}">${statusText}</span></div>
+                        <div><strong>Workflow:</strong> ${run.name}</div>
+                        <div><strong>Branch:</strong> ${run.head_branch}</div>
+                        <div><strong>Created:</strong> ${formatDateTimeDetailed(new Date(run.created_at))}</div>
+                        <div><strong>Updated:</strong> ${formatDateTimeDetailed(new Date(run.updated_at))}</div>
+                        <div><strong>Event:</strong> ${run.event}</div>
+                        <div><strong>URL:</strong> <a href="${run.html_url}" target="_blank">View on GitHub</a></div>
+                    </div>
+                </div>
+            `;
+
+            // Display extracted job_id and parent run ID prominently
+            if (debugData.jobId || debugData.parentRunId) {
+                debugHTML += `
+                    <div class="debug-section">
+                        <h3>🔑 Extracted Information</h3>
+                        <div class="extracted-info">
+                `;
+
+                if (debugData.jobId) {
+                    debugHTML += `
+                        <div class="extracted-field">
+                            <label>Job ID:</label>
+                            <span class="extracted-value" id="extracted-job-id">${debugData.jobId}</span>
+                            <button onclick="navigator.clipboard.writeText('${debugData.jobId}')" class="copy-btn" title="Copy to clipboard">📋</button>
+                        </div>
+                    `;
+                }
+
+                if (debugData.parentRunId) {
+                    debugHTML += `
+                        <div class="extracted-field">
+                            <label>Parent Run ID:</label>
+                            <span class="extracted-value" id="extracted-parent-run-id">${debugData.parentRunId}</span>
+                            <a href="https://github.com/gardenlinux/gardenlinux/actions/runs/${debugData.parentRunId}" target="_blank" class="view-parent-btn">View Parent Run</a>
+                            <button onclick="navigator.clipboard.writeText('${debugData.parentRunId}')" class="copy-btn" title="Copy to clipboard">📋</button>
+                        </div>
+                    `;
+                }
+
+                debugHTML += `
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Display download attempts
+            if (debugData.downloadAttempts.length > 0) {
+                debugHTML += `
+                    <div class="debug-section">
+                        <h3>📥 Artifact Download Attempts</h3>
+                `;
+
+                for (const attempt of debugData.downloadAttempts) {
+                    const statusIcon =
+                        attempt.status === "success"
+                            ? "✅"
+                            : attempt.status === "auth_required"
+                              ? "🔐"
+                              : attempt.status === "failed"
+                                ? "❌"
+                                : "⏳";
+
+                    debugHTML += `
+                        <div class="download-attempt">
+                            <div><strong>${statusIcon} ${attempt.artifactName}</strong></div>
+                            <div>Status: ${attempt.status}</div>
+                            ${attempt.fileCount ? `<div>Files extracted: ${attempt.fileCount}</div>` : ""}
+                            ${attempt.error ? `<div class="error">Error: ${attempt.error}</div>` : ""}
+                        </div>
+                    `;
+                }
+
+                debugHTML += `</div>`;
+            }
+
+            // Display artifact data if available
+            if (debugData.artifactData) {
+                debugHTML += `
+                    <div class="debug-section">
+                        <h3>📄 Extracted Artifact Contents</h3>
+                        <div class="artifact-contents">
+                `;
+
+                for (const [filename, content] of Object.entries(
+                    debugData.artifactData
+                )) {
+                    if (filename.endsWith("_parsed")) continue; // Skip parsed versions for display
+
+                    const truncatedContent =
+                        content.length > 500
+                            ? content.substring(0, 500) + "..."
+                            : content;
+
+                    debugHTML += `
+                        <div class="artifact-file">
+                            <h4>${filename}</h4>
+                            <pre class="artifact-content">${truncatedContent}</pre>
+                        </div>
+                    `;
+                }
+
+                debugHTML += `</div></div>`;
+            }
+
+            if (debugData.artifacts.length > 0) {
+                debugHTML += `
+                    <div class="debug-section">
+                        <h3>📦 Artifacts Analysis (${debugData.artifacts.length})</h3>
+                `;
+
+                for (let i = 0; i < debugData.analysis.length; i++) {
+                    const artifact = debugData.artifacts[i];
+                    const analysis = debugData.analysis[i];
+
+                    debugHTML += `
+                        <div class="artifact-analysis">
+                            <div><strong>${analysis.name}</strong></div>
+                            <div>Size: ${analysis.size} bytes</div>
+                            <div>Expires: ${new Date(artifact.expires_at).toLocaleDateString()}</div>
+                            <div>Potential Content: ${analysis.potentialContent.length > 0 ? analysis.potentialContent.join(", ") : "Unknown"}</div>
+                        </div>
+                    `;
+                }
+
+                debugHTML += `</div>`;
+            }
+
+            if (debugData.childWorkflows.length > 0) {
+                debugHTML += `
+                    <div class="debug-section">
+                        <h3>🔗 Related Workflow Runs</h3>
+                `;
+
+                for (const childWorkflow of debugData.childWorkflows) {
+                    debugHTML += `
+                        <div class="related-workflow">
+                            <strong>${childWorkflow.workflow}:</strong>
+                            <ul>
+                    `;
+
+                    for (const run of childWorkflow.runs) {
+                        const {
+                            statusClass: childStatusClass,
+                            statusText: childStatusText,
+                        } = getRunStatus(run);
+                        debugHTML += `
+                            <li>
+                                <a href="${run.html_url}" target="_blank">Run ${run.id}</a> -
+                                <span class="status-${childStatusClass}">${childStatusText}</span> -
+                                ${formatDateTimeDetailed(new Date(run.created_at))}
+                            </li>
+                        `;
+                    }
+
+                    debugHTML += `</ul></div>`;
+                }
+
+                debugHTML += `</div>`;
+            }
+        } else {
+            debugHTML += `
+                <div class="debug-section">
+                    <h3>❌ Run 15552596024 Not Found</h3>
+                    <p>The specified run was not found in the gardenlinux repository. This could mean:</p>
+                    <ul>
+                        <li>The run ID is incorrect</li>
+                        <li>The run is in a different repository</li>
+                        <li>The run has been deleted or is not accessible</li>
+                        <li>Authentication is required but not provided</li>
+                    </ul>
+                </div>
+            `;
+        }
+
+        debugHTML += `</div>`;
+
+        resultsDiv.innerHTML = debugHTML;
+
+        console.log("🔍 [DEBUG] Debug analysis complete");
+
+        // Log final extracted values
+        if (debugData.jobId) {
+            console.log(`🔍 [DEBUG] ✅ EXTRACTED JOB_ID: ${debugData.jobId}`);
+        }
+        if (debugData.parentRunId) {
+            console.log(
+                `🔍 [DEBUG] ✅ EXTRACTED PARENT_RUN_ID: ${debugData.parentRunId}`
+            );
+        }
+    } catch (error) {
+        console.error("🔍 [DEBUG] Debug failed:", error);
+        resultsDiv.innerHTML = `
+            <div class="debug-error">
+                <h3>❌ Debug Analysis Failed</h3>
+                <p>Error: ${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+// ========================================
+// PARENT WORKFLOW UTILITIES
+// ========================================
+
+/**
+ * Download and extract artifact data to find parent workflow information
+ */
+async function downloadAndExtractArtifact(owner, repo, artifact) {
+    try {
+        console.log(
+            `🔍 [DEBUG] Attempting to download artifact ${artifact.name} (ID: ${artifact.id})...`
+        );
+
+        // Check if artifact name is in allowed list
+        const isAllowed = ALLOWED_ARTIFACT_NAMES.some((allowedName) =>
+            artifact.name.toLowerCase().includes(allowedName.toLowerCase())
+        );
+
+        if (!isAllowed) {
+            console.log(
+                `🔍 [DEBUG] Artifact ${artifact.name} not in allowed list, skipping download`
+            );
+            return {
+                success: false,
+                reason: "not_allowed",
+                message: `Artifact name '${artifact.name}' not in allowed list: ${ALLOWED_ARTIFACT_NAMES.join(", ")}`,
+            };
+        }
+
+        const downloadResponse = await fetch(
+            `${API_CONFIG.GITHUB_API_BASE}/repos/${owner}/${repo}/actions/artifacts/${artifact.id}/zip`,
+            {
+                headers: getAuthHeaders(),
+            }
+        );
+
+        if (!downloadResponse.ok) {
+            const status = downloadResponse.status;
+            if (status === 401 || status === 403) {
+                return {
+                    success: false,
+                    reason: "auth_required",
+                    message: `${status}: Authentication required`,
+                    status: status,
+                };
+            } else {
+                return {
+                    success: false,
+                    reason: "download_failed",
+                    message: `${status}: ${downloadResponse.statusText}`,
+                    status: status,
+                };
+            }
+        }
+
+        console.log(
+            `🔍 [DEBUG] Successfully downloaded artifact ${artifact.name}`
+        );
+
+        const arrayBuffer = await downloadResponse.arrayBuffer();
+        const zip = new JSZip();
+        const loadedZip = await zip.loadAsync(arrayBuffer);
+
+        console.log(
+            `🔍 [DEBUG] ZIP file loaded, contains ${Object.keys(loadedZip.files).length} files`
+        );
+
+        // Extract and parse files
+        const extractedData = {};
+        let jobId = null;
+        let parentRunId = null;
+
+        for (const [filename, file] of Object.entries(loadedZip.files)) {
+            if (!file.dir) {
+                console.log(`🔍 [DEBUG] Extracting file: ${filename}`);
+                const content = await file.async("text");
+                extractedData[filename] = content;
+
+                // Try to parse as JSON if possible
+                try {
+                    if (
+                        filename.toLowerCase().endsWith(".json") ||
+                        content.trim().startsWith("{") ||
+                        content.trim().startsWith("[")
+                    ) {
+                        const jsonData = JSON.parse(content);
+                        extractedData[filename + "_parsed"] = jsonData;
+
+                        // Look for job_id in the JSON data
+                        if (jsonData.job_id && !jobId) {
+                            jobId = jsonData.job_id;
+                            console.log(
+                                `🔍 [DEBUG] Found job_id in ${filename}: ${jsonData.job_id}`
+                            );
+                        }
+
+                        // Look for parent_run_id or similar
+                        const parentIdFields = [
+                            "parent_run_id",
+                            "run_id",
+                            "workflow_id",
+                            "workflow_run_id",
+                            "triggering_run_id",
+                            "parent_workflow_run_id",
+                        ];
+
+                        for (const field of parentIdFields) {
+                            if (jsonData[field] && !parentRunId) {
+                                parentRunId = jsonData[field];
+                                console.log(
+                                    `🔍 [DEBUG] Found ${field} in ${filename}: ${jsonData[field]}`
+                                );
+                                break;
+                            }
+                        }
+                    }
+                } catch (parseError) {
+                    console.log(
+                        `🔍 [DEBUG] Could not parse ${filename} as JSON, treating as text`
+                    );
+
+                    // Try to extract job_id from text content using regex
+                    const jobIdMatch = content.match(
+                        /(?:job_id|jobId|job-id)[\s:=]+([^\s\n,}]+)/i
+                    );
+                    if (jobIdMatch && !jobId) {
+                        jobId = jobIdMatch[1].replace(/['"]/g, "");
+                        console.log(
+                            `🔍 [DEBUG] Extracted job_id from ${filename} text: ${jobId}`
+                        );
+                    }
+
+                    // Try to extract parent run ID from text
+                    const parentRunMatch = content.match(
+                        /(?:parent_run_id|parentRunId|parent-run-id|run_id)[\s:=]+([0-9]+)/i
+                    );
+                    if (parentRunMatch && !parentRunId) {
+                        parentRunId = parentRunMatch[1];
+                        console.log(
+                            `🔍 [DEBUG] Extracted parent run ID from ${filename} text: ${parentRunId}`
+                        );
+                    }
+                }
+            }
+        }
+
+        return {
+            success: true,
+            extractedData: extractedData,
+            jobId: jobId,
+            parentRunId: parentRunId,
+            fileCount: Object.keys(extractedData).length,
+            message: `Successfully extracted ${Object.keys(extractedData).length} files`,
+        };
+    } catch (error) {
+        console.error(
+            `🔍 [DEBUG] Error downloading/extracting artifact:`,
+            error
+        );
+        return {
+            success: false,
+            reason: "extraction_error",
+            message: error.message,
+            error: error,
+        };
+    }
+}
+
+/**
+ * Get parent workflow information and artifacts
+ */
+async function getParentWorkflowInfo(owner, repo, runId) {
+    try {
+        console.log(`🔍 [DEBUG] Fetching artifacts for run ${runId}...`);
+
+        const artifactsResponse = await fetch(
+            `${API_CONFIG.GITHUB_API_BASE}/repos/${owner}/${repo}/actions/runs/${runId}/artifacts`,
+            {
+                headers: getAuthHeaders(),
+            }
+        );
+
+        if (!artifactsResponse.ok) {
+            return {
+                found: false,
+                message: `Failed to fetch artifacts: ${artifactsResponse.status} ${artifactsResponse.statusText}`,
+                error: `API Error: ${artifactsResponse.status}`,
+            };
+        }
+
+        const artifactsData = await artifactsResponse.json();
+        const artifacts = artifactsData.artifacts || [];
+
+        console.log(
+            `🔍 [DEBUG] Found ${artifacts.length} artifacts for run ${runId}`
+        );
+
+        if (artifacts.length === 0) {
+            return {
+                found: false,
+                message: "No artifacts found for this run",
+            };
+        }
+
+        // Enhanced parent workflow artifact detection
+        // Look for artifacts that likely contain parent workflow information
+        const parentWorkflowArtifacts = artifacts.filter(
+            (artifact) =>
+                artifact.name &&
+                // Check if artifact name is in allowed list for download
+                ALLOWED_ARTIFACT_NAMES.some((allowedName) =>
+                    artifact.name
+                        .toLowerCase()
+                        .includes(allowedName.toLowerCase())
+                )
+        );
+
+        console.log(
+            `🔍 [DEBUG] Found ${parentWorkflowArtifacts.length} allowed parent workflow artifacts:`,
+            parentWorkflowArtifacts.map((a) => a.name)
+        );
+
+        // Try to download and extract allowed artifacts first
+        if (parentWorkflowArtifacts.length > 0) {
+            for (const artifact of parentWorkflowArtifacts) {
+                const extractionResult = await downloadAndExtractArtifact(
+                    owner,
+                    repo,
+                    artifact
+                );
+
+                if (extractionResult.success && extractionResult.parentRunId) {
+                    return {
+                        found: true,
+                        message:
+                            "Parent run ID extracted from downloaded artifact",
+                        artifactId: artifact.id,
+                        artifactName: artifact.name,
+                        parentRunId: extractionResult.parentRunId.toString(),
+                        jobId: extractionResult.jobId,
+                        extractionMethod: "artifact_download_extraction",
+                        extractedData: extractionResult.extractedData,
+                        fileCount: extractionResult.fileCount,
+                    };
+                } else if (extractionResult.success) {
+                    // Downloaded successfully but no parent run ID found
+                    console.log(
+                        `🔍 [DEBUG] Downloaded ${artifact.name} but no parent run ID found in content`
+                    );
+                } else {
+                    // Download failed
+                    console.log(
+                        `🔍 [DEBUG] Failed to download ${artifact.name}: ${extractionResult.message}`
+                    );
+                }
+            }
+        }
+
+        // Enhanced detection for all artifacts that might contain parent workflow information
+        const allParentWorkflowArtifacts = artifacts.filter(
+            (artifact) =>
+                artifact.name &&
+                // Direct parent workflow indicators
+                (artifact.name.toLowerCase().includes("parent-workflow") ||
+                    artifact.name.toLowerCase().includes("parent_workflow") ||
+                    artifact.name
+                        .toLowerCase()
+                        .includes("triggering-workflow") ||
+                    artifact.name
+                        .toLowerCase()
+                        .includes("triggering_workflow") ||
+                    // Workflow context indicators
+                    artifact.name.toLowerCase().includes("workflow-context") ||
+                    artifact.name.toLowerCase().includes("workflow_context") ||
+                    artifact.name.toLowerCase().includes("workflow-info") ||
+                    artifact.name.toLowerCase().includes("workflow_info") ||
+                    // Generic parent indicators
+                    artifact.name.toLowerCase().includes("parent-run") ||
+                    artifact.name.toLowerCase().includes("parent_run") ||
+                    artifact.name.toLowerCase().includes("trigger-info") ||
+                    artifact.name.toLowerCase().includes("trigger_info") ||
+                    // Event context indicators
+                    artifact.name.toLowerCase().includes("event-context") ||
+                    artifact.name.toLowerCase().includes("event_context") ||
+                    artifact.name
+                        .toLowerCase()
+                        .includes("workflow-run-event") ||
+                    artifact.name.toLowerCase().includes("workflow_run_event"))
+        );
+
+        if (allParentWorkflowArtifacts.length > 0) {
+            for (const artifact of allParentWorkflowArtifacts) {
+                const extractionResult = await downloadAndExtractArtifact(
+                    owner,
+                    repo,
+                    artifact
+                );
+
+                if (extractionResult.success && extractionResult.parentRunId) {
+                    return {
+                        found: true,
+                        message:
+                            "Parent run ID extracted from downloaded artifact",
+                        artifactId: artifact.id,
+                        artifactName: artifact.name,
+                        parentRunId: extractionResult.parentRunId.toString(),
+                        jobId: extractionResult.jobId,
+                        extractionMethod: "artifact_download_extraction",
+                        extractedData: extractionResult.extractedData,
+                        fileCount: extractionResult.fileCount,
+                    };
+                } else if (extractionResult.success) {
+                    // Downloaded successfully but no parent run ID found
+                    console.log(
+                        `🔍 [DEBUG] Downloaded ${artifact.name} but no parent run ID found in content`
+                    );
+                } else {
+                    // Download failed
+                    console.log(
+                        `🔍 [DEBUG] Failed to download ${artifact.name}: ${extractionResult.message}`
+                    );
+                }
+            }
+        }
+
+        // If we have parent workflow artifacts but couldn't extract run ID from names
+        if (parentWorkflowArtifacts.length > 0) {
+            const primaryArtifact = parentWorkflowArtifacts[0];
+
+            return {
+                found: true,
+                message: `Parent workflow artifact '${primaryArtifact.name}' found but requires download to extract run ID`,
+                artifactId: primaryArtifact.id,
+                artifactName: primaryArtifact.name,
+                parentRunId: null,
+                extractionMethod: "parent_artifact_found",
+                availableArtifacts: parentWorkflowArtifacts.map((a) => a.name),
+                note: "Artifact download and parsing would be required to extract parent run ID",
+                downloadUrl: `GitHub API does not provide direct download - requires authenticated request to /repos/${owner}/${repo}/actions/artifacts/${primaryArtifact.id}/zip`,
+            };
+        }
+
+        // Check for any workflow-related artifacts that might contain parent info
+        const workflowArtifacts = artifacts.filter(
+            (artifact) =>
+                artifact.name.toLowerCase().includes("workflow") ||
+                artifact.name.toLowerCase().includes("run") ||
+                artifact.name.toLowerCase().includes("trigger") ||
+                artifact.name.toLowerCase().includes("event") ||
+                artifact.name.toLowerCase().includes("context")
+        );
+
+        if (workflowArtifacts.length > 0) {
+            return {
+                found: false,
+                message: `Found ${workflowArtifacts.length} workflow-related artifacts but no clear parent indicators`,
+                artifactCount: artifacts.length,
+                workflowArtifacts: workflowArtifacts.map((a) => a.name),
+                extractionMethod: "workflow_artifacts_found",
+                suggestion:
+                    "These artifacts might contain parent information if downloaded and parsed",
+            };
+        }
+
+        return {
+            found: false,
+            message: `Found ${artifacts.length} artifacts but no parent workflow indicators`,
+            artifactCount: artifacts.length,
+            availableArtifacts: artifacts.slice(0, 10).map((a) => a.name), // Show first 10 artifact names
+            extractionMethod: "no_parent_indicators",
+        };
+    } catch (error) {
+        console.error(`🔍 [DEBUG] Error fetching parent workflow info:`, error);
+        return {
+            found: false,
+            message: "Error fetching artifact information",
+            error: error.message,
+            extractionMethod: "error",
+        };
     }
 }

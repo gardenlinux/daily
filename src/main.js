@@ -11,30 +11,31 @@
  */
 
 import {
-    // getAuthHeaders, // Not used in main.js but available for future use
-    // getTriggerInfo, // Not used in main.js but available for future use
-    getGlDays,
-    getCurrentGlDays,
-    isHistoricView,
-    formatGLDate,
-    updateGLDateInfo,
-    shouldLoadHistoricReleases,
-    toggleSection,
-} from "./utils.js";
-
-import {
     getRun,
     fillPackageTable,
     loadHistoricReleases,
+    updateHeaderColor,
     // updatePipelineHierarchy, // Called automatically from dashboard functions
-    // updateHeaderColor, // Called automatically from dashboard functions
 } from "./dashboard.js";
 
 import {
     generateWorkflowBoxHTML,
     getWorkflowsByStageForHTML,
     WORKFLOW_IDS,
+    GL_INITIAL_DATE,
 } from "./constants.js";
+
+import {
+    formatDailyDate,
+    isHistoricView,
+    getGlDays,
+    getCurrentGlDays,
+    updateGLDateInfo,
+    shouldLoadHistoricReleases,
+    toggleSection,
+    formatDetailedDateFromDate,
+    shouldSearchAllBranches,
+} from "./utils.js";
 
 // ========================================
 // SETTINGS PANEL MANAGEMENT
@@ -80,6 +81,56 @@ window.clearToken = function () {
     alert("Token cleared! Page will reload...");
     location.reload();
 };
+
+// ========================================
+// BRANCH SEARCH SETTINGS
+// ========================================
+// Branch search toggle functions
+window.toggleBranchSearch = function () {
+    const checkbox = document.getElementById("search-all-branches");
+    const isEnabled = checkbox.checked;
+
+    // Update URL parameter
+    const url = new URL(window.location);
+    if (isEnabled) {
+        url.searchParams.set("all_branches", "true");
+    } else {
+        url.searchParams.set("all_branches", "false");
+    }
+
+    // Update localStorage as well (for persistence across sessions)
+    localStorage.setItem("search_all_branches", isEnabled.toString());
+
+    // Update status display
+    updateBranchSearchStatus();
+
+    // Navigate to the new URL
+    const message = isEnabled
+        ? "Branch search enabled: Now searching all branches. Page will reload..."
+        : "Branch search disabled: Now searching default branches only. Page will reload...";
+    alert(message);
+    window.location.href = url.toString();
+};
+
+function updateBranchSearchStatus() {
+    const isEnabled = shouldSearchAllBranches(); // This now checks URL first, then localStorage
+    const checkbox = document.getElementById("search-all-branches");
+    const modeSpan = document.getElementById("branch-mode");
+
+    if (checkbox) {
+        checkbox.checked = isEnabled;
+    }
+
+    if (modeSpan) {
+        modeSpan.textContent = isEnabled
+            ? "all branches"
+            : "default branches only";
+    }
+}
+
+function initializeBranchSettings() {
+    updateBranchSearchStatus();
+}
 
 function updateAuthStatus() {
     const token = localStorage.getItem("github_token");
@@ -261,8 +312,10 @@ function initDashboard() {
     const glDays = getGlDays();
     const glDaysElement = document.getElementById("gl-days");
 
-    // Calculate the date for the GL version
-    const formattedDate = formatGLDate(glDays);
+    // Calculate the date for the GL version using the new detailed format
+    const glDate = new Date(GL_INITIAL_DATE);
+    glDate.setDate(glDate.getDate() + glDays);
+    const formattedDate = formatDetailedDateFromDate(glDate);
 
     // Apply appropriate styling classes
     glDaysElement.classList.remove("historic", "error");
@@ -337,6 +390,7 @@ function initDashboard() {
     fillPackageTable();
     updateAuthStatus(); // Initialize auth status display
     initializeGLSelector(); // Initialize GL version selector
+    initializeBranchSettings(); // Initialize branch search settings
     generateWorkflowHTML(); // Generate workflow HTML
 }
 

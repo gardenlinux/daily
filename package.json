@@ -24,13 +24,18 @@
     "author": "Garden Linux Team",
     "license": "MIT",
     "devDependencies": {
-        "rollup": "^4.0.0",
+        "@eslint/js": "^8.57.0",
+        "@rollup/plugin-commonjs": "^28.0.3",
+        "@rollup/plugin-node-resolve": "^15.3.0",
         "@rollup/plugin-terser": "^0.4.0",
         "eslint": "^8.57.0",
-        "@eslint/js": "^8.57.0",
-        "prettier": "^3.2.5"
+        "prettier": "^3.2.5",
+        "rollup": "^4.0.0"
     },
     "engines": {
         "node": ">=16.0.0"
+    },
+    "dependencies": {
+        "jszip": "^3.10.1"
     }
 }

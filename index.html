@@ -25,7 +25,7 @@
         <!-- Settings Container -->
         <div id="settings-container">
             <button id="settings-btn" onclick="toggleSettings()">
-                ⚙️ Settings
+                ⚙️  
             </button>
             <div id="settings-panel" style="display: none">
                 <h3>GitHub Authentication</h3>
@@ -83,6 +83,40 @@
                             Go to Today
                         </button>
                     </div>
+                </div>
+
+                <hr class="settings-separator" />
+
+                <h3>Workflow Branch Settings</h3>
+                <div class="branch-settings">
+                    <div class="branch-toggle-group">
+                        <label
+                            for="search-all-branches"
+                            class="branch-toggle-label"
+                        >
+                            <input
+                                type="checkbox"
+                                id="search-all-branches"
+                                onchange="toggleBranchSearch()"
+                            />
+                            Search all branches instead of default ones
+                        </label>
+                        <div class="branch-status" id="branch-status">
+                            <small
+                                >Currently searching:
+                                <span id="branch-mode"
+                                    >default branches only</span
+                                ></small
+                            >
+                        </div>
+                    </div>
+                    <small class="branch-help">
+                        By default, workflows search only their main/default
+                        branches.
+                        <br />
+                        Enable this to search all branches for each workflow,
+                        which may include feature branches and development work.
+                    </small>
                 </div>
             </div>
         </div>
@@ -160,6 +194,10 @@
                                 Loading...
                             </div>
 
+                            <div class="current-duration" id="current-duration">
+                                Calculating...
+                            </div>
+
                             <div class="current-summary" id="current-summary">
                                 Loading...
                             </div>
@@ -234,9 +272,6 @@
                                                 >🏗️</span
                                             >
                                             <h4>Repo Build</h4>
-                                            <span class="sequence-indicator"
-                                                >2nd</span
-                                            >
                                         </div>
                                         <div class="workflow-box">
                                             <!-- Workflow box will be generated dynamically -->
@@ -252,9 +287,6 @@
                                                 >🔄</span
                                             >
                                             <h4>Repo Update</h4>
-                                            <span class="sequence-indicator"
-                                                >1st</span
-                                            >
                                         </div>
                                         <div class="workflow-box">
                                             <!-- Workflow box will be generated dynamically -->

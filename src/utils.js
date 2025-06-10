@@ -71,6 +71,72 @@ export function formatGLDate(glDays) {
     return targetDate.toLocaleDateString("en-US", options);
 }
 
+export function formatDailyDate(date) {
+    const options = {
+        weekday: "short",
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+    };
+    return date.toLocaleDateString("en-US", options);
+}
+
+// New format: "Tue, 2025-12-31" for current/historic release details
+export function formatDetailedDate(glDays) {
+    const initialDay = new Date(GL_INITIAL_DATE);
+    const targetDate = new Date(initialDay);
+    targetDate.setDate(targetDate.getDate() + glDays);
+
+    const options = {
+        weekday: "short",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    };
+
+    // Get the formatted date and adjust the format to match "Tue, 2025-12-31"
+    const formatted = targetDate.toLocaleDateString("en-US", options);
+    const parts = formatted.split(", ");
+    const weekday = parts[0]; // "Tue"
+    const datePart = parts[1]; // "12/31/2025"
+
+    // Convert MM/DD/YYYY to YYYY-MM-DD
+    const [month, day, year] = datePart.split("/");
+    return `${weekday}, ${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+}
+
+// Format a Date object to "2025-12-31 18:31:45" format
+export function formatDetailedDateFromDate(date) {
+    const options = {
+        weekday: "short",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    };
+
+    // Get the formatted date and adjust the format to match "Tue, 2025-12-31"
+    const formatted = date.toLocaleDateString("en-US", options);
+    const parts = formatted.split(", ");
+    const weekday = parts[0]; // "Tue"
+    const datePart = parts[1]; // "12/31/2025"
+
+    // Convert MM/DD/YYYY to YYYY-MM-DD
+    const [month, day, year] = datePart.split("/");
+    return `${weekday}, ${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+}
+
+// Format a Date object to "2025-12-31 18:31:45" format for time displays
+export function formatDateTimeDetailed(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
 export function updateGLDateInfo(glDays) {
     const dateInfoElement = document.getElementById("gl-date-info");
     if (!dateInfoElement) return;
@@ -103,6 +169,26 @@ export function isHistoricView() {
 export function shouldLoadHistoricReleases() {
     const urlParams = new URLSearchParams(window.location.search);
     return !urlParams.has("no_historic_releases");
+}
+
+// Branch search configuration
+export function getBranchParameter() {
+    const searchAllBranches = shouldSearchAllBranches();
+    return searchAllBranches ? "" : "&branch=main";
+}
+
+export function shouldSearchAllBranches() {
+    // Check URL parameter first
+    const urlParams = new URLSearchParams(window.location.search);
+    const branchParam = urlParams.get("all_branches");
+
+    if (branchParam !== null) {
+        return branchParam === "true" || branchParam === "1";
+    }
+
+    // Fall back to localStorage, but default to false if not set
+    const stored = localStorage.getItem("search_all_branches");
+    return stored === "true";
 }
 
 // ========================================

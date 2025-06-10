@@ -4,6 +4,7 @@
  *
  * - Success: #28a745 (GitHub green) - completed workflows
  * - Warning: #ffc107 (GitHub yellow) - in-progress workflows
+ * - Warning: #fd7e14 (GitHub orange) - package issues, etc.
  * - Danger:  #dc3545 (GitHub red) - failed workflows
  * - Info:    #007bff (GitHub blue) - informational elements
  * - Secondary: #6c757d (GitHub grey) - unknown/no-data states
@@ -64,6 +65,493 @@
 }
 
 /* ========================================= */
+/* UNIFIED STATUS SYSTEM                     */
+/* ========================================= */
+
+/* Status indicator dots - unified base class (remove current-overall-status to avoid conflicts) */
+.status-indicator,
+.current-status-indicator,
+.current-stage-dot,
+.stage-dot,
+.historic-stage-dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: var(--color-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    margin: 0 auto;
+    flex-shrink: 0;
+}
+
+/* Smaller stage dots */
+.stage-dot,
+.current-stage-dot,
+.historic-stage-dot {
+    width: 10px;
+    height: 10px;
+}
+
+/* Status text colors - unified */
+.status-success,
+.status-text.success,
+.run-status-line .status-success,
+.workflow-box .run-status-line .status-success {
+    color: var(--color-success);
+}
+
+.status-failure,
+.status-text.failure,
+.run-status-line .status-failure,
+.workflow-box .run-status-line .status-failure {
+    color: var(--color-danger);
+}
+
+.status-progress,
+.status-text.progress,
+.run-status-line .status-progress,
+.workflow-box .run-status-line .status-progress {
+    color: var(--color-progress-dark);
+}
+
+.status-warning,
+.status-text.warning,
+.run-status-line .status-warning,
+.workflow-box .run-status-line .status-warning {
+    color: var(--color-warning);
+}
+
+.status-unknown,
+.status-text.queued,
+.run-status-line .status-queued,
+.workflow-box .run-status-line .status-queued {
+    color: var(--color-secondary);
+}
+
+/* SUCCESS STATUS - applies to all success elements (except historic which uses different structure) */
+.success,
+.status-indicator.success,
+.current-status-indicator.success,
+.stage-dot.success,
+.current-stage-dot.success,
+.historic-stage-dot.success,
+.gl-version.success,
+.current-gl-version.success,
+.historic-gl-version.success,
+.gl-version-status.success,
+.workflow-box.success,
+.pipeline-stage.stage-success,
+.pipeline-container.pipeline-success,
+.package-summary.success,
+.sub-stage.success {
+    background-color: var(--color-success);
+    border-color: var(--color-success);
+    box-shadow: 0 0 6px rgba(40, 167, 69, 0.4);
+}
+
+.workflow-box.success,
+.package-summary.success {
+    background: var(--color-success-light);
+    box-shadow: 0 0 15px rgba(40, 167, 69, 0.15);
+}
+
+.pipeline-stage.stage-success {
+    background: linear-gradient(
+        to bottom,
+        var(--color-success-light) 0%,
+        var(--bg-primary) 100%
+    );
+    box-shadow: 0 0 20px rgba(40, 167, 69, 0.1);
+}
+
+.sub-stage.success {
+    background: var(--color-success-light);
+}
+
+/* FAILURE STATUS - applies to all failure elements (except historic which uses different structure) */
+.failure,
+.status-indicator.failure,
+.current-status-indicator.failure,
+.stage-dot.failure,
+.current-stage-dot.failure,
+.historic-stage-dot.failure,
+.gl-version.failure,
+.current-gl-version.failure,
+.historic-gl-version.failure,
+.gl-version-status.failure,
+.workflow-box.failure,
+.pipeline-stage.stage-failure,
+.pipeline-container.pipeline-failure,
+.sub-stage.failure {
+    background-color: var(--color-danger);
+    border-color: var(--color-danger);
+    box-shadow: 0 0 6px rgba(220, 53, 69, 0.4);
+}
+
+.workflow-box.failure {
+    background: var(--color-danger-light);
+    box-shadow: 0 0 15px rgba(220, 53, 69, 0.15);
+}
+
+.pipeline-stage.stage-failure {
+    background: linear-gradient(
+        to bottom,
+        var(--color-danger-light) 0%,
+        var(--bg-primary) 100%
+    );
+    box-shadow: 0 0 20px rgba(220, 53, 69, 0.1);
+}
+
+.sub-stage.failure {
+    background: var(--color-danger-light);
+}
+
+/* PROGRESS STATUS - applies to all progress elements (except historic which uses different structure) */
+.progress,
+.status-indicator.progress,
+.current-status-indicator.progress,
+.stage-dot.progress,
+.current-stage-dot.progress,
+.historic-stage-dot.progress,
+.gl-version.progress,
+.current-gl-version.progress,
+.historic-gl-version.progress,
+.gl-version-status.progress,
+.workflow-box.progress,
+.workflow-box.queued,
+.pipeline-stage.stage-progress,
+.pipeline-container.pipeline-progress,
+.package-summary.progress,
+.sub-stage.progress {
+    background-color: var(--color-progress);
+    border-color: var(--color-progress);
+    box-shadow: 0 0 6px rgba(255, 193, 7, 0.4);
+    animation: statusPulse 4s infinite ease-in-out;
+}
+
+.gl-version.progress,
+.current-gl-version.progress,
+.historic-gl-version.progress {
+    color: var(--text-primary);
+}
+
+.workflow-box.progress,
+.workflow-box.queued,
+.package-summary.progress {
+    background: var(--color-progress-light);
+    box-shadow: 0 0 15px rgba(255, 193, 7, 0.15);
+    animation: workflowPulse 5s infinite alternate ease-in-out;
+}
+
+.pipeline-stage.stage-progress {
+    background: linear-gradient(
+        to bottom,
+        var(--color-progress-light) 0%,
+        var(--bg-primary) 100%
+    );
+    box-shadow: 0 0 20px rgba(255, 193, 7, 0.1);
+    animation: stagePulse 6s infinite alternate ease-in-out;
+}
+
+.sub-stage.progress {
+    background: var(--color-progress-light);
+    animation: subStagePulse 5s infinite alternate ease-in-out;
+}
+
+/* WARNING STATUS - applies to all warning elements (except historic which uses different structure) */
+.warning,
+.status-indicator.warning,
+.current-status-indicator.warning,
+.stage-dot.warning,
+.current-stage-dot.warning,
+.historic-stage-dot.warning,
+.gl-version.warning,
+.current-gl-version.warning,
+.historic-gl-version.warning,
+.gl-version-status.warning,
+.workflow-box.warning,
+.pipeline-stage.stage-warning,
+.pipeline-container.pipeline-warning,
+.package-summary.warning,
+.sub-stage.warning {
+    background-color: var(--color-warning);
+    border-color: var(--color-warning);
+    box-shadow: 0 0 6px rgba(253, 126, 20, 0.4);
+}
+
+.workflow-box.warning,
+.package-summary.warning {
+    background: var(--color-warning-light);
+    box-shadow: 0 0 15px rgba(253, 126, 20, 0.15);
+    animation: workflowPulse 8s infinite alternate ease-in-out;
+}
+
+.pipeline-stage.stage-warning {
+    background: linear-gradient(
+        to bottom,
+        var(--color-warning-light) 0%,
+        var(--bg-primary) 100%
+    );
+    box-shadow: 0 0 20px rgba(253, 126, 20, 0.1);
+    animation: stagePulse 8s infinite alternate ease-in-out;
+}
+
+.sub-stage.warning {
+    background: var(--color-warning-light);
+}
+
+/* UNKNOWN STATUS - applies to all unknown elements (except historic which uses different structure) */
+.unknown,
+.status-indicator.unknown,
+.current-status-indicator.unknown,
+.stage-dot.unknown,
+.current-stage-dot.unknown,
+.historic-stage-dot.unknown,
+.gl-version.unknown,
+.current-gl-version.unknown,
+.historic-gl-version.unknown,
+.gl-version-status.unknown,
+.workflow-box.no-runs,
+.pipeline-stage.stage-unknown,
+.pipeline-container.pipeline-unknown,
+.sub-stage.blocked {
+    background-color: var(--color-secondary);
+    border-color: var(--color-secondary);
+    box-shadow: 0 0 6px rgba(108, 117, 125, 0.4);
+}
+
+.workflow-box.no-runs {
+    background: var(--bg-tertiary);
+    border-color: var(--border-medium);
+    opacity: 0.8;
+}
+
+.pipeline-stage.stage-unknown {
+    background: linear-gradient(
+        to bottom,
+        var(--bg-secondary) 0%,
+        var(--bg-primary) 100%
+    );
+    box-shadow: 0 0 10px rgba(108, 117, 125, 0.1);
+}
+
+.sub-stage.blocked {
+    background: var(--bg-tertiary);
+    opacity: 0.6;
+}
+
+/* ERROR STATUS */
+.workflow-box.api-error,
+.pipeline-stage.stage-error,
+.pipeline-stage.stage-cascaded-failure,
+.pipeline-container.pipeline-error,
+.package-summary.api-error {
+    border-color: var(--color-danger);
+    background: var(--color-danger-light);
+    box-shadow: 0 0 15px rgba(220, 53, 69, 0.15);
+}
+
+/* UNIFIED HEADER STATUS STYLING */
+.days,
+.current-release-header,
+.current-details-header,
+.platform-cleanup-header,
+.historic-releases-header {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 12px;
+    color: var(--text-white);
+    font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.days.header-success,
+.current-release-header.status-success,
+.current-details-header.status-success,
+.platform-cleanup-header.status-success {
+    background: linear-gradient(135deg, var(--color-success), #22863a);
+    border-color: var(--color-success);
+}
+
+.days.header-failure,
+.days.error,
+.current-release-header.status-failure,
+.current-details-header.status-failure,
+.platform-cleanup-header.status-failure {
+    background: linear-gradient(135deg, var(--color-danger), #bd2130);
+    border-color: var(--color-danger);
+}
+
+.days.header-progress,
+.current-release-header.status-progress,
+.current-details-header.status-progress,
+.platform-cleanup-header.status-progress {
+    background: linear-gradient(135deg, var(--color-progress), #e0a800);
+    border-color: var(--color-progress);
+}
+
+.days.header-warning,
+.current-release-header.status-warning,
+.current-details-header.status-warning,
+.platform-cleanup-header.status-warning {
+    background: linear-gradient(135deg, var(--color-warning), #e8590c);
+    border-color: var(--color-warning);
+}
+
+.days.header-unknown,
+.days.historic,
+.current-release-header.status-unknown,
+.current-details-header.status-unknown,
+.platform-cleanup-header.status-unknown,
+.current-release-header:not([class*="status-"]),
+.current-details-header:not([class*="status-"]),
+.platform-cleanup-header:not([class*="status-"]) {
+    background: linear-gradient(135deg, var(--color-secondary), #5a6268);
+    border-color: var(--color-secondary);
+}
+
+/* UNIFIED LINK STYLING FOR CONTAINERS */
+.workflow-box a {
+    text-decoration: none;
+    transition: all 0.3s ease;
+    display: block;
+    padding: 18px;
+    line-height: 1.6;
+    font-size: 1em;
+}
+
+.workflow-box.success a {
+    color: var(--color-success-dark);
+}
+.workflow-box.failure a {
+    color: var(--color-danger-dark);
+}
+.workflow-box.progress a,
+.workflow-box.queued a {
+    color: var(--color-progress-dark);
+}
+.workflow-box.warning a {
+    color: var(--color-warning-dark);
+}
+.workflow-box.api-error a {
+    color: var(--color-danger-dark);
+}
+.workflow-box.no-runs a {
+    color: var(--text-secondary);
+    text-shadow: none;
+    opacity: 0.8;
+}
+
+/* UNIFIED PACKAGE TABLE STATUS STYLING */
+.package-status-cell {
+    font-weight: bold;
+    text-align: center;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    border: 1px solid var(--border-light);
+}
+
+.package-table-container tr.progress .package-status-cell,
+.package-table-container tr.progress {
+    background: var(--color-progress-light);
+    color: var(--color-progress-dark);
+    border-color: var(--color-progress);
+}
+
+.package-table-container tr.failure .package-status-cell,
+.package-table-container tr.failure,
+.package-table-container tr.brokenTimestamp .package-status-cell,
+.package-table-container tr.brokenTimestamp {
+    background: var(--color-danger-light);
+    color: var(--color-danger-dark);
+    border-color: var(--color-danger);
+}
+
+.package-table-container tr.warning .package-status-cell,
+.package-table-container tr.warning {
+    background: var(--color-warning-light);
+    color: var(--color-warning-dark);
+    border-color: var(--color-warning);
+}
+
+.package-table-container tr.stale .package-status-cell,
+.package-table-container tr.stale,
+.package-table-container tr.workFlowNotFound .package-status-cell,
+.package-table-container tr.workFlowNotFound,
+.package-table-container tr.noRunFound .package-status-cell,
+.package-table-container tr.noRunFound {
+    background: var(--color-secondary-light);
+    color: var(--color-secondary-dark);
+    border-color: var(--color-secondary);
+}
+
+/* ANIMATIONS */
+@keyframes statusPulse {
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.01);
+        opacity: 0.98;
+    }
+}
+
+@keyframes workflowPulse {
+    0% {
+        box-shadow: 0 0 5px rgba(255, 193, 7, 0.05);
+    }
+    100% {
+        box-shadow: 0 0 8px rgba(255, 193, 7, 0.08);
+    }
+}
+
+@keyframes stagePulse {
+    0% {
+        box-shadow: 0 0 8px rgba(255, 193, 7, 0.03);
+    }
+    100% {
+        box-shadow: 0 0 12px rgba(255, 193, 7, 0.05);
+    }
+}
+
+@keyframes pipelinePulse {
+    0% {
+        border-color: var(--color-progress);
+    }
+    100% {
+        border-color: #e0a800;
+        box-shadow: 0 0 5px rgba(255, 193, 7, 0.05);
+    }
+}
+
+@keyframes subStagePulse {
+    0% {
+        border-color: var(--color-progress);
+        box-shadow: 0 0 3px rgba(255, 193, 7, 0.03);
+    }
+    100% {
+        border-color: #e0a800;
+        box-shadow: 0 0 6px rgba(255, 193, 7, 0.05);
+    }
+}
+
+@keyframes arrowPulse {
+    0% {
+        opacity: 0.5;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(2px);
+    }
+}
+
+/* ========================================= */
 /* BASE STYLES & TYPOGRAPHY                  */
 /* ========================================= */
 body,
@@ -76,6 +564,8 @@ html {
         Arial, sans-serif;
     color: var(--text-primary);
     background-color: var(--bg-secondary);
+    line-height: 1.5;
+    font-size: 16px;
 }
 
 table {
@@ -89,7 +579,7 @@ table {
 .header-title {
     text-align: center;
     margin-bottom: 20px;
-    font-size: 0.9em;
+    font-size: 1em;
     color: #666;
     display: flex;
     align-items: center;
@@ -109,131 +599,50 @@ table {
 .header-title h1 {
     order: 2;
     margin: 0;
-    font-size: 2.5em;
+    font-size: 2.8em;
     color: var(--text-primary);
     font-weight: bold;
 }
 
-/* Responsive adjustments for smaller screens */
-@media (max-width: 768px) {
-    .header-title {
-        gap: 15px;
-    }
-
-    .header-logo {
-        height: 45px;
-        max-width: 180px;
-    }
-
-    .header-title h1 {
-        font-size: 2em;
-    }
-}
-
-/* ========================================= */
-/* GL DAYS HEADER SECTION                    */
-/* ========================================= */
+/* GL DAYS HEADER SECTION */
 .days {
     text-align: center;
-    margin: 20px auto;
+    margin: 25px auto;
     max-width: 1200px;
-    padding: 20px;
-    background: linear-gradient(135deg, var(--color-secondary), #5a6268);
-    color: var(--text-white);
-    border-radius: 12px;
+    padding: 25px;
     box-shadow: var(--shadow-md);
-    font-size: 1.4em;
-    font-weight: bold;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    font-size: 1.6em;
     border: 3px solid var(--color-secondary);
 }
 
-/* Header status colors that match pipeline status */
-.days.header-success {
-    background: linear-gradient(135deg, var(--color-success), #22863a);
-    border-color: var(--color-success);
-}
-
-.days.header-failure {
-    background: linear-gradient(135deg, var(--color-danger), #bd2130);
-    border-color: var(--color-danger);
-}
-
-.days.header-progress {
-    background: linear-gradient(135deg, var(--color-progress), #e0a800);
-    border-color: var(--color-progress);
-}
-
-.days.header-warning {
-    background: linear-gradient(135deg, var(--color-warning), #e8590c);
-    border-color: var(--color-warning);
-}
-
-.days.header-unknown {
-    background: linear-gradient(135deg, var(--color-secondary), #5a6268);
-    border-color: var(--color-secondary);
-}
-
-.days.historic {
-    background: linear-gradient(135deg, var(--color-secondary), #5a6268);
-    border-color: var(--color-secondary);
-    position: relative;
-}
-
-.days.error {
-    background: linear-gradient(135deg, var(--color-danger), #bd2130);
-    border-color: var(--color-danger);
-}
-
-/* ========================================= */
-/* CURRENT DAILY RELEASE SECTION             */
-/* ========================================= */
+/* CURRENT DAILY RELEASE SECTION */
 .current-release-container,
 .current-details-container,
 .platform-cleanup-container {
-    margin: 20px auto;
+    margin: 25px auto;
     max-width: 1200px;
-    background: var(--bg-secondary);
-    border-radius: 12px;
+    background: var(--bg-primary);
     border: 1px solid var(--border-light);
     box-shadow: var(--shadow-md);
     overflow: hidden;
     transition: all 0.3s ease;
+    border-radius: 12px;
 }
 
 .current-release-header,
 .current-details-header,
 .platform-cleanup-header {
     padding: 15px 20px;
-    background: linear-gradient(135deg, var(--color-secondary), #5a6268);
-    color: var(--text-white);
     border-bottom: 2px solid var(--border-light);
-    cursor: pointer;
     display: flex;
     justify-content: space-between;
     align-items: center;
     transition: all 0.3s ease;
 }
 
-/* Ensure headers without status class default to grey */
-.current-release-header:not([class*="status-"]),
-.current-details-header:not([class*="status-"]),
-.platform-cleanup-header:not([class*="status-"]) {
-    background: linear-gradient(
-        135deg,
-        var(--color-secondary),
-        #5a6268
-    ) !important;
-    border-color: var(--color-secondary);
-}
-
 .current-details-header:hover,
 .platform-cleanup-header:hover {
-    background: linear-gradient(
-        135deg,
-        #5a6268,
-        var(--color-secondary)
-    ) !important;
+    opacity: 0.9;
 }
 
 .current-release-header h2,
@@ -241,214 +650,9 @@ table {
 .platform-cleanup-header h2 {
     margin: 0;
     font-size: 1.2em;
-    color: var(--text-white);
-    font-weight: bold;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-/* ========================================= */
-/* SHARED STATUS UTILITY CLASSES             */
-/* ========================================= */
-
-/* Base status colors - consolidated for all status elements */
-.status-success {
-    border-color: var(--color-success);
-    color: var(--text-white);
-}
-
-.status-failure {
-    border-color: var(--color-danger);
-    color: var(--text-white);
-}
-
-.status-progress {
-    border-color: var(--color-progress);
-    color: var(--text-primary);
-}
-
-.status-warning {
-    border-color: var(--color-warning);
-    color: var(--text-white);
-}
-
-.status-unknown {
-    border-color: var(--color-secondary);
-    color: var(--text-white);
-}
-
-/* Status indicators (dots) */
-.status-indicator {
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background-color: var(--color-secondary);
-    border: 2px solid rgba(255, 255, 255, 0.8);
-    box-shadow: var(--shadow-sm);
-    transition: all 0.3s ease;
-}
-
-/* Status variants using shared color variables */
-.status-indicator.success,
-.current-status-indicator.success,
-.historic-status-indicator.success {
-    background-color: var(--color-success);
-    border-color: var(--color-success-dark);
-    box-shadow: 0 0 6px rgba(40, 167, 69, 0.4);
-}
-
-.status-indicator.failure,
-.current-status-indicator.failure,
-.historic-status-indicator.failure {
-    background-color: var(--color-danger);
-    border-color: var(--color-danger-dark);
-    box-shadow: 0 0 6px rgba(220, 53, 69, 0.4);
-}
-
-.status-indicator.progress,
-.current-status-indicator.progress,
-.historic-status-indicator.progress {
-    background-color: var(--color-progress);
-    border-color: var(--color-progress-dark);
-    box-shadow: 0 0 6px rgba(255, 193, 7, 0.4);
-    animation: statusPulse 2s infinite;
-}
-
-.status-indicator.warning,
-.current-status-indicator.warning,
-.historic-status-indicator.warning {
-    background-color: var(--color-warning);
-    border-color: var(--color-warning-dark);
-    box-shadow: 0 0 6px rgba(253, 126, 20, 0.4);
-}
-
-.status-indicator.unknown,
-.current-status-indicator.unknown,
-.historic-status-indicator.unknown {
-    background-color: var(--color-secondary);
-    border-color: var(--color-secondary-dark);
-}
-
-/* Status text colors for run status lines */
-.status-text.success {
-    color: var(--color-success);
-}
-.status-text.failure {
-    color: var(--color-danger);
-}
-.status-text.progress {
-    color: var(--color-progress);
-}
-.status-text.warning {
-    color: var(--color-warning);
-}
-.status-text.queued {
-    color: var(--color-info);
-}
-
-/* Stage dots (smaller indicators) */
-.stage-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background-color: var(--color-secondary);
-    transition: all 0.3s ease;
-    box-shadow: var(--shadow-sm);
-}
-
-.stage-dot.success {
-    background-color: var(--color-success);
-}
-.stage-dot.failure {
-    background-color: var(--color-danger);
-}
-.stage-dot.progress {
-    background-color: var(--color-progress);
-    animation: statusPulse 2s infinite;
-}
-.stage-dot.warning {
-    background-color: var(--color-warning);
-}
-.stage-dot.unknown {
-    background-color: var(--color-secondary);
-}
-
-/* GL Version status utility classes */
-.gl-version-status.success {
-    background: var(--color-success);
-}
-
-.gl-version-status.failure {
-    background: var(--color-danger);
-}
-
-.gl-version-status.progress {
-    background: var(--color-progress);
-    color: var(--text-primary);
-}
-
-.gl-version-status.warning {
-    background: var(--color-warning);
-}
-
-.gl-version-status.unknown {
-    background: var(--color-secondary);
-}
-
-/* Status-based header colors for current sections */
-.current-release-header.status-success,
-.current-details-header.status-success,
-.platform-cleanup-header.status-success {
-    background: linear-gradient(
-        135deg,
-        var(--color-success),
-        #22863a
-    ) !important;
-    border-color: var(--color-success);
-}
-
-.current-release-header.status-failure,
-.current-details-header.status-failure,
-.platform-cleanup-header.status-failure {
-    background: linear-gradient(
-        135deg,
-        var(--color-danger),
-        #bd2130
-    ) !important;
-    border-color: var(--color-danger);
-}
-
-.current-release-header.status-progress,
-.current-details-header.status-progress,
-.platform-cleanup-header.status-progress {
-    background: linear-gradient(
-        135deg,
-        var(--color-progress),
-        #e0a800
-    ) !important;
-    border-color: var(--color-progress);
-}
-
-.current-release-header.status-warning,
-.current-details-header.status-warning,
-.platform-cleanup-header.status-warning {
-    background: linear-gradient(
-        135deg,
-        var(--color-warning),
-        #e8590c
-    ) !important;
-    border-color: var(--color-warning);
-}
-
-.current-release-header.status-unknown,
-.current-details-header.status-unknown,
-.platform-cleanup-header.status-unknown {
-    background: linear-gradient(
-        135deg,
-        var(--color-secondary),
-        #5a6268
-    ) !important;
-    border-color: var(--color-secondary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .current-release-content,
@@ -462,22 +666,20 @@ table {
 
 .current-release-content.expanded {
     max-height: 500px;
-    overflow-y: auto;
+    overflow: hidden;
 }
 
 .current-details-content.expanded,
 .platform-cleanup-content.expanded {
     max-height: none;
-    overflow-y: visible;
+    overflow: hidden;
 }
 
-/* Platform Test Cleanup specific styling */
 .platform-cleanup-workflow {
     padding: 20px;
     background: var(--bg-primary);
 }
 
-/* Current Release Summary Styles */
 .current-release-summary {
     padding: 20px;
     background: var(--bg-primary);
@@ -487,253 +689,194 @@ table {
     display: flex;
     align-items: center;
     gap: 15px;
-    padding: 15px 20px;
-    background: var(--bg-secondary);
+    padding: 18px 25px;
+    background: var(--bg-primary);
     border-radius: 8px;
     border: 1px solid var(--border-light);
+    margin: 8px 0;
 }
 
-.current-gl-version {
+/* Unified GL version badge styling for both current and historic sections */
+.current-gl-version,
+.historic-gl-version {
     font-weight: bold;
     font-family: monospace;
-    font-size: 1em;
+    font-size: 1.1em;
     color: var(--text-white);
-    min-width: 85px;
+    width: 100px;
+    flex-shrink: 0;
     background: var(--color-secondary);
-    padding: 4px 8px;
+    padding: 6px 10px;
     border-radius: 4px;
     text-align: center;
     transition: all 0.3s ease;
 }
 
-/* Status variants using shared color variables */
-.gl-version.success,
-.current-gl-version.success,
-.historic-gl-version.success {
-    background: var(--color-success);
-}
-
-.gl-version.failure,
-.current-gl-version.failure,
-.historic-gl-version.failure {
-    background: var(--color-danger);
-}
-
-.gl-version.progress,
-.current-gl-version.progress,
-.historic-gl-version.progress {
-    background: var(--color-progress);
-    color: var(--text-primary);
-}
-
-.gl-version.warning,
-.current-gl-version.warning,
-.historic-gl-version.warning {
-    background: var(--color-warning);
-}
-
-.gl-version.unknown,
-.current-gl-version.unknown,
-.historic-gl-version.unknown {
-    background: var(--color-secondary);
-}
-
-.current-date {
+/* Unified date styling */
+.current-date,
+.historic-date {
     color: var(--text-secondary);
-    font-size: 0.9em;
+    font-size: 1em;
     font-weight: 500;
-    min-width: 140px;
-    margin-left: 15px;
+    width: 130px;
+    flex-shrink: 0;
+    text-align: left;
 }
 
+/* Current overall status container - just a container, not a styled indicator */
 .current-overall-status {
-    margin-left: 15px;
-    min-width: 40px;
+    width: 25px;
+    height: 25px;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
+    justify-content: center;
 }
 
-/* Use shared .status-indicator class - extend for current status specific styling */
+/* Current status indicator - the actual styled dot inside the container */
 .current-status-indicator {
     display: inline-block;
-    width: 16px;
-    height: 16px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     background-color: var(--color-secondary);
-    border: 2px solid rgba(255, 255, 255, 0.8);
-    box-shadow: var(--shadow-sm);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     transition: all 0.3s ease;
-    margin-right: 8px;
+    margin: 0 auto;
+    flex-shrink: 0;
 }
 
-/* Status variants using shared color variables */
+/* Current status indicator colors */
 .current-status-indicator.success {
     background-color: var(--color-success);
-    border-color: var(--color-success-dark);
+    border-color: var(--color-success);
     box-shadow: 0 0 6px rgba(40, 167, 69, 0.4);
 }
 
 .current-status-indicator.failure {
     background-color: var(--color-danger);
-    border-color: var(--color-danger-dark);
+    border-color: var(--color-danger);
     box-shadow: 0 0 6px rgba(220, 53, 69, 0.4);
 }
 
 .current-status-indicator.progress {
     background-color: var(--color-progress);
-    border-color: var(--color-progress-dark);
+    border-color: var(--color-progress);
     box-shadow: 0 0 6px rgba(255, 193, 7, 0.4);
-    animation: statusPulse 2s infinite;
+    animation: statusPulse 4s infinite ease-in-out;
 }
 
 .current-status-indicator.warning {
     background-color: var(--color-warning);
-    border-color: var(--color-warning-dark);
+    border-color: var(--color-warning);
     box-shadow: 0 0 6px rgba(253, 126, 20, 0.4);
 }
 
 .current-status-indicator.unknown {
     background-color: var(--color-secondary);
-    border-color: var(--color-secondary-dark);
+    border-color: var(--color-secondary);
+    box-shadow: 0 0 6px rgba(108, 117, 125, 0.4);
 }
 
-.current-stages {
+/* Container for both current and historic status indicators */
+.current-overall-status-container,
+.historic-overall-status-container {
+    width: 25px;
+    height: 25px;
+    flex-shrink: 0;
     display: flex;
-    gap: 6px;
-    margin-left: 15px;
-    min-width: 80px;
     align-items: center;
+    justify-content: center;
 }
 
-/* Use shared .stage-dot class - extend for current stage specific styling */
-.current-stage-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background-color: var(--color-secondary);
+/* Ensure historic sections have consistent styling */
+.current-release-row,
+.historic-release-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 18px 25px;
+    background: var(--bg-primary);
+    border-radius: 8px;
+    border: 1px solid var(--border-light);
+    margin: 8px 0;
     transition: all 0.3s ease;
+    cursor: pointer;
+    line-height: 1.4;
+}
+
+.current-release-row:hover,
+.historic-release-row:hover {
+    background: var(--bg-secondary);
+    transform: translateX(3px);
     box-shadow: var(--shadow-sm);
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    border-color: var(--color-info);
 }
 
-/* Status variants using shared color variables */
-.stage-dot.success,
-.current-stage-dot.success,
-.historic-stage-dot.success {
-    background-color: var(--color-success);
-    border-color: var(--color-success-dark);
-    box-shadow: 0 0 4px rgba(40, 167, 69, 0.4);
+/* Unified stages container styling */
+.current-stages,
+.historic-stages {
+    display: flex;
+    gap: 4px;
+    width: 70px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
 }
 
-.stage-dot.failure,
-.current-stage-dot.failure,
-.historic-stage-dot.failure {
-    background-color: var(--color-danger);
-    border-color: var(--color-danger-dark);
-    box-shadow: 0 0 4px rgba(220, 53, 69, 0.4);
-}
-
-.stage-dot.progress,
-.current-stage-dot.progress,
-.historic-stage-dot.progress {
-    background-color: var(--color-progress);
-    border-color: var(--color-progress-dark);
-    box-shadow: 0 0 4px rgba(255, 193, 7, 0.4);
-    animation: statusPulse 2s infinite;
-}
-
-.stage-dot.warning,
-.current-stage-dot.warning,
-.historic-stage-dot.warning {
-    background-color: var(--color-warning);
-    border-color: var(--color-warning-dark);
-    box-shadow: 0 0 4px rgba(253, 126, 20, 0.4);
-}
-
-.stage-dot.unknown,
-.current-stage-dot.unknown,
-.historic-stage-dot.unknown {
-    background-color: var(--color-secondary);
-    border-color: var(--color-secondary-dark);
-}
-
-/* Shared pulse animation for progress states */
-@keyframes statusPulse {
-    0%,
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    50% {
-        transform: scale(1.1);
-        opacity: 0.8;
-    }
-}
-
+/* Unified package status styling */
 .current-package-status,
-.current-summary {
-    font-size: 0.85em;
+.historic-package-status {
+    width: 140px;
+    flex-shrink: 0;
+    text-align: center;
     color: var(--text-secondary);
-    font-weight: 500;
+    font-size: 0.95em;
+}
+
+/* Unified summary styling */
+.current-summary,
+.historic-summary {
+    flex: 1;
     min-width: 120px;
-    margin-left: 15px;
-}
-
-.current-summary {
-    font-weight: 600;
+    text-align: left;
     color: var(--text-primary);
+    font-size: 0.95em;
+    font-weight: 600;
 }
 
-/* Responsive design for current release sections */
-@media (max-width: 768px) {
-    .current-release-row {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
-        padding: 18px 15px;
-    }
-
-    .current-date,
-    .current-overall-status,
-    .current-stages,
-    .current-package-status,
-    .current-summary {
-        align-self: stretch;
-        margin-left: 0;
-    }
-
-    .current-gl-version {
-        font-size: 1.2em;
-        padding: 8px 14px;
-        align-self: center;
-    }
-
-    .current-stages {
-        justify-content: center;
-    }
+/* Unified duration styling */
+.current-duration,
+.historic-duration {
+    width: 100px;
+    flex-shrink: 0;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.95em;
+    font-weight: 600;
 }
 
-/* ========================================= */
-/* PIPELINE HIERARCHY SYSTEM                 */
-/* ========================================= */
+/* PIPELINE HIERARCHY SYSTEM */
 .pipeline-container {
     max-width: 1200px;
-    margin: 20px auto;
-    padding: 20px;
+    margin: 25px auto;
+    padding: 25px;
     border: 4px solid var(--border-medium);
     border-radius: 15px;
     background: linear-gradient(
         to bottom,
-        var(--bg-secondary) 0%,
-        var(--bg-tertiary) 100%
+        var(--bg-primary) 0%,
+        var(--bg-secondary) 100%
     );
     box-shadow: var(--shadow-md);
+    transition: all 0.3s ease;
+    overflow: hidden;
 }
 
 .pipeline-stage {
-    margin-bottom: 15px;
-    border: 4px solid var(--border-light);
+    margin-bottom: 16px;
+    border: 3px solid var(--border-light);
     border-radius: 12px;
     background: var(--bg-primary);
     transition: all 0.3s ease;
@@ -744,8 +887,8 @@ table {
 .stage-header {
     display: flex;
     align-items: center;
-    padding: 15px 20px;
-    background: rgba(108, 117, 125, 0.1);
+    padding: 14px 20px;
+    background: rgba(108, 117, 125, 0.05);
     border-bottom: 2px solid var(--border-light);
 }
 
@@ -756,43 +899,48 @@ table {
 
 .stage-header h3 {
     margin: 0;
-    font-size: 1.3em;
+    font-size: 1.4em;
     color: var(--text-secondary);
 }
 
 .stage-workflows {
-    padding: 15px 20px;
+    padding: 16px 20px;
     display: flex;
     flex-wrap: wrap;
-    gap: 15px;
+    gap: 16px;
+    overflow: hidden;
 }
 
-/* ========================================= */
-/* WORKFLOW BOX BASE STYLES                   */
-/* ========================================= */
+/* WORKFLOW BOX BASE STYLES - Compact Version */
 .workflow-box {
     flex: 1;
-    min-width: 250px;
-    padding: 20px;
+    min-width: 280px;
     border: 2px solid var(--border-light);
-    border-radius: 8px;
-    background: var(--bg-secondary);
+    border-radius: 10px;
+    background: var(--bg-primary);
     transition: all 0.3s ease;
     position: relative;
     min-height: 80px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
 }
 
+/* Standardize all workflow content styling - Compact */
 .workflow-box a {
     text-decoration: none;
-    color: var(--text-secondary);
-    font-weight: bold;
-    font-size: 1.1em;
+    transition: all 0.3s ease;
     display: block;
-    margin-bottom: 10px;
-    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+    padding: 14px;
+    line-height: 1.5;
+    font-size: 1em;
+    color: inherit;
+    min-height: 50px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
 }
 
 .workflow-box a:hover {
@@ -800,32 +948,47 @@ table {
     text-decoration: underline;
 }
 
-/* ========================================= */
-/* WORKFLOW DETAILS & RUN ITEMS              */
-/* ========================================= */
-/* Workflow Details Container */
-.workflow-details {
-    font-size: 0.9em;
-    line-height: 1.5;
-    background: var(--bg-primary);
-    padding: 12px;
-    border-radius: 6px;
-    margin-top: 12px;
-    border: 1px solid var(--border-light);
-    max-height: 300px;
-    overflow-y: auto;
-    color: var(--text-primary);
+/* Ensure no red borders or visual artifacts */
+.workflow-box *,
+.sub-stage *,
+.pipeline-stage * {
+    box-sizing: border-box;
 }
 
-/* Run Items */
+/* Remove any problematic outline or debug styling */
+* {
+    outline: none !important;
+}
+
+*:focus {
+    outline: 2px solid var(--color-info) !important;
+    outline-offset: 2px !important;
+}
+
+/* WORKFLOW DETAILS & RUN ITEMS - Compact Version */
+.workflow-details {
+    font-size: 0.9em;
+    line-height: 1.4;
+    background: var(--bg-primary);
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 8px;
+    border: 1px solid var(--border-light);
+    max-height: 400px;
+    overflow-y: auto;
+    color: var(--text-primary);
+    flex: 1;
+}
+
 .run-item {
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     padding: 10px;
     border-radius: 6px;
     background-color: var(--bg-primary);
     border: 1px solid var(--border-light);
     transition: all 0.2s ease;
     cursor: pointer;
+    line-height: 1.3;
 }
 
 .run-item:last-child {
@@ -851,70 +1014,95 @@ table {
 
 .run-status-line {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
     margin-bottom: 6px;
-    padding-bottom: 6px;
+    padding-bottom: 4px;
     border-bottom: 1px solid var(--border-light);
+    font-weight: 600;
+    font-size: 0.95em;
 }
 
-.run-status-line .status-success {
-    color: var(--color-success);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    font-weight: bold;
+.run-timing-line {
+    font-size: 0.85em;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border-light);
+    font-family: monospace;
+    line-height: 1.3;
 }
 
-.run-status-line .status-failure {
-    color: var(--color-danger);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    font-weight: bold;
-}
-
-.run-status-line .status-progress {
-    color: var(--color-progress-dark);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    font-weight: bold;
-}
-
-.run-status-line .status-queued {
-    color: #fd7e14;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    font-weight: bold;
-}
-
-.run-status-line .status-warning {
-    color: var(--color-warning);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    font-weight: bold;
+.run-duration-line {
+    font-size: 0.8em;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border-light);
+    font-family: monospace;
+    font-weight: 500;
+    text-align: left;
+    font-style: italic;
 }
 
 .run-time {
-    font-size: 0.9em;
+    font-size: 0.95em;
     color: var(--text-secondary);
 }
 
 .run-meta {
     font-size: 0.8em;
     color: var(--text-secondary);
-    margin-bottom: 6px;
-    line-height: 1.3;
+    margin-bottom: 4px;
+    line-height: 1.2;
 }
 
-/* ========================================= */
-/* WORKFLOW BOX STATUS STATES                 */
-/* ========================================= */
+.parent-run-info {
+    font-size: 0.75em;
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+}
+
+.parent-run-label {
+    color: var(--text-secondary);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.parent-run-link {
+    color: var(--color-info);
+    text-decoration: none;
+    font-family: monospace;
+    font-weight: normal;
+    font-size: 0.85em;
+    transition: all 0.2s ease;
+}
+
+.parent-run-link:hover {
+    color: var(--color-info-dark);
+    text-decoration: underline;
+}
+
+.parent-run-unavailable {
+    color: var(--text-muted);
+    font-style: italic;
+    font-size: 0.85em;
+}
+
 .no-runs-message,
 .error-message {
     text-align: center;
-    padding: 20px;
+    padding: 12px;
     font-style: italic;
     color: var(--text-secondary);
     background: var(--bg-tertiary);
     border-radius: 6px;
-    margin: 10px 0;
-}
-
-.no-runs-message {
+    margin: 6px 0;
     border: 2px dashed var(--border-medium);
 }
 
@@ -924,312 +1112,87 @@ table {
     border: 2px solid var(--color-danger);
 }
 
-.workflow-box.success {
-    border-color: var(--color-success);
-    background: var(--color-success-light);
-    box-shadow: 0 0 15px rgba(40, 167, 69, 0.15);
-}
-
-.workflow-box.success a {
-    color: var(--color-success-dark);
-    text-shadow: 0 1px 3px rgba(255, 255, 255, 0.9);
-}
-
-.workflow-box.failure {
-    border-color: var(--color-danger);
-    background: var(--color-danger-light);
-    box-shadow: 0 0 15px rgba(220, 53, 69, 0.15);
-}
-
-.workflow-box.failure a {
-    color: var(--color-danger-dark);
-    text-shadow: 0 1px 3px rgba(255, 255, 255, 0.9);
-}
-
-.workflow-box.progress {
-    border-color: var(--color-progress);
-    background: var(--color-progress-light);
-    box-shadow: 0 0 15px rgba(255, 193, 7, 0.15);
-    animation: workflowPulse 2s infinite alternate;
-}
-
-.workflow-box.progress a {
-    color: var(--color-progress-dark);
-    text-shadow: 0 1px 3px rgba(255, 255, 255, 0.9);
-}
-
-.workflow-box.warning {
-    border-color: var(--color-warning);
-    background: var(--color-warning-light);
-    box-shadow: 0 0 15px rgba(253, 126, 20, 0.15);
-    animation: workflowPulse 3s infinite alternate;
-}
-
-.workflow-box.warning a {
-    color: var(--color-warning-dark);
-    text-shadow: 0 1px 3px rgba(255, 255, 255, 0.9);
-}
-
-.workflow-box.queued {
-    border-color: var(--color-progress);
-    background: var(--color-progress-light);
-    box-shadow: 0 0 15px rgba(255, 193, 7, 0.15);
-    animation: workflowPulse 2s infinite alternate;
-}
-
-.workflow-box.queued a {
-    color: var(--color-progress-dark);
-    text-shadow: 0 1px 3px rgba(255, 255, 255, 0.9);
-}
-
-.workflow-box.no-runs {
-    border-color: var(--border-medium);
-    background: var(--bg-tertiary);
-    opacity: 0.8;
-}
-
-.workflow-box.no-runs a {
-    color: var(--text-secondary);
-    text-shadow: none;
-}
-
 .workflow-box.no-runs .no-runs-message {
-    background: transparent;
-    border: none;
+    background: var(--bg-tertiary);
+    border: 2px dashed var(--border-medium);
     margin: 0;
-    padding: 10px 0;
-    font-size: 0.9em;
-}
-
-.workflow-box.api-error {
-    border-color: var(--color-danger);
-    background: var(--color-danger-light);
-    opacity: 0.9;
-}
-
-.workflow-box.api-error a {
-    color: var(--color-danger-dark);
-    text-shadow: 0 1px 3px rgba(255, 255, 255, 0.9);
-}
-
-/* ========================================= */
-/* PIPELINE STAGE COLORS & ANIMATIONS        */
-/* ========================================= */
-.workflow-box.success .workflow-details,
-.workflow-box.success .workflow-details .run-item,
-.workflow-box.failure .workflow-details,
-.workflow-box.failure .workflow-details .run-item,
-.workflow-box.progress .workflow-details,
-.workflow-box.progress .workflow-details .run-item,
-.workflow-box.warning .workflow-details,
-.workflow-box.warning .workflow-details .run-item,
-.workflow-box.queued .workflow-details,
-.workflow-box.queued .workflow-details .run-item {
-    background: var(--bg-primary);
-    border-color: var(--border-light);
-}
-
-.workflow-box .workflow-details *,
-.workflow-box .workflow-details .run-item * {
-    color: var(--text-primary);
-}
-
-.workflow-box .run-time,
-.workflow-box .run-meta {
+    padding: 12px;
+    font-size: 0.85em;
     color: var(--text-secondary);
 }
 
-.workflow-box .run-status-line .status-success {
-    color: var(--color-success);
-}
-
-.workflow-box .run-status-line .status-failure {
-    color: var(--color-danger);
-}
-
-.workflow-box .run-status-line .status-progress {
-    color: var(--color-progress-dark);
-}
-
-.workflow-box .run-status-line .status-queued {
-    color: #fd7e14;
-}
-
-.workflow-box .run-status-line .status-warning {
-    color: var(--color-warning);
-}
-
-@keyframes workflowPulse {
-    0% {
-        box-shadow: 0 0 15px rgba(255, 193, 7, 0.15);
-    }
-    100% {
-        box-shadow: 0 0 25px rgba(255, 193, 7, 0.3);
-    }
-}
-
-.pipeline-stage.stage-success {
-    border-color: var(--color-success);
-    background: linear-gradient(
-        to bottom,
-        var(--color-success-light) 0%,
-        var(--bg-primary) 100%
-    );
-    box-shadow: 0 0 20px rgba(40, 167, 69, 0.1);
-}
-
-.pipeline-stage.stage-failure {
-    border-color: var(--color-danger);
-    background: linear-gradient(
-        to bottom,
-        var(--color-danger-light) 0%,
-        var(--bg-primary) 100%
-    );
-    box-shadow: 0 0 20px rgba(220, 53, 69, 0.1);
-}
-
-.pipeline-stage.stage-progress {
-    border-color: var(--color-progress);
-    background: linear-gradient(
-        to bottom,
-        var(--color-progress-light) 0%,
-        var(--bg-primary) 100%
-    );
-    box-shadow: 0 0 20px rgba(255, 193, 7, 0.1);
-    animation: stagePulse 2.5s infinite alternate;
-}
-
-.pipeline-stage.stage-warning {
-    border-color: var(--color-warning);
-    background: linear-gradient(
-        to bottom,
-        var(--color-warning-light) 0%,
-        var(--bg-primary) 100%
-    );
-    box-shadow: 0 0 20px rgba(253, 126, 20, 0.1);
-    animation: stagePulse 3s infinite alternate;
-}
-
-.pipeline-stage.stage-unknown {
-    border-color: var(--border-medium);
-    background: linear-gradient(
-        to bottom,
-        var(--bg-secondary) 0%,
-        var(--bg-primary) 100%
-    );
-    box-shadow: 0 0 10px rgba(108, 117, 125, 0.1);
-}
-
-.pipeline-stage.stage-cascaded-failure {
-    border-color: var(--color-secondary);
-    background: linear-gradient(
-        to bottom,
-        var(--color-secondary-light) 0%,
-        var(--bg-primary) 100%
-    );
-    position: relative;
-}
-
+/* Special indicators */
 .pipeline-stage.stage-cascaded-failure::before {
-    content: "⚠️ Blocked by failed dependencies";
+    content: "⚠️ Cascaded Failure";
     position: absolute;
-    top: 15px;
-    right: 20px;
+    top: 10px;
+    right: 10px;
+    background: var(--color-danger);
+    color: var(--text-white);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+.stage-warning-indicator {
+    position: absolute;
+    top: 10px;
+    right: 10px;
     background: var(--color-warning);
     color: var(--text-white);
-    padding: 5px 12px;
-    border-radius: 20px;
-    font-size: 0.85em;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
     font-weight: bold;
-    z-index: 10;
+    box-shadow: var(--shadow-sm);
+    animation: stagePulse 2s infinite alternate;
 }
 
-.pipeline-stage.stage-error {
-    border-color: var(--color-danger);
-    background: linear-gradient(
-        to bottom,
-        var(--color-danger-light) 0%,
-        var(--bg-primary) 100%
-    );
-    box-shadow: 0 0 20px rgba(220, 53, 69, 0.2);
+.sub-stage.blocked::after {
+    content: "🚫 Blocked";
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: var(--color-secondary);
+    color: var(--text-white);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: bold;
 }
 
-@keyframes stagePulse {
-    0% {
-        box-shadow: 0 0 20px rgba(255, 193, 7, 0.1);
-    }
-    100% {
-        box-shadow: 0 0 35px rgba(255, 193, 7, 0.25);
-    }
-}
-
-.pipeline-container.pipeline-success {
-    border-color: var(--color-success);
-}
-
-.pipeline-container.pipeline-failure {
-    border-color: var(--color-danger);
-}
-
-.pipeline-container.pipeline-progress {
-    border-color: var(--color-progress);
-}
-
-.pipeline-container.pipeline-warning {
-    border-color: var(--color-warning);
-}
-
-.pipeline-container.pipeline-unknown {
-    border-color: var(--border-medium);
-}
-
-.pipeline-container.pipeline-error {
-    border-color: var(--color-danger);
-}
-
-@keyframes pipelinePulse {
-    0% {
-        border-color: var(--color-progress);
-    }
-    100% {
-        border-color: #e0a800;
-        box-shadow: 0 0 25px rgba(255, 193, 7, 0.2);
-    }
-}
-
-/* ========================================= */
-/* PACKAGE MANAGEMENT SECTION                */
-/* ========================================= */
+/* PACKAGE MANAGEMENT SECTION */
 .package-summary {
-    margin: 20px auto;
+    margin: 25px auto;
     max-width: 1200px;
     background: var(--bg-primary);
     border-radius: 12px;
     border: 2px solid var(--border-light);
     overflow: hidden;
     transition: all 0.3s ease;
+    box-shadow: var(--shadow-md);
 }
 
 .package-status {
-    padding: 15px 20px;
+    padding: 18px 25px;
     font-weight: bold;
-    font-size: 1.1em;
+    font-size: 1.2em;
     text-align: center;
+    line-height: 1.4;
 }
 
-.package-summary.success {
-    border-color: var(--color-success);
-    box-shadow: 0 0 15px rgba(40, 167, 69, 0.1);
+.package-issues-header {
+    padding: 15px 25px;
+    font-weight: bold;
+    font-size: 1.1em;
+    border-top: 1px solid var(--border-light);
+    background: var(--bg-secondary);
 }
 
 .package-summary.success .package-status {
     background: var(--color-success-light);
     color: var(--color-success-dark);
-}
-
-.package-summary.progress {
-    border-color: var(--color-progress);
-    box-shadow: 0 0 15px rgba(255, 193, 7, 0.1);
 }
 
 .package-summary.progress .package-status {
@@ -1238,16 +1201,7 @@ table {
     animation: pipelinePulse 2s infinite alternate;
 }
 
-.package-summary.warning {
-    border-color: var(--color-warning);
-    box-shadow: 0 0 15px rgba(253, 126, 20, 0.1);
-}
-
-.package-summary.warning .package-status {
-    background: var(--color-warning-light);
-    color: var(--color-warning-dark);
-}
-
+.package-summary.warning .package-status,
 .package-summary.warning .package-issues-header {
     background: var(--color-warning-light);
     color: var(--color-warning-dark);
@@ -1261,42 +1215,38 @@ table {
     border-color: var(--color-warning);
 }
 
-.package-summary.api-error {
-    border-color: var(--color-danger);
-    box-shadow: 0 0 15px rgba(220, 53, 69, 0.1);
-}
-
 .package-summary.api-error .package-status {
     background: var(--color-danger-light);
     color: var(--color-danger-dark);
 }
 
-.package-issues-header {
-    padding: 12px 20px;
-    font-weight: bold;
-    font-size: 1em;
-    border-top: 1px solid var(--border-light);
-}
-
 .package-table-container {
-    padding: 0 20px 20px;
-    background: var(--bg-secondary);
+    padding: 15px 20px 20px;
+    background: var(--bg-primary);
     border-top: 1px solid var(--border-light);
     max-height: 400px;
     overflow-y: auto;
+    border-radius: 0 0 8px 8px;
 }
 
 .package-table-container table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.9em;
+    font-size: 0.95em;
     margin-top: 10px;
+    background: var(--bg-primary);
 }
 
 .package-table-container td {
-    padding: 8px 12px;
+    padding: 12px 15px;
     border: 1px solid var(--border-light);
     text-align: left;
+    background: var(--bg-primary);
+    transition: background-color 0.2s ease;
+}
+
+.package-table-container tr:hover td {
+    background: var(--bg-secondary);
 }
 
 .package-table-container td:nth-child(1) {
@@ -1312,49 +1262,8 @@ table {
     width: 50%;
 }
 
-.package-status-cell {
-    font-weight: bold;
-    text-align: center;
-    padding: 6px 10px;
-    border-radius: 4px;
-    color: var(--text-white);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-    font-size: 0.85em;
-}
-
-.package-table-container tr.progress .package-status-cell {
-    background: var(--color-progress);
-    color: var(--text-white);
-}
-
-.package-table-container tr.failure .package-status-cell {
-    background: var(--color-danger);
-    color: var(--text-white);
-}
-
-.package-table-container tr.warning .package-status-cell {
-    background: var(--color-warning);
-    color: var(--text-white);
-}
-
-.package-table-container tr.stale .package-status-cell {
-    background: var(--color-secondary);
-    color: var(--text-white);
-}
-
-.package-table-container tr.workFlowNotFound .package-status-cell {
-    background: var(--color-secondary);
-    color: var(--text-white);
-}
-
-.package-table-container tr.noRunFound .package-status-cell {
-    background: var(--color-secondary);
-    color: var(--text-white);
-}
-
-.package-table-container tr.brokenTimestamp .package-status-cell {
-    background: var(--color-danger);
-    color: var(--text-white);
+.package-table-container tr:last-child td {
+    border-bottom: none;
 }
 
 .package-error-details {
@@ -1370,8 +1279,6 @@ table {
 .package-error-details strong {
     display: block;
     margin-bottom: 5px;
-    color: var(--color-danger);
-    font-weight: bold;
 }
 
 #packages-table .api-error {
@@ -1381,50 +1288,46 @@ table {
 
 #packages-table .api-error td {
     color: var(--color-danger-dark);
-    font-weight: bold;
-    text-align: center;
-    padding: 20px;
+    border-color: var(--color-danger);
 }
 
-/* ========================================= */
-/* SETTINGS PANEL                           */
-/* ========================================= */
+/* SETTINGS PANEL */
 #settings-container {
     position: fixed;
-    top: 20px;
+    bottom: 20px;
     right: 20px;
     z-index: 1000;
-    max-width: 400px;
 }
 
 #settings-btn {
     background: var(--color-info);
     color: var(--text-white);
     border: none;
-    padding: 12px 20px;
-    border-radius: 8px;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    font-size: 1.2em;
     cursor: pointer;
-    font-size: 1em;
-    font-weight: bold;
     box-shadow: var(--shadow-md);
     transition: all 0.3s ease;
 }
 
 #settings-btn:hover {
+    transform: scale(1.1);
     background: var(--color-info-dark);
-    transform: translateY(-2px);
 }
 
 #settings-panel {
+    position: absolute;
+    bottom: 60px;
+    right: 0;
+    width: 300px;
     background: var(--bg-primary);
-    border: 2px solid var(--border-medium);
-    border-radius: 12px;
-    padding: 20px;
-    margin-top: 10px;
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
     box-shadow: var(--shadow-lg);
-    backdrop-filter: blur(10px);
-    max-height: 80vh;
-    overflow-y: auto;
+    padding: 20px;
+    display: none;
 }
 
 #settings-panel h3 {
@@ -1434,63 +1337,59 @@ table {
 }
 
 .token-status {
-    margin-bottom: 10px;
-    font-weight: bold;
+    margin-bottom: 15px;
+    font-size: 0.9em;
 }
 
 .token-input-group {
     display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
 }
 
 .token-input-group input {
     flex: 1;
-    padding: 10px;
-    border: 2px solid var(--border-medium);
-    border-radius: 6px;
+    padding: 8px;
+    border: 1px solid var(--border-medium);
+    border-radius: 4px 0 0 4px;
     font-size: 0.9em;
+    font-family: monospace;
     background: var(--bg-secondary);
-    color: var(--text-primary);
-    transition: all 0.3s ease;
 }
 
 .token-input-group input:focus {
     outline: none;
     border-color: var(--color-info);
-    background: var(--bg-primary);
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
 .token-input-group button {
-    padding: 10px 15px;
-    border: none;
-    border-radius: 6px;
-    background: var(--color-success);
+    padding: 8px 12px;
+    border: 1px solid var(--border-medium);
+    border-left: none;
+    background: var(--color-info);
     color: var(--text-white);
     cursor: pointer;
-    font-weight: bold;
-    transition: all 0.3s ease;
-    font-size: 0.9em;
+    font-size: 0.85em;
+    transition: background 0.2s ease;
 }
 
 .token-input-group button:hover {
-    background: var(--color-success-dark);
-    transform: translateY(-1px);
+    background: var(--color-info-dark);
 }
 
 .token-input-group button:last-child {
-    background: var(--color-danger);
+    border-radius: 0 4px 4px 0;
 }
 
 .token-input-group button:last-child:hover {
-    background: var(--color-danger-dark);
+    background: var(--color-danger);
 }
 
 #settings-panel small {
     display: block;
     color: var(--text-secondary);
-    line-height: 1.4;
+    font-size: 0.8em;
+    margin-top: 5px;
 }
 
 #settings-panel a {
@@ -1498,370 +1397,214 @@ table {
     text-decoration: none;
 }
 
-/* Settings panel separator */
 .settings-separator {
-    margin: 20px 0;
-    border: 1px solid var(--border-medium);
-    background: var(--border-medium);
+    border-top: 1px solid var(--border-light);
+    margin: 15px 0;
 }
 
 .gl-selector {
-    margin-top: 15px;
+    margin-bottom: 15px;
 }
 
 .gl-selector label {
     display: block;
-    margin-bottom: 10px;
-    font-weight: bold;
+    margin-bottom: 5px;
+    font-weight: 500;
     color: var(--text-primary);
-    font-size: 1em;
+    font-size: 0.9em;
 }
 
 .gl-input-group {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     margin-bottom: 10px;
-    justify-content: center;
 }
 
 .gl-btn {
-    background: var(--color-info);
-    color: var(--text-white);
-    border: none;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
+    padding: 6px 12px;
+    border: 1px solid var(--border-medium);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-radius: 4px;
     cursor: pointer;
-    font-size: 1.2em;
-    font-weight: bold;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    font-size: 0.85em;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
 }
 
 .gl-btn:hover {
-    background: var(--color-info-dark);
-    transform: scale(1.1);
+    background: var(--color-info);
+    color: var(--text-white);
+    border-color: var(--color-info);
 }
 
 .gl-btn:active {
-    transform: scale(0.95);
+    transform: translateY(1px);
 }
 
 #gl-input {
-    width: 80px;
-    padding: 10px;
-    border: 2px solid var(--border-medium);
-    border-radius: 6px;
-    text-align: center;
-    font-size: 1.1em;
-    font-weight: bold;
+    flex: 1;
+    padding: 6px 8px;
+    border: 1px solid var(--border-medium);
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-family: monospace;
     background: var(--bg-secondary);
     color: var(--text-primary);
-    transition: all 0.3s ease;
 }
 
 #gl-input:focus {
     outline: none;
     border-color: var(--color-info);
-    background: var(--bg-primary);
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
 .gl-info {
-    text-align: center;
-    margin-bottom: 15px;
+    font-size: 0.8em;
+    color: var(--text-secondary);
 }
 
 .gl-info small {
-    color: var(--text-secondary);
-    font-style: italic;
+    color: var(--text-muted);
 }
 
 .gl-actions {
-    text-align: center;
+    margin-top: 10px;
 }
 
 .today-btn {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--color-success);
     background: var(--color-success);
     color: var(--text-white);
-    border: none;
-    padding: 10px 20px;
-    border-radius: 6px;
+    border-radius: 4px;
     cursor: pointer;
-    font-weight: bold;
-    transition: all 0.3s ease;
     font-size: 0.9em;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: block;
+    text-align: center;
 }
 
 .today-btn:hover {
     background: var(--color-success-dark);
+    border-color: var(--color-success-dark);
     transform: translateY(-1px);
 }
 
-.stage-warning-indicator {
-    position: absolute;
-    top: 15px;
-    right: 20px;
-    background: var(--color-warning);
-    color: var(--text-white);
-    padding: 5px 12px;
-    border-radius: 20px;
-    font-size: 0.85em;
-    font-weight: bold;
-    z-index: 10;
-    box-shadow: var(--shadow-sm);
-    animation: stagePulse 2s infinite alternate;
-}
-
-/* ========================================= */
-/* RESPONSIVE DESIGN                         */
-/* ========================================= */
-@media (max-width: 768px) {
-    .stage-workflows {
-        flex-direction: column;
-    }
-
-    .workflow-box {
-        min-width: auto;
-    }
-
-    .pipeline-container {
-        margin: 10px;
-        padding: 15px;
-    }
-
-    .stage-header h3 {
-        font-size: 1.1em;
-    }
-}
-
-/* ========================================= */
-/* SEQUENTIAL WORKFLOWS & SUB-STAGES         */
-/* ========================================= */
+/* SEQUENTIAL WORKFLOWS & SUB-STAGES */
 .sequential-workflows {
     display: flex;
     flex-direction: column;
     gap: 10px;
 }
 
+/* Compact sub-stage styling */
 .sub-stage {
+    padding: 14px;
     background: var(--bg-primary);
+    border-radius: 10px;
     border: 2px solid var(--border-light);
-    border-radius: 8px;
-    padding: 15px;
-    transition: all 0.3s ease;
     position: relative;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
 }
 
 .sub-stage-header {
     display: flex;
     align-items: center;
-    margin-bottom: 10px;
+    gap: 12px;
+    margin-bottom: 12px;
     padding-bottom: 8px;
     border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
 }
 
 .sub-stage-icon {
-    font-size: 1.2em;
-    margin-right: 10px;
+    font-size: 1.3em;
+    color: var(--text-secondary);
+    width: 24px;
+    text-align: center;
+    flex-shrink: 0;
 }
 
 .sub-stage-header h4 {
     margin: 0;
-    font-size: 1em;
+    font-size: 1.1em;
     color: var(--text-primary);
-    font-weight: bold;
+    font-weight: 600;
+    flex-grow: 1;
 }
 
-.sequence-indicator {
-    position: absolute;
-    top: -5px;
-    left: 20px;
-    background: var(--color-info);
-    color: var(--text-white);
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 0.7em;
-    font-weight: bold;
-}
-
-.sequential-arrow {
-    display: flex;
-    justify-content: center;
-    margin: 5px 0;
-    color: var(--color-info);
-    font-size: 1.5em;
-    animation: arrowPulse 2s infinite alternate;
-}
-
-@keyframes arrowPulse {
-    0% {
-        opacity: 0.5;
-        transform: translateY(0);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(3px);
-    }
-}
-
-.sub-stage.success {
-    border-color: var(--color-success);
-    background: var(--color-success-light);
-    box-shadow: 0 0 10px rgba(40, 167, 69, 0.1);
-}
-
-.sub-stage.success .sequence-indicator {
-    background: var(--color-success);
-}
-
-.sub-stage.failure {
-    border-color: var(--color-danger);
-    background: var(--color-danger-light);
-    box-shadow: 0 0 10px rgba(220, 53, 69, 0.1);
-}
-
-.sub-stage.failure .sequence-indicator {
-    background: var(--color-danger);
-}
-
-.sub-stage.progress {
-    border-color: var(--color-progress);
-    background: var(--color-progress-light);
-    box-shadow: 0 0 10px rgba(255, 193, 7, 0.1);
-    animation: subStagePulse 2s infinite alternate;
-}
-
-.sub-stage.progress .sequence-indicator {
-    background: var(--color-progress);
-}
-
-.sub-stage.warning {
-    border-color: var(--color-warning);
-    background: var(--color-warning-light);
-    box-shadow: 0 0 10px rgba(253, 126, 20, 0.1);
-    animation: subStagePulse 3s infinite alternate;
-}
-
-.sub-stage.warning .sequence-indicator {
-    background: var(--color-warning);
-}
-
-.sub-stage.blocked {
-    border-color: var(--color-secondary);
-    background: var(--color-secondary-light);
-    opacity: 0.7;
+.sub-stage .workflow-box {
+    border: 2px solid var(--border-light);
+    margin: 0;
+    box-shadow: var(--shadow-sm);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    min-height: 80px;
     position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
-.sub-stage.blocked .sequence-indicator {
-    background: var(--color-secondary);
+/* Ensure consistent padding and layout in sub-stages - Compact */
+.sub-stage .workflow-box a {
+    padding: 14px;
+    min-height: 50px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
 }
 
-.sub-stage.blocked::after {
-    content: "🚫 Blocked";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: var(--color-secondary);
-    color: var(--text-white);
-    padding: 5px 15px;
-    border-radius: 20px;
-    font-size: 0.9em;
-    font-weight: bold;
-    z-index: 10;
-}
-
-@keyframes subStagePulse {
-    0% {
-        box-shadow: 0 0 10px rgba(255, 193, 7, 0.1);
-    }
-    100% {
-        box-shadow: 0 0 20px rgba(255, 193, 7, 0.25);
-    }
-}
-
-/* ========================================= */
-/* PACKAGE TABLE STYLING                     */
-/* ========================================= */
-.package-table-container tr:last-child td {
-    border-bottom: 2px solid var(--border-medium);
-}
-
-.package-table-container tr.progress {
-    background: var(--color-progress-light);
-}
-
-.package-table-container tr.failure {
-    background: var(--color-danger-light);
-}
-
-.package-table-container tr.warning {
-    background: var(--color-warning-light);
-}
-
-.package-table-container tr.stale {
-    background: var(--color-secondary-light);
-}
-
-.package-table-container tr.workFlowNotFound {
-    background: var(--color-secondary-light);
-}
-
-.package-table-container tr.noRunFound {
-    background: var(--color-secondary-light);
-}
-
-.package-table-container tr.brokenTimestamp {
-    background: var(--color-danger-light);
-}
-
-/* ========================================= */
-/* HISTORIC RELEASES SECTION                 */
-/* ========================================= */
+/* HISTORIC RELEASES SECTION */
 .historic-releases-container {
     margin: 20px auto;
     max-width: 1200px;
-    background: var(--bg-secondary);
+    background: var(--bg-primary);
     border-radius: 12px;
     border: 1px solid var(--border-light);
     box-shadow: var(--shadow-md);
     overflow: hidden;
-    transition: all 0.3s ease;
 }
 
 .historic-releases-header {
-    padding: 15px 20px;
-    background: linear-gradient(135deg, var(--color-secondary), #5a6268);
-    color: var(--text-white);
-    border-bottom: 2px solid var(--border-light);
+    padding: 20px;
+    background: var(--bg-secondary);
     cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-light);
 }
 
 .historic-releases-header:hover {
-    background: linear-gradient(135deg, #5a6268, var(--color-secondary));
+    background: var(--bg-tertiary);
 }
 
 .historic-releases-header h2 {
     margin: 0;
     font-size: 1.2em;
-    color: var(--text-white);
-    font-weight: bold;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .toggle-icon {
-    font-size: 1.2em;
     transition: transform 0.3s ease;
-    color: var(--text-white);
+    font-size: 1.2em;
+    color: var(--text-secondary);
 }
 
 .toggle-icon.expanded {
@@ -1871,211 +1614,248 @@ table {
 .historic-releases-content {
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.4s ease-out;
+    transition: max-height 0.4s ease;
 }
 
 .historic-releases-content.expanded {
     max-height: none;
-    overflow-y: visible;
+    overflow: visible;
 }
 
 .historic-loading {
+    padding: 40px;
     text-align: center;
-    padding: 40px 20px;
     color: var(--text-secondary);
     font-style: italic;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
+    background: var(--bg-secondary);
 }
 
 .historic-releases-list {
-    padding: 20px;
-    background: var(--bg-primary);
+    background: var(--bg-secondary);
 }
 
-/* Updated historic release row to match current release styling */
 .historic-release-row {
     display: flex;
     align-items: center;
     gap: 15px;
-    padding: 15px 20px;
-    margin-bottom: 10px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-light);
+    padding: 18px 25px;
+    background: var(--bg-primary);
     border-radius: 8px;
+    border: 1px solid var(--border-light);
+    margin: 8px 0;
     transition: all 0.3s ease;
     cursor: pointer;
-    text-decoration: none;
-    color: inherit;
+    line-height: 1.4;
 }
 
 .historic-release-row:hover {
-    background: linear-gradient(
-        135deg,
-        rgba(0, 123, 255, 0.1),
-        var(--bg-primary)
-    );
-    border-color: var(--color-info);
+    background: var(--bg-secondary);
+    transform: translateX(3px);
     box-shadow: var(--shadow-sm);
-    transform: translateY(-1px);
+    border-color: var(--color-info);
 }
 
 .historic-release-row:last-child {
     margin-bottom: 0;
 }
 
-/* Match current GL version styling */
-.historic-gl-version {
-    font-weight: bold;
-    font-family: monospace;
-    font-size: 1em;
-    color: var(--text-white);
-    min-width: 85px;
-    background: var(--color-secondary);
-    padding: 4px 8px;
-    border-radius: 4px;
-    text-align: center;
-    transition: all 0.3s ease;
+/* Remove underlines from historic release row links */
+.historic-release-row a,
+.historic-release-row a:hover,
+.historic-release-row a:visited {
+    text-decoration: none !important;
+    color: inherit;
 }
 
-/* Match current date styling */
-.historic-date {
-    color: var(--text-secondary);
-    font-size: 0.9em;
-    font-weight: 500;
-    min-width: 140px;
-    margin-left: 15px;
+.historic-release-row a:hover {
+    color: var(--color-info);
 }
 
-/* Match current status indicator styling */
+/* Historic status indicator colors */
+.historic-status-indicator.success {
+    background-color: var(--color-success) !important;
+    border-color: var(--color-success) !important;
+    box-shadow: 0 0 6px rgba(40, 167, 69, 0.4) !important;
+}
+
+.historic-status-indicator.failure {
+    background-color: var(--color-danger) !important;
+    border-color: var(--color-danger) !important;
+    box-shadow: 0 0 6px rgba(220, 53, 69, 0.4) !important;
+}
+
+.historic-status-indicator.progress {
+    background-color: var(--color-progress) !important;
+    border-color: var(--color-progress) !important;
+    box-shadow: 0 0 6px rgba(255, 193, 7, 0.4) !important;
+    animation: statusPulse 4s infinite ease-in-out !important;
+}
+
+.historic-status-indicator.warning {
+    background-color: var(--color-warning) !important;
+    border-color: var(--color-warning) !important;
+    box-shadow: 0 0 6px rgba(253, 126, 20, 0.4) !important;
+}
+
+.historic-status-indicator.unknown {
+    background-color: var(--color-secondary) !important;
+    border-color: var(--color-secondary) !important;
+    box-shadow: 0 0 6px rgba(108, 117, 125, 0.4) !important;
+}
+
+/* Historic overall status container */
 .historic-overall-status {
-    margin-left: 15px;
-    min-width: 40px;
+    width: 25px;
+    height: 25px;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
+    justify-content: center;
 }
 
-.historic-status-indicator {
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background-color: var(--color-secondary);
-    border: 2px solid rgba(255, 255, 255, 0.8);
-    box-shadow: var(--shadow-sm);
-    transition: all 0.3s ease;
-    margin-right: 8px;
+/* Remove underlines and fix hover colors for historic release row links */
+.historic-release-row {
+    text-decoration: none !important;
+    color: inherit;
 }
 
-/* Match current stages styling */
-.historic-stages {
-    display: flex;
-    gap: 6px;
-    margin-left: 15px;
-    min-width: 80px;
-    align-items: center;
+.historic-release-row:hover {
+    text-decoration: none !important;
 }
 
-/* Use shared .stage-dot class - extend for historic stage specific styling */
-.historic-stage-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background-color: var(--color-secondary);
-    transition: all 0.3s ease;
-    box-shadow: var(--shadow-sm);
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+.historic-release-row * {
+    text-decoration: none !important;
 }
 
-/* Match current package status styling */
-.historic-package-status,
-.historic-summary {
-    font-size: 0.85em;
-    color: var(--text-secondary);
-    font-weight: 500;
-    min-width: 120px;
-    margin-left: 15px;
-}
-
-.historic-summary {
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-/* Remove the details indicator to match current release */
-.historic-details-indicator {
-    display: none;
-}
-
-.historic-loading-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--color-info);
-    animation: historicPulse 1.5s infinite;
-}
-
-.historic-loading-dot:nth-child(1) {
-    animation-delay: 0s;
-}
-
-.historic-loading-dot:nth-child(2) {
-    animation-delay: 0.5s;
-}
-
-@keyframes historicPulse {
-    0%,
-    80%,
-    100% {
-        transform: scale(0.8);
-        opacity: 0.5;
-    }
-    40% {
-        transform: scale(1.2);
-        opacity: 1;
-    }
-}
-
-/* Responsive design for historic releases */
+/* RESPONSIVE DESIGN */
 @media (max-width: 768px) {
-    .historic-release-row {
+    .header-title {
+        gap: 15px;
+    }
+
+    .header-logo {
+        height: 45px;
+        max-width: 180px;
+    }
+
+    .header-title h1 {
+        font-size: 2em;
+    }
+
+    .current-release-row {
         flex-direction: column;
         align-items: flex-start;
         gap: 12px;
         padding: 18px 15px;
     }
 
-    .historic-date,
-    .historic-overall-status,
-    .historic-stages,
-    .historic-package-status,
-    .historic-summary {
+    .current-date,
+    .current-overall-status,
+    .current-stages,
+    .current-package-status,
+    .current-duration,
+    .current-summary {
         align-self: stretch;
-        margin-left: 0;
+        width: auto;
+        flex-shrink: 1;
+        text-align: center;
     }
 
-    .historic-gl-version {
+    .current-gl-version {
         font-size: 1.2em;
         padding: 8px 14px;
         align-self: center;
+        width: auto;
     }
 
-    .historic-stages {
+    .current-stages {
         justify-content: center;
+        width: auto;
+    }
+
+    .current-summary {
+        text-align: center;
+    }
+
+    .stage-workflows {
+        flex-direction: column;
+    }
+
+    .workflow-box {
+        min-height: auto;
+    }
+
+    .pipeline-container {
+        margin: 10px;
+        padding: 15px;
+    }
+
+    .stage-header h3 {
+        font-size: 1em;
+    }
+
+    .extracted-field {
+        display: block;
+        margin-bottom: 10px;
+    }
+
+    .extracted-field label {
+        font-size: 0.8em;
+        color: var(--text-secondary);
+    }
+
+    .extracted-value {
+        font-size: 0.9em;
+    }
+
+    .debug-details {
+        font-size: 0.8em;
+    }
+
+    .artifact-content {
+        font-size: 0.8em;
     }
 }
 
-/* ========================================= */
-/* FINAL OVERRIDES & CLEANUP                 */
-/* ========================================= */
-.package-summary.warning * {
+/* Consistent text sizing across workflow content */
+.workflow-box h3,
+.workflow-box h4 {
+    font-size: 1.1em;
+    margin: 0 0 8px 0;
     color: var(--text-primary);
+    font-weight: 600;
+    line-height: 1.3;
 }
 
-.package-summary.warning .package-table-container,
-.package-summary.warning .package-table-container * {
-    background: var(--bg-primary);
+.workflow-box p {
+    font-size: 0.9em;
+    line-height: 1.4;
+    margin: 0 0 8px 0;
+    color: var(--text-secondary);
+}
+
+/* Sequential arrow improvement */
+.sequential-arrow {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 24px;
+    color: var(--color-info);
+    font-size: 1.1em;
+    margin: 8px 0;
+    opacity: 0.7;
+}
+
+/* Historic status indicators - base styling */
+.historic-status-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: var(--color-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    margin: 0 auto;
+    flex-shrink: 0;
 }

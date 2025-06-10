@@ -1,4 +1,6 @@
 import terser from "@rollup/plugin-terser";
+import { nodeResolve } from "@rollup/plugin-node-resolve";
+import commonjs from "@rollup/plugin-commonjs";
 
 export default {
     input: "src/main.js",
@@ -9,6 +11,11 @@ export default {
         sourcemap: true,
     },
     plugins: [
+        nodeResolve({
+            browser: true,
+            preferBuiltins: false,
+        }),
+        commonjs(),
         // Minify in production
         process.env.NODE_ENV === "production" &&
             terser({

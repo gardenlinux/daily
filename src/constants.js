@@ -14,6 +14,14 @@
 export const GL_INITIAL_DATE = "2020-03-31";
 
 // ========================================
+// ARTIFACT CONFIGURATION
+// ========================================
+
+// List of artifact names that are allowed to be downloaded and analyzed
+// for parent workflow information
+export const ALLOWED_ARTIFACT_NAMES = ["parent-workflow"];
+
+// ========================================
 // GITHUB WORKFLOW CONFIGURATION
 // ========================================
 export const WORKFLOWS = {
