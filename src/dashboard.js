@@ -2490,68 +2490,22 @@ async function downloadAndExtractArtifact(owner, repo, artifact) {
 
                 // Try to parse as JSON if possible
                 try {
-                    if (
-                        filename.toLowerCase().endsWith(".json") ||
-                        content.trim().startsWith("{") ||
-                        content.trim().startsWith("[")
-                    ) {
+                    if (filename.toLowerCase().endsWith(".json")) {
                         const jsonData = JSON.parse(content);
                         extractedData[filename + "_parsed"] = jsonData;
 
-                        // Look for job_id in the JSON data
-                        if (jsonData.job_id && !jobId) {
-                            jobId = jsonData.job_id;
+                        // Look for id in the JSON data
+                        if (jsonData.id && !parentRunId) {
+                            parentRunId = jsonData.id;
                             console.log(
-                                `🔍 [DEBUG] Found job_id in ${filename}: ${jsonData.job_id}`
+                                `🔍 [DEBUG] Found parent run id in ${filename}: ${parentRunId}`
                             );
-                        }
-
-                        // Look for parent_run_id or similar
-                        const parentIdFields = [
-                            "parent_run_id",
-                            "run_id",
-                            "workflow_id",
-                            "workflow_run_id",
-                            "triggering_run_id",
-                            "parent_workflow_run_id",
-                        ];
-
-                        for (const field of parentIdFields) {
-                            if (jsonData[field] && !parentRunId) {
-                                parentRunId = jsonData[field];
-                                console.log(
-                                    `🔍 [DEBUG] Found ${field} in ${filename}: ${jsonData[field]}`
-                                );
-                                break;
-                            }
                         }
                     }
                 } catch (parseError) {
                     console.log(
-                        `🔍 [DEBUG] Could not parse ${filename} as JSON, treating as text`
+                        `🔍 [DEBUG] Could not parse ${filename} as JSON`
                     );
-
-                    // Try to extract job_id from text content using regex
-                    const jobIdMatch = content.match(
-                        /(?:job_id|jobId|job-id)[\s:=]+([^\s\n,}]+)/i
-                    );
-                    if (jobIdMatch && !jobId) {
-                        jobId = jobIdMatch[1].replace(/['"]/g, "");
-                        console.log(
-                            `🔍 [DEBUG] Extracted job_id from ${filename} text: ${jobId}`
-                        );
-                    }
-
-                    // Try to extract parent run ID from text
-                    const parentRunMatch = content.match(
-                        /(?:parent_run_id|parentRunId|parent-run-id|run_id)[\s:=]+([0-9]+)/i
-                    );
-                    if (parentRunMatch && !parentRunId) {
-                        parentRunId = parentRunMatch[1];
-                        console.log(
-                            `🔍 [DEBUG] Extracted parent run ID from ${filename} text: ${parentRunId}`
-                        );
-                    }
                 }
             }
         }
@@ -2671,33 +2625,7 @@ async function getParentWorkflowInfo(owner, repo, runId) {
         // Enhanced detection for all artifacts that might contain parent workflow information
         const allParentWorkflowArtifacts = artifacts.filter(
             (artifact) =>
-                artifact.name &&
-                // Direct parent workflow indicators
-                (artifact.name.toLowerCase().includes("parent-workflow") ||
-                    artifact.name.toLowerCase().includes("parent_workflow") ||
-                    artifact.name
-                        .toLowerCase()
-                        .includes("triggering-workflow") ||
-                    artifact.name
-                        .toLowerCase()
-                        .includes("triggering_workflow") ||
-                    // Workflow context indicators
-                    artifact.name.toLowerCase().includes("workflow-context") ||
-                    artifact.name.toLowerCase().includes("workflow_context") ||
-                    artifact.name.toLowerCase().includes("workflow-info") ||
-                    artifact.name.toLowerCase().includes("workflow_info") ||
-                    // Generic parent indicators
-                    artifact.name.toLowerCase().includes("parent-run") ||
-                    artifact.name.toLowerCase().includes("parent_run") ||
-                    artifact.name.toLowerCase().includes("trigger-info") ||
-                    artifact.name.toLowerCase().includes("trigger_info") ||
-                    // Event context indicators
-                    artifact.name.toLowerCase().includes("event-context") ||
-                    artifact.name.toLowerCase().includes("event_context") ||
-                    artifact.name
-                        .toLowerCase()
-                        .includes("workflow-run-event") ||
-                    artifact.name.toLowerCase().includes("workflow_run_event"))
+                artifact.name && artifact.name === "parent-workflow-data"
         );
 
         if (allParentWorkflowArtifacts.length > 0) {
@@ -2733,54 +2661,15 @@ async function getParentWorkflowInfo(owner, repo, runId) {
                     );
                 }
             }
-        }
 
-        // If we have parent workflow artifacts but couldn't extract run ID from names
-        if (parentWorkflowArtifacts.length > 0) {
-            const primaryArtifact = parentWorkflowArtifacts[0];
-
-            return {
-                found: true,
-                message: `Parent workflow artifact '${primaryArtifact.name}' found but requires download to extract run ID`,
-                artifactId: primaryArtifact.id,
-                artifactName: primaryArtifact.name,
-                parentRunId: null,
-                extractionMethod: "parent_artifact_found",
-                availableArtifacts: parentWorkflowArtifacts.map((a) => a.name),
-                note: "Artifact download and parsing would be required to extract parent run ID",
-                downloadUrl: `GitHub API does not provide direct download - requires authenticated request to /repos/${owner}/${repo}/actions/artifacts/${primaryArtifact.id}/zip`,
-            };
-        }
-
-        // Check for any workflow-related artifacts that might contain parent info
-        const workflowArtifacts = artifacts.filter(
-            (artifact) =>
-                artifact.name.toLowerCase().includes("workflow") ||
-                artifact.name.toLowerCase().includes("run") ||
-                artifact.name.toLowerCase().includes("trigger") ||
-                artifact.name.toLowerCase().includes("event") ||
-                artifact.name.toLowerCase().includes("context")
-        );
-
-        if (workflowArtifacts.length > 0) {
             return {
                 found: false,
-                message: `Found ${workflowArtifacts.length} workflow-related artifacts but no clear parent indicators`,
+                message: `Found no allowed artifacts`,
                 artifactCount: artifacts.length,
-                workflowArtifacts: workflowArtifacts.map((a) => a.name),
-                extractionMethod: "workflow_artifacts_found",
-                suggestion:
-                    "These artifacts might contain parent information if downloaded and parsed",
+                availableArtifacts: artifacts.slice(0, 10).map((a) => a.name), // Show first 10 artifact names
+                extractionMethod: "no_parent_indicators",
             };
         }
-
-        return {
-            found: false,
-            message: `Found ${artifacts.length} artifacts but no parent workflow indicators`,
-            artifactCount: artifacts.length,
-            availableArtifacts: artifacts.slice(0, 10).map((a) => a.name), // Show first 10 artifact names
-            extractionMethod: "no_parent_indicators",
-        };
     } catch (error) {
         console.error(`🔍 [DEBUG] Error fetching parent workflow info:`, error);
         return {
