@@ -15,23 +15,50 @@ https://gardenlinux.github.io/daily/
 
 ### Prerequisites
 
-- Node.js 16 or higher
-- npm
+- **To build or develop locally:**
+    - Node.js 16 or higher
+    - npm
+- **To use or serve the dashboard (e.g., via GitHub Pages or any static web server):**
+    - No dependencies required; just serve the static files in the repository (index.html, dist/dashboard.js, style.css, etc.)
 
-### Development Workflow
+## 🛠️ Development & Build Workflow
 
-- **Watch mode**: `npm run dev` - Automatically rebuilds on file changes
-- **Build only**: `npm run build` - Creates production bundle
-- **Serve only**: `npm run serve` - Serves existing files
+### Development Mode
 
-### 📦 Build Process
+- **Watch mode**: `npm run dev`
+  Rebuilds the dashboard automatically on file changes. Use this for local development.
+- **Serve only**: `npm run serve`
+  Serves the static files in the current directory (default: http://localhost:8000).
 
-The build process uses [Rollup](https://rollupjs.org/) to bundle the modular JavaScript into a single IIFE (Immediately Invoked Function Expression) file:
+### Production Build
 
-1. **Entry Point**: `src/main.js`
-2. **Output**: `dist/dashboard.js` (with source maps)
-3. **Format**: IIFE for direct browser inclusion
-4. **Production**: Minified with dead code elimination
+- **Build for production**:
+
+    ```sh
+    NODE_ENV=production npm run build
+    ```
+
+    This creates a minified, optimized bundle in `dist/dashboard.js` with source maps for debugging. Console statements are removed in production builds.
+
+- **Build only**: `npm run build`
+  (If you do not set `NODE_ENV=production`, the output will not be minified.)
+
+### Output Details
+
+- **Entry Point**: `src/main.js`
+- **Output**: `dist/dashboard.js` (with source maps)
+- **Format**: IIFE for direct browser inclusion
+- **Minification**: Enabled automatically when `NODE_ENV=production`
+
+## 🚀 GitHub Pages Integration
+
+This dashboard is designed to be deployed on GitHub Pages:
+
+- The `dist/` directory contains the production-ready JavaScript bundle.
+- The `index.html` and `style.css` are also in the repository root for direct serving.
+- GitHub Pages is configured to serve from the `/` (root).
+- After building, simply push your changes to the `gh-pages` branch.
+- The dashboard will be live at: https://gardenlinux.github.io/daily/
 
 ## 🔧 Configuration
 
