@@ -221,95 +221,75 @@ export async function getRun() {
                 Array.from(stage3RunIds)
             );
 
-            // If we have Stage 3 run IDs, filter extended runs by parent ID matching
-            if (stage3RunIds.size > 0) {
-                const parentMatchedRuns = [];
+            // Process all runs to check parent information
+            const validRuns = [];
 
-                for (const run of extendedRuns) {
-                    try {
-                        // Get parent workflow info for this run
-                        const parentInfo = await getParentWorkflowInfo(
-                            API_CONFIG.GARDENLINUX_ORG,
-                            workflow.repo,
-                            run.id
-                        );
-
-                        if (
-                            parentInfo &&
-                            parentInfo.parentRunId &&
-                            stage3RunIds.has(parentInfo.parentRunId.toString())
-                        ) {
-                            parentMatchedRuns.push(run);
-                            console.log(
-                                `🔍 [Stage 4] Found matching parent run ${parentInfo.parentRunId} for Stage 4 run ${run.id}`
-                            );
-                        } else {
-                            console.log(
-                                `🔍 [Stage 4] Run ${run.id}: No matching parent found. Parent info:`,
-                                parentInfo
-                            );
-                        }
-                    } catch (error) {
-                        console.log(
-                            `🔍 [Stage 4] Failed to get parent info for run ${run.id}:`,
-                            error.message
-                        );
-                    }
-                }
-
-                // Combine base runs (from GL date) with parent-matched runs from extended period
-                targetRunsUnsorted = [...baseRuns, ...parentMatchedRuns];
-
-                // Remove duplicates based on run ID
-                const uniqueRuns = [];
-                const seenIds = new Set();
-                for (const run of targetRunsUnsorted) {
-                    if (!seenIds.has(run.id)) {
-                        seenIds.add(run.id);
-                        uniqueRuns.push(run);
-                    }
-                }
-                targetRunsUnsorted = uniqueRuns;
-
-                console.log(
-                    `🔍 [Stage 4] ${workflow.name}: Found ${baseRuns.length} base runs + ${parentMatchedRuns.length} parent-matched runs = ${targetRunsUnsorted.length} total`
-                );
-            } else {
-                // No Stage 3 runs yet collected - include ALL runs from extended period for debugging
-                // This allows us to see Stage 4 runs even when Stage 3 hasn't run yet
-                console.log(
-                    `🔍 [Stage 4] ${workflow.name}: No Stage 3 runs collected yet, including all extended runs for debugging`
-                );
-
-                // Include all extended runs, but log which ones might be relevant
-                for (const run of extendedRuns) {
-                    console.log(
-                        `🔍 [Stage 4] Extended run ${run.id} created at ${run.created_at} (${run.status}/${run.conclusion})`
+            for (const run of extendedRuns) {
+                try {
+                    // Get parent workflow info for this run
+                    const parentInfo = await getParentWorkflowInfo(
+                        API_CONFIG.GARDENLINUX_ORG,
+                        workflow.repo,
+                        run.id
                     );
 
-                    // Try to get parent info for debugging
-                    try {
-                        const parentInfo = await getParentWorkflowInfo(
-                            API_CONFIG.GARDENLINUX_ORG,
-                            workflow.repo,
-                            run.id
-                        );
-                        if (parentInfo && parentInfo.found) {
-                            console.log(
-                                `🔍 [Stage 4] Run ${run.id} parent info:`,
-                                parentInfo
-                            );
-                        }
-                    } catch (error) {
-                        // Ignore errors during debugging
-                    }
-                }
+                    const runDate = new Date(run.created_at);
+                    const isBaseDate =
+                        runDate >= targetDate && runDate < nextDay;
+                    const isExtendedDate =
+                        runDate >= targetDate && runDate < extendedNextDay;
 
-                targetRunsUnsorted = extendedRuns; // Include all extended runs when no Stage 3 runs
-                console.log(
-                    `🔍 [Stage 4] ${workflow.name}: Using all ${extendedRuns.length} extended runs (no Stage 3 filter applied)`
-                );
+                    // Case 1: Day matches and parent ID does not exist in artifact
+                    if (
+                        isBaseDate &&
+                        (!parentInfo || !parentInfo.parentRunId)
+                    ) {
+                        validRuns.push(run);
+                        console.log(
+                            `🔍 [Stage 4] Run ${run.id}: Added (base date, no parent)`
+                        );
+                        continue;
+                    }
+
+                    // Case 2: Day matches (or 7 days into future) and parent ID matches any Stage 3 workflow
+                    if (
+                        isExtendedDate &&
+                        parentInfo &&
+                        parentInfo.parentRunId &&
+                        stage3RunIds.has(parentInfo.parentRunId.toString())
+                    ) {
+                        validRuns.push(run);
+                        console.log(
+                            `🔍 [Stage 4] Run ${run.id}: Added (extended date, matching parent ${parentInfo.parentRunId})`
+                        );
+                        continue;
+                    }
+
+                    console.log(
+                        `🔍 [Stage 4] Run ${run.id}: Skipped (doesn't match criteria)`
+                    );
+                } catch (error) {
+                    console.log(
+                        `🔍 [Stage 4] Failed to get parent info for run ${run.id}:`,
+                        error.message
+                    );
+                }
             }
+
+            // Remove duplicates based on run ID
+            const uniqueRuns = [];
+            const seenIds = new Set();
+            for (const run of validRuns) {
+                if (!seenIds.has(run.id)) {
+                    seenIds.add(run.id);
+                    uniqueRuns.push(run);
+                }
+            }
+
+            targetRunsUnsorted = uniqueRuns;
+            console.log(
+                `🔍 [Stage 4] ${workflow.name}: Found ${uniqueRuns.length} valid runs after filtering`
+            );
         } else {
             // Standard date filtering for non-Stage 4 workflows
             targetRunsUnsorted = workflowRuns.filter((run) => {
@@ -1038,34 +1018,191 @@ async function getHistoricWorkflowStatus(glDays) {
                 });
 
                 if (dayRuns.length > 0) {
-                    // Sort by creation date (newest first) and take the latest
-                    const sortedRuns = dayRuns.sort(
-                        (a, b) =>
-                            new Date(b.created_at) - new Date(a.created_at)
-                    );
-                    const latestRun = sortedRuns[0];
+                    // Special handling for Stage 4 workflows
+                    if (workflow.stage === "stage-4") {
+                        // For Stage 4: Look at GL date AND GL+7 days, filter by parent run IDs
+                        const baseRuns = dayRuns.filter((run) => {
+                            const runDate = new Date(run.created_at);
+                            return runDate >= targetDate && runDate < nextDay;
+                        });
 
-                    let status = "unknown";
-                    if (latestRun.status === "in_progress") {
-                        status = "progress";
-                    } else if (latestRun.status === "completed") {
-                        status =
-                            latestRun.conclusion === "success"
-                                ? "success"
-                                : "failure";
-                    } else if (latestRun.status === "queued") {
-                        status = "progress";
+                        const extendedRuns = dayRuns.filter((run) => {
+                            const runDate = new Date(run.created_at);
+                            return (
+                                runDate >= targetDate &&
+                                runDate < nextDayExpanded
+                            );
+                        });
+
+                        // Process all runs to check parent information
+                        const validRuns = [];
+
+                        for (const run of extendedRuns) {
+                            try {
+                                // Get parent workflow info for this run
+                                const parentInfo = await getParentWorkflowInfo(
+                                    API_CONFIG.GARDENLINUX_ORG,
+                                    workflow.repo,
+                                    run.id
+                                );
+
+                                const runDate = new Date(run.created_at);
+                                const isBaseDate =
+                                    runDate >= targetDate && runDate < nextDay;
+                                const isExtendedDate =
+                                    runDate >= targetDate &&
+                                    runDate < nextDayExpanded;
+
+                                // Case 1: Day matches and parent ID does not exist in artifact
+                                if (
+                                    isBaseDate &&
+                                    (!parentInfo || !parentInfo.parentRunId)
+                                ) {
+                                    validRuns.push(run);
+                                    continue;
+                                }
+
+                                // Case 2: Day matches (or 7 days into future) and parent ID matches any Stage 3 workflow
+                                if (
+                                    isExtendedDate &&
+                                    parentInfo &&
+                                    parentInfo.parentRunId
+                                ) {
+                                    // For historic data, we need to check if this parent ID exists in any Stage 3 workflow
+                                    const stage3Workflows =
+                                        workflowChecks.filter(
+                                            (w) => w.stage === "stage-3"
+                                        );
+                                    let parentFound = false;
+
+                                    for (const stage3Workflow of stage3Workflows) {
+                                        try {
+                                            const stage3Response = await fetch(
+                                                `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${stage3Workflow.repo}/actions/workflows/${stage3Workflow.id}/runs?per_page=${API_CONFIG.HISTORIC_RUNS_PER_PAGE}${getBranchParameter()}`,
+                                                {
+                                                    headers: getAuthHeaders(),
+                                                    signal: controller.signal,
+                                                }
+                                            );
+                                            if (stage3Response.ok) {
+                                                const stage3Data =
+                                                    await stage3Response.json();
+                                                const stage3Runs =
+                                                    stage3Data.workflow_runs ||
+                                                    [];
+                                                if (
+                                                    stage3Runs.some(
+                                                        (r) =>
+                                                            r.id.toString() ===
+                                                            parentInfo.parentRunId.toString()
+                                                    )
+                                                ) {
+                                                    parentFound = true;
+                                                    break;
+                                                }
+                                            }
+                                        } catch (error) {
+                                            console.warn(
+                                                `Failed to check Stage 3 workflow ${stage3Workflow.name} for parent run ${parentInfo.parentRunId}:`,
+                                                error.message
+                                            );
+                                        }
+                                    }
+
+                                    if (parentFound) {
+                                        validRuns.push(run);
+                                    }
+                                }
+                            } catch (error) {
+                                console.warn(
+                                    `Failed to get parent info for run ${run.id}:`,
+                                    error.message
+                                );
+                            }
+                        }
+
+                        // Remove duplicates based on run ID
+                        const uniqueRuns = [];
+                        const seenIds = new Set();
+                        for (const run of validRuns) {
+                            if (!seenIds.has(run.id)) {
+                                seenIds.add(run.id);
+                                uniqueRuns.push(run);
+                            }
+                        }
+
+                        if (uniqueRuns.length > 0) {
+                            // Sort by creation date (newest first) and take the latest
+                            const sortedRuns = uniqueRuns.sort(
+                                (a, b) =>
+                                    new Date(b.created_at) -
+                                    new Date(a.created_at)
+                            );
+                            const latestRun = sortedRuns[0];
+
+                            let status = "unknown";
+                            if (latestRun.status === "in_progress") {
+                                status = "progress";
+                            } else if (latestRun.status === "completed") {
+                                status =
+                                    latestRun.conclusion === "success"
+                                        ? "success"
+                                        : "failure";
+                            } else if (latestRun.status === "queued") {
+                                status = "progress";
+                            }
+
+                            console.log(
+                                `Historic ${workflow.name} GL${glDays}: ${status} (${uniqueRuns.length} valid runs found)`
+                            );
+                            return {
+                                workflow,
+                                status,
+                                reason: `Found ${uniqueRuns.length} valid runs`,
+                                runData: latestRun,
+                            };
+                        } else {
+                            console.log(
+                                `Historic ${workflow.name} GL${glDays}: unknown (no valid runs found)`
+                            );
+                            return {
+                                workflow,
+                                status: "unknown",
+                                reason: "No valid runs found",
+                                runData: null,
+                            };
+                        }
+                    } else {
+                        // Standard handling for non-Stage 4 workflows
+                        // Sort by creation date (newest first) and take the latest
+                        const sortedRuns = dayRuns.sort(
+                            (a, b) =>
+                                new Date(b.created_at) - new Date(a.created_at)
+                        );
+                        const latestRun = sortedRuns[0];
+
+                        let status = "unknown";
+                        if (latestRun.status === "in_progress") {
+                            status = "progress";
+                        } else if (latestRun.status === "completed") {
+                            status =
+                                latestRun.conclusion === "success"
+                                    ? "success"
+                                    : "failure";
+                        } else if (latestRun.status === "queued") {
+                            status = "progress";
+                        }
+
+                        console.log(
+                            `Historic ${workflow.name} GL${glDays}: ${status} (${dayRuns.length} runs found)`
+                        );
+                        return {
+                            workflow,
+                            status,
+                            reason: `Found ${dayRuns.length} runs`,
+                            runData: latestRun,
+                        };
                     }
-
-                    console.log(
-                        `Historic ${workflow.name} GL${glDays}: ${status} (${dayRuns.length} runs found)`
-                    );
-                    return {
-                        workflow,
-                        status,
-                        reason: `Found ${dayRuns.length} runs`,
-                        runData: latestRun, // Store the actual run data
-                    };
                 } else {
                     console.log(
                         `Historic ${workflow.name} GL${glDays}: unknown (no runs found)`
