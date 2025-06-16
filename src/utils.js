@@ -329,3 +329,151 @@ export function bulkSetElementStatus(updates) {
         setElementStatus(element, status, prefix);
     });
 }
+
+// Helper function to calculate overall pipeline duration
+export function calculatePipelineDuration(
+    stageStatuses,
+    pipelineStatus,
+    workflowRunData,
+    WORKFLOW_IDS
+) {
+    // Always try to calculate actual duration from Stage 3 to Stage 4 first
+    const stage3Workflows = [WORKFLOW_IDS.NIGHTLY, WORKFLOW_IDS.MANUAL_RELEASE];
+    const stage4Workflows = [
+        WORKFLOW_IDS.PUBLISH_GHCR,
+        WORKFLOW_IDS.PUBLISH_S3,
+    ];
+    let earliestStage3Start = null;
+    let latestStage4End = null;
+    let hasInProgressWorkflows = false;
+
+    // Find earliest Stage 3 start time and check for in-progress workflows
+    for (const workflowId of stage3Workflows) {
+        if (workflowRunData && workflowRunData[workflowId]) {
+            const runData = workflowRunData[workflowId];
+
+            // Check if workflow is in progress
+            if (
+                runData.status === "in_progress" ||
+                runData.status === "queued"
+            ) {
+                hasInProgressWorkflows = true;
+            }
+
+            // Get start time from completed or in-progress workflows
+            if (
+                runData.status === "completed" ||
+                runData.status === "in_progress" ||
+                runData.status === "queued"
+            ) {
+                const startTime = new Date(runData.created_at);
+                if (!earliestStage3Start || startTime < earliestStage3Start) {
+                    earliestStage3Start = startTime;
+                }
+            }
+        }
+    }
+
+    // Find latest Stage 4 end time
+    for (const workflowId of stage4Workflows) {
+        if (workflowRunData && workflowRunData[workflowId]) {
+            const runData = workflowRunData[workflowId];
+            if (runData.status === "completed") {
+                const endTime = new Date(runData.updated_at);
+                if (!latestStage4End || endTime > latestStage4End) {
+                    latestStage4End = endTime;
+                }
+            }
+        }
+    }
+
+    // Calculate duration if we have both start and end times
+    if (earliestStage3Start && latestStage4End) {
+        const durationMs = latestStage4End - earliestStage3Start;
+        if (durationMs > 0) {
+            const durationHours = Math.floor(durationMs / 3600000);
+            const durationMinutes = Math.floor((durationMs % 3600000) / 60000);
+            if (durationHours > 0) {
+                return `${durationHours}h ${durationMinutes}m`;
+            } else {
+                return `${durationMinutes}m`;
+            }
+        }
+    }
+
+    // If any workflow is in progress, show 'in progress'
+    if (hasInProgressWorkflows) {
+        return "In progress...";
+    }
+
+    // Return null if duration can't be calculated
+    return null;
+}
+
+export function calculateTargetDate(glDays, GL_INITIAL_DATE) {
+    const initialDay = new Date(GL_INITIAL_DATE);
+    const targetDate = new Date(initialDay);
+    targetDate.setDate(targetDate.getDate() + glDays);
+    targetDate.setHours(0, 0, 0, 0);
+    return targetDate;
+}
+
+export function calculateHistoricPipelineDuration(
+    workflowRunData,
+    WORKFLOW_IDS
+) {
+    const stage3Workflows = [WORKFLOW_IDS.NIGHTLY, WORKFLOW_IDS.MANUAL_RELEASE];
+    const stage4Workflows = [
+        WORKFLOW_IDS.PUBLISH_GHCR,
+        WORKFLOW_IDS.PUBLISH_S3,
+    ];
+    let earliestStage3Start = null;
+    let latestStage4End = null;
+
+    // Find earliest Stage 3 start time
+    for (const workflowId of stage3Workflows) {
+        if (workflowRunData && workflowRunData[workflowId]) {
+            const runData = workflowRunData[workflowId];
+            if (
+                runData.status === "completed" ||
+                runData.status === "in_progress" ||
+                runData.status === "queued"
+            ) {
+                const startTime = new Date(runData.created_at);
+                if (!earliestStage3Start || startTime < earliestStage3Start) {
+                    earliestStage3Start = startTime;
+                }
+            }
+        }
+    }
+
+    // Find latest Stage 4 end time (only from completed workflows for historic data)
+    for (const workflowId of stage4Workflows) {
+        if (workflowRunData && workflowRunData[workflowId]) {
+            const runData = workflowRunData[workflowId];
+            if (runData.status === "completed") {
+                const endTime = new Date(runData.updated_at);
+                if (!latestStage4End || endTime > latestStage4End) {
+                    latestStage4End = endTime;
+                }
+            }
+        }
+    }
+
+    // Calculate duration if we have both start and end times
+    if (earliestStage3Start && latestStage4End) {
+        const durationMs = latestStage4End - earliestStage3Start;
+        if (durationMs > 0) {
+            const durationHours = Math.floor(durationMs / 3600000);
+            const durationMinutes = Math.floor((durationMs % 3600000) / 60000);
+            if (durationHours > 0) {
+                return `${durationHours}h ${durationMinutes}m`;
+            } else {
+                return `${durationMinutes}m`;
+            }
+        }
+    }
+
+    // Return null if duration can't be calculated
+    return null;
+}

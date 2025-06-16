@@ -163,16 +163,6 @@ export function getAllWorkflowConfigs() {
 // ========================================
 // HTML GENERATION FUNCTIONS
 // ========================================
-export function generateWorkflowBoxHTML(workflow) {
-    return `
-        <div id="daily-info-${workflow.id}" class="workflow-box">
-            <a href="${API_CONFIG.GITHUB_BASE}/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.workflowFile}" target="_blank">
-                ${workflow.name}
-            </a>
-        </div>
-    `;
-}
-
 export function getWorkflowsByStageForHTML(stageId) {
     return Object.values(WORKFLOWS).filter(
         (workflow) => workflow.stage === stageId

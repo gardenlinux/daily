@@ -10,23 +10,17 @@
  * - UI event handlers and global functions
  */
 
-import {
-    getRun,
-    fillPackageTable,
-    loadHistoricReleases,
-    updateHeaderColor,
-    // updatePipelineHierarchy, // Called automatically from dashboard functions
-} from "./dashboard.js";
+import { getRun, fillPackageTable, loadHistoricReleases } from "./dashboard.js";
 
 import {
-    generateWorkflowBoxHTML,
     getWorkflowsByStageForHTML,
     WORKFLOW_IDS,
     GL_INITIAL_DATE,
+    API_CONFIG,
+    WORKFLOWS,
 } from "./constants.js";
 
 import {
-    formatDailyDate,
     isHistoricView,
     getGlDays,
     getCurrentGlDays,
@@ -36,6 +30,8 @@ import {
     formatDetailedDateFromDate,
     shouldSearchAllBranches,
 } from "./utils.js";
+
+import { generateWorkflowBoxHTML as uiGenerateWorkflowBoxHTML } from "./ui.js";
 
 // ========================================
 // SETTINGS PANEL MANAGEMENT
@@ -255,7 +251,9 @@ function generateWorkflowHTML() {
     const stage4Container = document.querySelector("#stage-4 .stage-workflows");
     if (stage4Container && stage4Workflows.length > 0) {
         stage4Container.innerHTML = stage4Workflows
-            .map((workflow) => generateWorkflowBoxHTML(workflow))
+            .map((workflow) =>
+                uiGenerateWorkflowBoxHTML(workflow, API_CONFIG, WORKFLOWS)
+            )
             .join("");
     }
 
@@ -264,7 +262,9 @@ function generateWorkflowHTML() {
     const stage3Container = document.querySelector("#stage-3 .stage-workflows");
     if (stage3Container && stage3Workflows.length > 0) {
         stage3Container.innerHTML = stage3Workflows
-            .map((workflow) => generateWorkflowBoxHTML(workflow))
+            .map((workflow) =>
+                uiGenerateWorkflowBoxHTML(workflow, API_CONFIG, WORKFLOWS)
+            )
             .join("");
     }
 
@@ -284,8 +284,11 @@ function generateWorkflowHTML() {
                 "#sub-stage-repo-build .workflow-box"
             );
             if (repoBuildContainer) {
-                repoBuildContainer.outerHTML =
-                    generateWorkflowBoxHTML(repoBuild);
+                repoBuildContainer.outerHTML = uiGenerateWorkflowBoxHTML(
+                    repoBuild,
+                    API_CONFIG,
+                    WORKFLOWS
+                );
             }
         }
 
@@ -294,8 +297,11 @@ function generateWorkflowHTML() {
                 "#sub-stage-repo-update .workflow-box"
             );
             if (repoUpdateContainer) {
-                repoUpdateContainer.outerHTML =
-                    generateWorkflowBoxHTML(repoUpdate);
+                repoUpdateContainer.outerHTML = uiGenerateWorkflowBoxHTML(
+                    repoUpdate,
+                    API_CONFIG,
+                    WORKFLOWS
+                );
             }
         }
     }
