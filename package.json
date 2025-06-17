@@ -5,7 +5,7 @@
     "type": "module",
     "main": "dist/dashboard.js",
     "scripts": {
-        "build": "rollup -c",
+        "build": "git fetch origin && git checkout origin/packages packages && rollup -c",
         "dev": "rollup -c -w",
         "serve": "python3 -m http.server 8000",
         "start": "npm run build && npm run serve",

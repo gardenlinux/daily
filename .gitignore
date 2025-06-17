@@ -12,3 +12,6 @@ dist/
 # Environment variables
 .env
 .envrc
+
+# packages are in packages branch
+packages/
