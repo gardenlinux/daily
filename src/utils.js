@@ -178,17 +178,10 @@ export function getBranchParameter() {
 }
 
 export function shouldSearchAllBranches() {
-    // Check URL parameter first
+    // Check URL parameter only
     const urlParams = new URLSearchParams(window.location.search);
     const branchParam = urlParams.get("all_branches");
-
-    if (branchParam !== null) {
-        return branchParam === "true" || branchParam === "1";
-    }
-
-    // Fall back to localStorage, but default to false if not set
-    const stored = localStorage.getItem("search_all_branches");
-    return stored === "true";
+    return branchParam === "true" || branchParam === "1";
 }
 
 // ========================================

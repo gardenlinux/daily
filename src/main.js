@@ -86,19 +86,13 @@ window.toggleBranchSearch = function () {
     const checkbox = document.getElementById("search-all-branches");
     const isEnabled = checkbox.checked;
 
-    // Update URL parameter
+    // Update URL parameter only
     const url = new URL(window.location);
     if (isEnabled) {
         url.searchParams.set("all_branches", "true");
     } else {
-        url.searchParams.set("all_branches", "false");
+        url.searchParams.delete("all_branches");
     }
-
-    // Update localStorage as well (for persistence across sessions)
-    localStorage.setItem("search_all_branches", isEnabled.toString());
-
-    // Update status display
-    updateBranchSearchStatus();
 
     // Navigate to the new URL
     const message = isEnabled
@@ -108,24 +102,20 @@ window.toggleBranchSearch = function () {
     window.location.href = url.toString();
 };
 
-function updateBranchSearchStatus() {
-    const isEnabled = shouldSearchAllBranches(); // This now checks URL first, then localStorage
+// On page load, set checkbox state based on URL parameter
+function setBranchCheckboxFromUrl() {
     const checkbox = document.getElementById("search-all-branches");
-    const modeSpan = document.getElementById("branch-mode");
-
-    if (checkbox) {
-        checkbox.checked = isEnabled;
-    }
-
-    if (modeSpan) {
-        modeSpan.textContent = isEnabled
-            ? "all branches"
-            : "default branches only";
-    }
+    if (!checkbox) return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const branchParam = urlParams.get("all_branches");
+    checkbox.checked = branchParam === "true" || branchParam === "1";
 }
 
-function initializeBranchSettings() {
-    updateBranchSearchStatus();
+// Call this on DOMContentLoaded or after settings panel is rendered
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", setBranchCheckboxFromUrl);
+} else {
+    setBranchCheckboxFromUrl();
 }
 
 function updateAuthStatus() {
@@ -396,7 +386,6 @@ function initDashboard() {
     fillPackageTable();
     updateAuthStatus(); // Initialize auth status display
     initializeGLSelector(); // Initialize GL version selector
-    initializeBranchSettings(); // Initialize branch search settings
     generateWorkflowHTML(); // Generate workflow HTML
 }
 
