@@ -25,20 +25,20 @@ export function renderHistoricReleases(historicData) {
     historicList.innerHTML = historicData
         .map(
             (day) => `
-        <a href="?gl=${day.glDays}&no_historic_releases=true" target="_blank" class="historic-release-row" title="View detailed dashboard for GL ${day.glDays}">
-            <div class="historic-gl-version ${day.overallStatus}">GL ${day.glDays}</div>
+        <a href="?gl=${day.glDays}&no_historic_releases=true" target="_blank" class="historic-release-row ${day.pipelineStatus}" title="View detailed dashboard for GL ${day.glDays}">
+            <div class="historic-gl-version ${day.pipelineStatus}">GL ${day.glDays}</div>
             <div class="historic-date">${day.date}</div>
 
             <div class="historic-overall-status">
-                <span class="historic-status-indicator ${day.overallStatus}"
-                      title="Overall Status: ${day.overallStatus}"></span>
+                <span class="historic-status-indicator ${day.pipelineStatus}"
+                      title="Overall Status: ${day.pipelineStatus}"></span>
             </div>
 
             <div class="historic-stages" title="Stages: Package | Repo | Build | Publish">
-                <span class="historic-stage-dot ${day.packageStatus ? day.packageStatus.status : "unknown"}" title="Package Builds"></span>
-                <span class="historic-stage-dot ${day.workflowStatus?.["stage-2"] || "unknown"}" title="Repository"></span>
-                <span class="historic-stage-dot ${day.workflowStatus?.["stage-3"] || "unknown"}" title="Build & Release"></span>
-                <span class="historic-stage-dot ${day.workflowStatus?.["stage-4"] || "unknown"}" title="Publish"></span>
+                <span class="historic-stage-dot ${day.workflowStatus ? day.workflowStatus["stage-1"] : "unknown"}" title="Package Builds"></span>
+                <span class="historic-stage-dot ${day.workflowStatus ? day.workflowStatus["stage-2"] : "unknown"}" title="Repository"></span>
+                <span class="historic-stage-dot ${day.workflowStatus ? day.workflowStatus["stage-3"] : "unknown"}" title="Build & Release"></span>
+                <span class="historic-stage-dot ${day.workflowStatus ? day.workflowStatus["stage-4"] : "unknown"}" title="Publish"></span>
             </div>
 
             <div class="historic-package-status">
@@ -64,13 +64,13 @@ export function renderHistoricReleases(historicData) {
 
             <div class="historic-summary">
                 ${
-                    day.overallStatus === "success"
+                    day.pipelineStatus === "success"
                         ? "Release successful"
-                        : day.overallStatus === "progress"
+                        : day.pipelineStatus === "progress"
                           ? "Pipeline in progress"
-                          : day.overallStatus === "failure"
+                          : day.pipelineStatus === "failure"
                             ? "Pipeline failures"
-                            : day.overallStatus === "warning"
+                            : day.pipelineStatus === "warning"
                               ? "Issues detected"
                               : "Status loading..."
                 }

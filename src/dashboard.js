@@ -22,6 +22,8 @@ import {
     getBranchParameter,
     calculateTargetDate,
     calculateHistoricPipelineDuration,
+    validateStage4Runs,
+    collectStage3RunIds,
 } from "./utils.js";
 
 import {
@@ -92,346 +94,406 @@ export async function getRun() {
 
     const tagName = `${glDays}.0`;
 
-    for await (const workflow of reposWorkflows) {
-        let apiUrl;
-        let isPlatformCleanup =
-            workflow.id === WORKFLOW_IDS.PLATFORM_TEST_CLEANUP;
+    // Process workflows in two phases:
+    // Phase 1: Process Stage 3 workflows first to collect run IDs
+    // Phase 2: Process all other workflows (including Stage 4 with parent matching)
 
-        // Special handling for Platform Test Cleanup - get more runs for date filtering
-        if (isPlatformCleanup) {
-            apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50${getBranchParameter()}`;
-        }
-        // Only filter by daily tag for the repo build workflow
-        else if (workflow.id === WORKFLOW_IDS.REPO_BUILD) {
-            try {
-                const tagResponse = await fetch(
-                    `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/git/ref/tags/${tagName}`,
-                    {
-                        headers: getAuthHeaders(),
-                    }
-                );
-                const tagData = await tagResponse.json();
-                const commitSha = tagData.object.sha;
-                apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50&head_sha=${commitSha}`;
-            } catch (error) {
-                apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50${getBranchParameter()}`;
-            }
-        } else {
-            apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50${getBranchParameter()}`;
-        }
+    const stage3WorkflowIds = [
+        WORKFLOW_IDS.NIGHTLY,
+        WORKFLOW_IDS.MANUAL_RELEASE,
+    ];
+    const allWorkflows = getAllWorkflowConfigs();
+    const stage3Workflows = allWorkflows.filter((w) =>
+        stage3WorkflowIds.includes(w.id)
+    );
+    const otherWorkflows = allWorkflows.filter(
+        (w) => !stage3WorkflowIds.includes(w.id)
+    );
 
-        const response = await fetch(apiUrl, {
-            headers: getAuthHeaders(),
-        });
+    console.log(
+        `🔍 Processing ${stage3Workflows.length} Stage 3 workflows first to collect run IDs`
+    );
+    console.log(`🔍 Then processing ${otherWorkflows.length} other workflows`);
 
-        if (!response.ok) {
-            console.error(
-                `API Error for workflow ${workflow.id}:`,
-                response.status,
-                response.statusText
-            );
-            const workflowDomElement = document.getElementById(
-                `daily-info-${workflow.id}`
-            );
-            setElementStatus(workflowDomElement, "api-error");
-            const detailsDiv = document.createElement("div");
-            detailsDiv.className = "workflow-details";
-            detailsDiv.innerHTML = `<div class="error-message">API Error: ${response.status} ${response.statusText}</div>`;
-            workflowDomElement.appendChild(detailsDiv);
-
-            // Track status for color coding
-            workflowStatuses[workflow.id] = "api-error";
-
-            // Update Platform Test Cleanup header if it's that workflow
-            if (isPlatformCleanup) {
-                const headerElement = document.getElementById(
-                    "platform-cleanup-header"
-                );
-                setElementStatus(headerElement, "failure", "status-");
-            }
-            continue;
-        }
-
-        const runs = await response.json();
-        const workflowRuns = runs.workflow_runs;
-
-        if (!workflowRuns) {
-            console.error(
-                `No workflow_runs in response for workflow ${workflow.id}:`,
-                runs
-            );
-            const workflowDomElement = document.getElementById(
-                `daily-info-${workflow.id}`
-            );
-            setElementStatus(workflowDomElement, "api-error");
-            const detailsDiv = document.createElement("div");
-            detailsDiv.className = "workflow-details";
-            detailsDiv.innerHTML =
-                '<div class="error-message">No workflow runs data</div>';
-            workflowDomElement.appendChild(detailsDiv);
-
-            // Track status for color coding
-            workflowStatuses[workflow.id] = "api-error";
-
-            // Update Platform Test Cleanup header if it's that workflow
-            if (isPlatformCleanup) {
-                const headerElement = document.getElementById(
-                    "platform-cleanup-header"
-                );
-                setElementStatus(headerElement, "failure", "status-");
-            }
-            continue;
-        }
-
-        // Filter runs for the target date (current day or historic day) - applies to all workflows
-        // Check if this is a Stage 4 workflow
-        const isStage4Workflow = [
-            WORKFLOW_IDS.PUBLISH_GHCR,
-            WORKFLOW_IDS.PUBLISH_S3,
-        ].includes(workflow.id);
-
-        // Check if this is a Stage 3 workflow to collect run IDs
-        const isStage3Workflow = [
-            WORKFLOW_IDS.NIGHTLY,
-            WORKFLOW_IDS.MANUAL_RELEASE,
-        ].includes(workflow.id);
-
-        let targetRunsUnsorted;
-
-        if (isStage4Workflow) {
-            // For Stage 4: Look at GL date AND GL+7 days, filter by parent run IDs
-            const baseRuns = workflowRuns.filter((run) => {
-                const runDate = new Date(run.created_at);
-                return runDate >= targetDate && runDate < nextDay;
-            });
-
-            const extendedRuns = workflowRuns.filter((run) => {
-                const runDate = new Date(run.created_at);
-                return runDate >= targetDate && runDate < extendedNextDay;
-            });
-
-            console.log(
-                `🔍 [Stage 4] ${workflow.name}: Found ${baseRuns.length} base runs (GL date: ${targetDate.toISOString().split("T")[0]})`
-            );
-            console.log(
-                `🔍 [Stage 4] ${workflow.name}: Found ${extendedRuns.length} extended runs (GL date to GL+7: ${targetDate.toISOString().split("T")[0]} to ${extendedDate.toISOString().split("T")[0]})`
-            );
-            console.log(
-                `🔍 [Stage 4] ${workflow.name}: Stage 3 run IDs collected so far:`,
-                Array.from(stage3RunIds)
-            );
-
-            // Process all runs to check parent information
-            const validRuns = [];
-
-            for (const run of extendedRuns) {
-                try {
-                    // Get parent workflow info for this run
-                    const parentInfo = await getParentWorkflowInfo(
-                        API_CONFIG.GARDENLINUX_ORG,
-                        workflow.repo,
-                        run.id
-                    );
-
-                    const runDate = new Date(run.created_at);
-                    const isBaseDate =
-                        runDate >= targetDate && runDate < nextDay;
-                    const isExtendedDate =
-                        runDate >= targetDate && runDate < extendedNextDay;
-
-                    // Case 1: Day matches and parent ID does not exist in artifact
-                    if (
-                        isBaseDate &&
-                        (!parentInfo || !parentInfo.parentRunId)
-                    ) {
-                        validRuns.push(run);
-                        console.log(
-                            `🔍 [Stage 4] Run ${run.id}: Added (base date, no parent)`
-                        );
-                        continue;
-                    }
-
-                    // Case 2: Day matches (or 7 days into future) and parent ID matches any Stage 3 workflow
-                    if (
-                        isExtendedDate &&
-                        parentInfo &&
-                        parentInfo.parentRunId &&
-                        stage3RunIds.has(parentInfo.parentRunId.toString())
-                    ) {
-                        validRuns.push(run);
-                        console.log(
-                            `🔍 [Stage 4] Run ${run.id}: Added (extended date, matching parent ${parentInfo.parentRunId})`
-                        );
-                        continue;
-                    }
-
-                    console.log(
-                        `🔍 [Stage 4] Run ${run.id}: Skipped (doesn't match criteria)`
-                    );
-                } catch (error) {
-                    console.log(
-                        `🔍 [Stage 4] Failed to get parent info for run ${run.id}:`,
-                        error.message
-                    );
-                }
-            }
-
-            // Remove duplicates based on run ID
-            const uniqueRuns = [];
-            const seenIds = new Set();
-            for (const run of validRuns) {
-                if (!seenIds.has(run.id)) {
-                    seenIds.add(run.id);
-                    uniqueRuns.push(run);
-                }
-            }
-
-            targetRunsUnsorted = uniqueRuns;
-            console.log(
-                `🔍 [Stage 4] ${workflow.name}: Found ${uniqueRuns.length} valid runs after filtering`
-            );
-        } else {
-            // Standard date filtering for non-Stage 4 workflows
-            targetRunsUnsorted = workflowRuns.filter((run) => {
-                const runDate = new Date(run.created_at);
-                return runDate >= targetDate && runDate < nextDay;
-            });
-        }
-
-        // Collect Stage 3 run IDs for later Stage 4 matching
-        if (isStage3Workflow && targetRunsUnsorted.length > 0) {
-            targetRunsUnsorted.forEach((run) => {
-                stage3RunIds.add(run.id.toString());
-                console.log(
-                    `🔍 [Stage 3] Collected run ID ${run.id} from ${workflow.name}`
-                );
-            });
-        }
-
-        // Sort target runs by creation date in descending order (newest first)
-        const targetRuns = targetRunsUnsorted.sort(
-            (a, b) => new Date(b.created_at) - new Date(a.created_at)
+    // Phase 1: Process Stage 3 workflows to collect run IDs
+    for await (const workflow of stage3Workflows) {
+        await processWorkflow(
+            workflow,
+            targetDate,
+            nextDay,
+            extendedDate,
+            extendedNextDay,
+            stage3RunIds,
+            tagName,
+            true
         );
+    }
 
-        const workflowDomElement = document.getElementById(
-            `daily-info-${workflow.id}`
+    console.log(`🔍 Stage 3 run IDs collected: ${Array.from(stage3RunIds)}`);
+
+    // Phase 2: Process all other workflows (including Stage 4 with full parent matching)
+    for await (const workflow of otherWorkflows) {
+        await processWorkflow(
+            workflow,
+            targetDate,
+            nextDay,
+            extendedDate,
+            extendedNextDay,
+            stage3RunIds,
+            tagName,
+            false
         );
-
-        // Clear existing content
-        const existingDetails =
-            workflowDomElement.querySelector(".workflow-details");
-        if (existingDetails) {
-            existingDetails.remove();
-        }
-
-        // Reset all status classes
-        setElementStatus(workflowDomElement, null); // Clear all status classes
-
-        // Reset Platform Test Cleanup header classes
-        if (isPlatformCleanup) {
-            const headerElement = document.getElementById(
-                "platform-cleanup-header"
-            );
-            setElementStatus(headerElement, null, "status-");
-        }
-
-        if (targetRuns.length === 0) {
-            // Handles the case where targetRuns might be empty after filtering
-            setElementStatus(workflowDomElement, "no-runs");
-            const detailsDiv = document.createElement("div");
-            detailsDiv.className = "workflow-details";
-            const dateStr = targetDate.toLocaleDateString();
-            detailsDiv.innerHTML = `<div class="no-runs-message">No runs found for ${
-                isHistoricView() ? `historic date ${dateStr}` : "today"
-            }</div>`;
-            workflowDomElement.appendChild(detailsDiv);
-
-            // Track status for color coding
-            workflowStatuses[workflow.id] = "no-runs";
-
-            // Update Platform Test Cleanup header
-            if (isPlatformCleanup) {
-                const headerElement = document.getElementById(
-                    "platform-cleanup-header"
-                );
-                setElementStatus(headerElement, "unknown", "status-");
-            }
-            continue;
-        }
-
-        // Determine overall status based on the most recent run
-        // After sorting by ID descending, the first element is the most recent
-        const mostRecentRun = targetRuns.length > 0 ? targetRuns[0] : null;
-
-        if (!mostRecentRun) {
-            // Handles the case where targetRuns might be empty after filtering
-            setElementStatus(workflowDomElement, "no-runs");
-            const detailsDiv = document.createElement("div");
-            detailsDiv.className = "workflow-details";
-            const dateStr = targetDate.toLocaleDateString();
-            detailsDiv.innerHTML = `<div class="no-runs-message">No runs found for ${
-                isHistoricView() ? `historic date ${dateStr}` : "today"
-            }</div>`;
-            workflowDomElement.appendChild(detailsDiv);
-
-            // Track status for color coding
-            workflowStatuses[workflow.id] = "no-runs";
-
-            // Update Platform Test Cleanup header
-            if (isPlatformCleanup) {
-                const headerElement = document.getElementById(
-                    "platform-cleanup-header"
-                );
-                setElementStatus(headerElement, "unknown", "status-");
-            }
-            continue;
-        }
-
-        let workflowStatus = "unknown";
-        const { statusClass } = getRunStatus(mostRecentRun);
-        workflowStatus = statusClass;
-
-        setElementStatus(workflowDomElement, statusClass);
-
-        // Update Platform Test Cleanup header color
-        if (isPlatformCleanup) {
-            const headerElement = document.getElementById(
-                "platform-cleanup-header"
-            );
-            let headerStatus = statusClass;
-            if (statusClass === "queued") headerStatus = "progress";
-            setElementStatus(headerElement, headerStatus, "status-");
-        }
-
-        // Track status for color coding
-        // Store the most recent run data for duration calculations
-        workflowRunData[workflow.id] = mostRecentRun;
-        workflowStatuses[workflow.id] = workflowStatus;
-
-        // Create details section for all runs
-        const detailsDiv = document.createElement("div");
-        detailsDiv.className = "workflow-details";
-
-        // Iterate over the sorted runs (descending by ID - newest first)
-        // Use for...of instead of forEach with async to maintain order
-        for (const run of targetRuns) {
-            const runDiv = document.createElement("div");
-            runDiv.className = "run-item";
-
-            // Use full date for Platform Test Cleanup, time only for others
-            runDiv.innerHTML = await createRunItemHTML(
-                run,
-                workflow,
-                isPlatformCleanup
-            );
-            detailsDiv.appendChild(runDiv);
-        }
-
-        workflowDomElement.appendChild(detailsDiv);
     }
 
     // Update pipeline hierarchy and colors after all workflow data is loaded
     updatePipelineHierarchy();
+}
+
+// Helper function to process a single workflow
+async function processWorkflow(
+    workflow,
+    targetDate,
+    nextDay,
+    extendedDate,
+    extendedNextDay,
+    stage3RunIds,
+    tagName,
+    isStage3Phase
+) {
+    let apiUrl;
+    let isPlatformCleanup = workflow.id === WORKFLOW_IDS.PLATFORM_TEST_CLEANUP;
+
+    // Special handling for Platform Test Cleanup - get more runs for date filtering
+    if (isPlatformCleanup) {
+        apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50${getBranchParameter()}`;
+    }
+    // Only filter by daily tag for the repo build workflow
+    else if (workflow.id === WORKFLOW_IDS.REPO_BUILD) {
+        try {
+            const tagResponse = await fetch(
+                `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/git/ref/tags/${tagName}`,
+                {
+                    headers: getAuthHeaders(),
+                }
+            );
+            const tagData = await tagResponse.json();
+            const commitSha = tagData.object.sha;
+            apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50&head_sha=${commitSha}`;
+        } catch (error) {
+            apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50${getBranchParameter()}`;
+        }
+    } else {
+        apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50${getBranchParameter()}`;
+    }
+
+    const response = await fetch(apiUrl, {
+        headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+        console.error(
+            `API Error for workflow ${workflow.id}:`,
+            response.status,
+            response.statusText
+        );
+        const workflowDomElement = document.getElementById(
+            `daily-info-${workflow.id}`
+        );
+        setElementStatus(workflowDomElement, "api-error");
+        const detailsDiv = document.createElement("div");
+        detailsDiv.className = "workflow-details";
+        detailsDiv.innerHTML = `<div class="error-message">API Error: ${response.status} ${response.statusText}</div>`;
+        workflowDomElement.appendChild(detailsDiv);
+
+        // Track status for color coding
+        workflowStatuses[workflow.id] = "api-error";
+
+        // Update Platform Test Cleanup header if it's that workflow
+        if (isPlatformCleanup) {
+            const headerElement = document.getElementById(
+                "platform-cleanup-header"
+            );
+            setElementStatus(headerElement, "failure", "status-");
+        }
+        return;
+    }
+
+    const runs = await response.json();
+    const workflowRuns = runs.workflow_runs;
+
+    if (!workflowRuns) {
+        console.error(
+            `No workflow_runs in response for workflow ${workflow.id}:`,
+            runs
+        );
+        const workflowDomElement = document.getElementById(
+            `daily-info-${workflow.id}`
+        );
+        setElementStatus(workflowDomElement, "api-error");
+        const detailsDiv = document.createElement("div");
+        detailsDiv.className = "workflow-details";
+        detailsDiv.innerHTML =
+            '<div class="error-message">No workflow runs data</div>';
+        workflowDomElement.appendChild(detailsDiv);
+
+        // Track status for color coding
+        workflowStatuses[workflow.id] = "api-error";
+
+        // Update Platform Test Cleanup header if it's that workflow
+        if (isPlatformCleanup) {
+            const headerElement = document.getElementById(
+                "platform-cleanup-header"
+            );
+            setElementStatus(headerElement, "failure", "status-");
+        }
+        return;
+    }
+
+    // Filter runs for the target date (current day or historic day) - applies to all workflows
+    // Check if this is a Stage 4 workflow
+    const isStage4Workflow = [
+        WORKFLOW_IDS.PUBLISH_GHCR,
+        WORKFLOW_IDS.PUBLISH_S3,
+    ].includes(workflow.id);
+
+    // Check if this is a Stage 3 workflow to collect run IDs
+    const isStage3Workflow = [
+        WORKFLOW_IDS.NIGHTLY,
+        WORKFLOW_IDS.MANUAL_RELEASE,
+    ].includes(workflow.id);
+
+    let targetRunsUnsorted;
+
+    if (isStage4Workflow) {
+        // For Stage 4: Look at GL date AND GL+7 days, filter by parent run IDs
+        const baseRuns = workflowRuns.filter((run) => {
+            const runDate = new Date(run.created_at);
+            return runDate >= targetDate && runDate < nextDay;
+        });
+
+        const extendedRuns = workflowRuns.filter((run) => {
+            const runDate = new Date(run.created_at);
+            return runDate >= targetDate && runDate < extendedNextDay;
+        });
+
+        console.log(
+            `🔍 [Stage 4] ${workflow.name}: Found ${baseRuns.length} base runs (GL date: ${targetDate.toISOString().split("T")[0]})`
+        );
+        console.log(
+            `🔍 [Stage 4] ${workflow.name}: Found ${extendedRuns.length} extended runs (GL date to GL+7: ${targetDate.toISOString().split("T")[0]} to ${extendedDate.toISOString().split("T")[0]})`
+        );
+        console.log(
+            `🔍 [Stage 4] ${workflow.name}: Stage 3 run IDs collected so far:`,
+            Array.from(stage3RunIds)
+        );
+
+        // Process all runs to check parent information
+        const validRuns = [];
+
+        for (const run of extendedRuns) {
+            console.log(
+                `[DEBUG] [Stage 4] Pre-filter Run ${run.id}: created_at=${run.created_at}`
+            );
+            try {
+                // Get parent workflow info for this run
+                const parentInfo = await getParentWorkflowInfo(
+                    API_CONFIG.GARDENLINUX_ORG,
+                    workflow.repo,
+                    run.id
+                );
+
+                const runDate = new Date(run.created_at);
+                const isBaseDate = runDate >= targetDate && runDate < nextDay;
+                const isExtendedDate =
+                    runDate >= targetDate && runDate < extendedNextDay;
+
+                // Case 1: Day matches and parent ID does not exist in artifact
+                if (isBaseDate && (!parentInfo || !parentInfo.parentRunId)) {
+                    validRuns.push(run);
+                    console.log(
+                        `🔍 [Stage 4] Run ${run.id}: Added (base date, no parent)`
+                    );
+                    continue;
+                }
+
+                // Case 2: Day matches (or 7 days into future) and parent ID matches any Stage 3 workflow
+                if (
+                    isExtendedDate &&
+                    parentInfo &&
+                    parentInfo.parentRunId &&
+                    stage3RunIds.has(parentInfo.parentRunId.toString())
+                ) {
+                    validRuns.push(run);
+                    console.log(
+                        `🔍 [Stage 4] Run ${run.id}: Added (extended date, matching parent ${parentInfo.parentRunId})`
+                    );
+                    continue;
+                }
+
+                console.log(
+                    `🔍 [Stage 4] Run ${run.id}: Skipped (doesn't match criteria)`
+                );
+            } catch (error) {
+                console.log(
+                    `🔍 [Stage 4] Failed to get parent info for run ${run.id}:`,
+                    error.message
+                );
+            }
+        }
+
+        // Remove duplicates based on run ID
+        const uniqueRuns = [];
+        const seenIds = new Set();
+        for (const run of validRuns) {
+            if (!seenIds.has(run.id)) {
+                seenIds.add(run.id);
+                uniqueRuns.push(run);
+            }
+        }
+
+        // Use the filtered runs for status determination
+        targetRunsUnsorted = uniqueRuns;
+        console.log(
+            `🔍 [Stage 4] ${workflow.name}: Found ${uniqueRuns.length} valid runs after filtering`
+        );
+    } else {
+        // Standard date filtering for non-Stage 4 workflows
+        targetRunsUnsorted = workflowRuns.filter((run) => {
+            const runDate = new Date(run.created_at);
+            return runDate >= targetDate && runDate < nextDay;
+        });
+    }
+
+    // Collect Stage 3 run IDs for later Stage 4 matching
+    if (isStage3Workflow && targetRunsUnsorted.length > 0) {
+        targetRunsUnsorted.forEach((run) => {
+            stage3RunIds.add(run.id.toString());
+            console.log(
+                `🔍 [Stage 3] Collected run ID ${run.id} from ${workflow.name}`
+            );
+        });
+    }
+
+    // Sort target runs by creation date in descending order (newest first)
+    const targetRuns = targetRunsUnsorted.sort(
+        (a, b) => new Date(b.created_at) - new Date(a.created_at)
+    );
+
+    const workflowDomElement = document.getElementById(
+        `daily-info-${workflow.id}`
+    );
+
+    // Clear existing content
+    const existingDetails =
+        workflowDomElement.querySelector(".workflow-details");
+    if (existingDetails) {
+        existingDetails.remove();
+    }
+
+    // Reset all status classes
+    setElementStatus(workflowDomElement, null); // Clear all status classes
+
+    // Reset Platform Test Cleanup header classes
+    if (isPlatformCleanup) {
+        const headerElement = document.getElementById(
+            "platform-cleanup-header"
+        );
+        setElementStatus(headerElement, null, "status-");
+    }
+
+    if (targetRuns.length === 0) {
+        // Handles the case where targetRuns might be empty after filtering
+        setElementStatus(workflowDomElement, "no-runs");
+        const detailsDiv = document.createElement("div");
+        detailsDiv.className = "workflow-details";
+        const dateStr = targetDate.toLocaleDateString();
+        detailsDiv.innerHTML = `<div class="no-runs-message">No runs found for ${
+            isHistoricView() ? `historic date ${dateStr}` : "today"
+        }</div>`;
+        workflowDomElement.appendChild(detailsDiv);
+
+        // Track status for color coding
+        workflowStatuses[workflow.id] = "no-runs";
+
+        // Update Platform Test Cleanup header
+        if (isPlatformCleanup) {
+            const headerElement = document.getElementById(
+                "platform-cleanup-header"
+            );
+            setElementStatus(headerElement, "unknown", "status-");
+        }
+        return;
+    }
+
+    // Determine overall status based on the most recent run
+    // After sorting by ID descending, the first element is the most recent
+    const mostRecentRun = targetRuns.length > 0 ? targetRuns[0] : null;
+
+    if (!mostRecentRun) {
+        // Handles the case where targetRuns might be empty after filtering
+        setElementStatus(workflowDomElement, "no-runs");
+        const detailsDiv = document.createElement("div");
+        detailsDiv.className = "workflow-details";
+        const dateStr = targetDate.toLocaleDateString();
+        detailsDiv.innerHTML = `<div class="no-runs-message">No runs found for ${
+            isHistoricView() ? `historic date ${dateStr}` : "today"
+        }</div>`;
+        workflowDomElement.appendChild(detailsDiv);
+
+        // Track status for color coding
+        workflowStatuses[workflow.id] = "no-runs";
+
+        // Update Platform Test Cleanup header
+        if (isPlatformCleanup) {
+            const headerElement = document.getElementById(
+                "platform-cleanup-header"
+            );
+            setElementStatus(headerElement, "unknown", "status-");
+        }
+        return;
+    }
+
+    let workflowStatus = "unknown";
+    const { statusClass } = getRunStatus(mostRecentRun);
+    workflowStatus = statusClass;
+
+    setElementStatus(workflowDomElement, statusClass);
+
+    // Update Platform Test Cleanup header color
+    if (isPlatformCleanup) {
+        const headerElement = document.getElementById(
+            "platform-cleanup-header"
+        );
+        let headerStatus = statusClass;
+        if (statusClass === "queued") headerStatus = "progress";
+        setElementStatus(headerElement, headerStatus, "status-");
+    }
+
+    // Track status for color coding
+    // Store the most recent run data for duration calculations
+    workflowRunData[workflow.id] = mostRecentRun;
+    workflowStatuses[workflow.id] = workflowStatus;
+
+    // Create details section for all runs
+    const detailsDiv = document.createElement("div");
+    detailsDiv.className = "workflow-details";
+
+    // Iterate over the sorted runs (descending by ID - newest first)
+    // Use for...of instead of forEach with async to maintain order
+    for (const run of targetRuns) {
+        const runDiv = document.createElement("div");
+        runDiv.className = "run-item";
+
+        // Use full date for Platform Test Cleanup, time only for others
+        runDiv.innerHTML = await createRunItemHTML(
+            run,
+            workflow,
+            isPlatformCleanup
+        );
+        detailsDiv.appendChild(runDiv);
+    }
+
+    workflowDomElement.appendChild(detailsDiv);
 }
 
 // ========================================
@@ -849,6 +911,40 @@ async function loadHistoricDay(glDays) {
         const workflowStatus = workflowResult.stageStatuses;
         const workflowRunData = workflowResult.workflowRunData;
 
+        // --- Use the same logic as updatePipelineHierarchy to compute stageStatuses and pipelineStatus ---
+        const stageStatuses = { ...workflowStatus };
+        // Stage 1: Package status (map package status values to stage dot CSS classes)
+        let stage1Status = packageStatus.status;
+        if (packageStatus.status === "no-data") {
+            stage1Status = "unknown";
+        } else if (packageStatus.status === "api-error") {
+            stage1Status = "failure";
+        }
+        stageStatuses["stage-1"] = stage1Status;
+
+        // Evaluate overall pipeline status
+        const allStatuses = Object.values(stageStatuses);
+        let pipelineStatus = "unknown";
+        if (
+            allStatuses.some(
+                (status) => status === "failure" || status === "api-error"
+            )
+        ) {
+            pipelineStatus = "failure";
+        } else if (allStatuses.some((status) => status === "warning")) {
+            pipelineStatus = "warning";
+        } else if (allStatuses.some((status) => status === "progress")) {
+            pipelineStatus = "progress";
+        } else if (allStatuses.some((status) => status === "unknown")) {
+            pipelineStatus = "unknown";
+        } else if (allStatuses.some((status) => status === "success")) {
+            pipelineStatus = "success";
+        } else if (allStatuses.some((status) => status === "no-data")) {
+            pipelineStatus = "unknown";
+        } else {
+            pipelineStatus = "unknown";
+        }
+
         // Calculate pipeline duration
         const duration = calculateHistoricPipelineDuration(
             workflowRunData,
@@ -859,12 +955,9 @@ async function loadHistoricDay(glDays) {
             glDays,
             date: glDate,
             packageStatus,
-            workflowStatus,
-            duration, // Add duration to the historic data
-            overallStatus: calculateOverallStatus(
-                packageStatus,
-                workflowStatus
-            ),
+            workflowStatus: stageStatuses, // for small dots
+            duration,
+            pipelineStatus, // for main dot and row coloring
         };
     } catch (error) {
         console.warn(`Failed to load data for GL ${glDays}:`, error);
@@ -922,13 +1015,23 @@ async function getHistoricWorkflowStatus(glDays) {
     const nextDay = new Date(targetDate);
     nextDay.setDate(nextDay.getDate() + 1);
 
-    // Expand date range slightly to catch runs that might be on boundary
+    // For Stage 4 extended date range: GL day + 7
+    const extendedDate = new Date(targetDate);
+    extendedDate.setDate(extendedDate.getDate() + 7);
+    const extendedNextDay = new Date(extendedDate);
+    extendedNextDay.setDate(extendedNextDay.getDate() + 1);
+
+    // Expand date range slightly to catch runs that might be on boundary (for Stage 3 and others)
     const prevDay = new Date(targetDate);
     prevDay.setDate(prevDay.getDate() - 1);
     prevDay.setHours(20, 0, 0, 0); // Start from 8 PM previous day
 
-    const nextDayExpanded = new Date(nextDay);
-    nextDayExpanded.setHours(4, 0, 0, 0); // End at 4 AM next day
+    const extendedRangeEnd = new Date(extendedNextDay);
+    extendedRangeEnd.setHours(4, 0, 0, 0); // End at 4 AM GL date + 7
+
+    console.log(
+        `[DEBUG] [Stage 4] Date range for GL ${glDays}: prevDay=${prevDay.toISOString()}, extendedRangeEnd=${extendedRangeEnd.toISOString()}`
+    );
 
     try {
         // Check multiple workflows per stage for better coverage using constants
@@ -976,9 +1079,26 @@ async function getHistoricWorkflowStatus(glDays) {
             },
         ];
 
+        // Collect all Stage 3 run IDs first using the utility function
+        const stage3Workflows = workflowChecks.filter(
+            (w) => w.stage === "stage-3"
+        );
+        const stage3RunIds = await collectStage3RunIds(
+            stage3Workflows,
+            targetDate,
+            nextDay,
+            glDays
+        );
+
         // Process workflows with timeout and better error handling
         const promises = workflowChecks.map(async (workflow) => {
             try {
+                // Check if this is a Stage 3 workflow to collect run IDs
+                const isStage3Workflow = [
+                    WORKFLOW_IDS.NIGHTLY,
+                    WORKFLOW_IDS.MANUAL_RELEASE,
+                ].includes(workflow.id);
+
                 // eslint-disable-next-line no-undef
                 const controller = new AbortController();
                 const timeoutId = setTimeout(
@@ -1011,202 +1131,96 @@ async function getHistoricWorkflowStatus(glDays) {
                 const data = await response.json();
                 const runs = data.workflow_runs || [];
 
-                // Filter runs for the expanded target date range
-                const dayRuns = runs.filter((run) => {
-                    const runDate = new Date(run.created_at);
-                    return runDate >= prevDay && runDate < nextDayExpanded;
-                });
+                // Filter runs for the target date range - use extended range only for Stage 4
+                let dayRuns;
+                if (workflow.stage === "stage-4") {
+                    // Use the exact same Stage 4 logic as detail view
+                    const baseRuns = runs.filter((run) => {
+                        const runDate = new Date(run.created_at);
+                        return runDate >= targetDate && runDate < nextDay;
+                    });
 
-                if (dayRuns.length > 0) {
-                    // Special handling for Stage 4 workflows
-                    if (workflow.stage === "stage-4") {
-                        // For Stage 4: Look at GL date AND GL+7 days, filter by parent run IDs
-                        const baseRuns = dayRuns.filter((run) => {
-                            const runDate = new Date(run.created_at);
-                            return runDate >= targetDate && runDate < nextDay;
-                        });
-
-                        const extendedRuns = dayRuns.filter((run) => {
-                            const runDate = new Date(run.created_at);
-                            return (
-                                runDate >= targetDate &&
-                                runDate < nextDayExpanded
-                            );
-                        });
-
-                        // Process all runs to check parent information
-                        const validRuns = [];
-
-                        for (const run of extendedRuns) {
-                            try {
-                                // Get parent workflow info for this run
-                                const parentInfo = await getParentWorkflowInfo(
-                                    API_CONFIG.GARDENLINUX_ORG,
-                                    workflow.repo,
-                                    run.id
-                                );
-
-                                const runDate = new Date(run.created_at);
-                                const isBaseDate =
-                                    runDate >= targetDate && runDate < nextDay;
-                                const isExtendedDate =
-                                    runDate >= targetDate &&
-                                    runDate < nextDayExpanded;
-
-                                // Case 1: Day matches and parent ID does not exist in artifact
-                                if (
-                                    isBaseDate &&
-                                    (!parentInfo || !parentInfo.parentRunId)
-                                ) {
-                                    validRuns.push(run);
-                                    continue;
-                                }
-
-                                // Case 2: Day matches (or 7 days into future) and parent ID matches any Stage 3 workflow
-                                if (
-                                    isExtendedDate &&
-                                    parentInfo &&
-                                    parentInfo.parentRunId
-                                ) {
-                                    // For historic data, we need to check if this parent ID exists in any Stage 3 workflow
-                                    const stage3Workflows =
-                                        workflowChecks.filter(
-                                            (w) => w.stage === "stage-3"
-                                        );
-                                    let parentFound = false;
-
-                                    for (const stage3Workflow of stage3Workflows) {
-                                        try {
-                                            const stage3Response = await fetch(
-                                                `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${stage3Workflow.repo}/actions/workflows/${stage3Workflow.id}/runs?per_page=${API_CONFIG.HISTORIC_RUNS_PER_PAGE}${getBranchParameter()}`,
-                                                {
-                                                    headers: getAuthHeaders(),
-                                                    signal: controller.signal,
-                                                }
-                                            );
-                                            if (stage3Response.ok) {
-                                                const stage3Data =
-                                                    await stage3Response.json();
-                                                const stage3Runs =
-                                                    stage3Data.workflow_runs ||
-                                                    [];
-                                                if (
-                                                    stage3Runs.some(
-                                                        (r) =>
-                                                            r.id.toString() ===
-                                                            parentInfo.parentRunId.toString()
-                                                    )
-                                                ) {
-                                                    parentFound = true;
-                                                    break;
-                                                }
-                                            }
-                                        } catch (error) {
-                                            console.warn(
-                                                `Failed to check Stage 3 workflow ${stage3Workflow.name} for parent run ${parentInfo.parentRunId}:`,
-                                                error.message
-                                            );
-                                        }
-                                    }
-
-                                    if (parentFound) {
-                                        validRuns.push(run);
-                                    }
-                                }
-                            } catch (error) {
-                                console.warn(
-                                    `Failed to get parent info for run ${run.id}:`,
-                                    error.message
-                                );
-                            }
-                        }
-
-                        // Remove duplicates based on run ID
-                        const uniqueRuns = [];
-                        const seenIds = new Set();
-                        for (const run of validRuns) {
-                            if (!seenIds.has(run.id)) {
-                                seenIds.add(run.id);
-                                uniqueRuns.push(run);
-                            }
-                        }
-
-                        if (uniqueRuns.length > 0) {
-                            // Sort by creation date (newest first) and take the latest
-                            const sortedRuns = uniqueRuns.sort(
-                                (a, b) =>
-                                    new Date(b.created_at) -
-                                    new Date(a.created_at)
-                            );
-                            const latestRun = sortedRuns[0];
-
-                            let status = "unknown";
-                            if (latestRun.status === "in_progress") {
-                                status = "progress";
-                            } else if (latestRun.status === "completed") {
-                                status =
-                                    latestRun.conclusion === "success"
-                                        ? "success"
-                                        : "failure";
-                            } else if (latestRun.status === "queued") {
-                                status = "progress";
-                            }
-
-                            console.log(
-                                `Historic ${workflow.name} GL${glDays}: ${status} (${uniqueRuns.length} valid runs found)`
-                            );
-                            return {
-                                workflow,
-                                status,
-                                reason: `Found ${uniqueRuns.length} valid runs`,
-                                runData: latestRun,
-                            };
-                        } else {
-                            console.log(
-                                `Historic ${workflow.name} GL${glDays}: unknown (no valid runs found)`
-                            );
-                            return {
-                                workflow,
-                                status: "unknown",
-                                reason: "No valid runs found",
-                                runData: null,
-                            };
-                        }
-                    } else {
-                        // Standard handling for non-Stage 4 workflows
-                        // Sort by creation date (newest first) and take the latest
-                        const sortedRuns = dayRuns.sort(
-                            (a, b) =>
-                                new Date(b.created_at) - new Date(a.created_at)
+                    const extendedRuns = runs.filter((run) => {
+                        const runDate = new Date(run.created_at);
+                        return (
+                            runDate >= targetDate && runDate < extendedNextDay
                         );
-                        const latestRun = sortedRuns[0];
+                    });
 
-                        let status = "unknown";
-                        if (latestRun.status === "in_progress") {
-                            status = "progress";
-                        } else if (latestRun.status === "completed") {
-                            status =
-                                latestRun.conclusion === "success"
-                                    ? "success"
-                                    : "failure";
-                        } else if (latestRun.status === "queued") {
-                            status = "progress";
-                        }
+                    console.log(
+                        `🔍 [Historic Stage 4] ${workflow.name}: Found ${baseRuns.length} base runs (GL date: ${targetDate.toISOString().split("T")[0]})`
+                    );
+                    console.log(
+                        `🔍 [Historic Stage 4] ${workflow.name}: Found ${extendedRuns.length} extended runs (GL date to GL+7: ${targetDate.toISOString().split("T")[0]} to ${extendedDate.toISOString().split("T")[0]})`
+                    );
 
+                    // Use the utility function to validate Stage 4 runs
+                    const uniqueRuns = await validateStage4Runs(
+                        extendedRuns,
+                        targetDate,
+                        nextDay,
+                        extendedNextDay,
+                        stage3RunIds,
+                        glDays,
+                        workflow
+                    );
+
+                    dayRuns = uniqueRuns;
+                    console.log(
+                        `🔍 [Historic Stage 4] GL${glDays} - ${workflow.name} (${workflow.id}): Found ${uniqueRuns.length} valid runs, latest run: ${uniqueRuns.length > 0 ? uniqueRuns[0].id + " (" + uniqueRuns[0].created_at + ")" : "none"}`
+                    );
+                    if (uniqueRuns.length > 0) {
                         console.log(
-                            `Historic ${workflow.name} GL${glDays}: ${status} (${dayRuns.length} runs found)`
+                            `🔍 [Historic Stage 4] GL${glDays} - ${workflow.name} (${workflow.id}): All valid runs: [${uniqueRuns.map((r) => r.id).join(", ")}]`
                         );
-                        return {
-                            workflow,
-                            status,
-                            reason: `Found ${dayRuns.length} runs`,
-                            runData: latestRun,
-                        };
                     }
                 } else {
-                    console.log(
-                        `Historic ${workflow.name} GL${glDays}: unknown (no runs found)`
+                    // For other stages, use the standard date range (GL + 1 day)
+                    dayRuns = runs.filter((run) => {
+                        const runDate = new Date(run.created_at);
+                        return runDate >= targetDate && runDate < nextDay;
+                    });
+                }
+
+                // Collect Stage 3 run IDs for later Stage 4 matching
+                if (isStage3Workflow && dayRuns.length > 0) {
+                    dayRuns.forEach((run) => {
+                        stage3RunIds.add(run.id.toString());
+                        console.log(
+                            `🔍 [Stage 3] Collected run ID ${run.id} from ${workflow.name}`
+                        );
+                    });
+                }
+
+                // Status determination logic
+                if (dayRuns.length > 0) {
+                    // For historic data, use the most recent run regardless of completion status
+                    // This ensures that in-progress runs are shown even if there are completed runs
+                    const sortedRuns = dayRuns.sort(
+                        (a, b) =>
+                            new Date(b.created_at) - new Date(a.created_at)
                     );
+                    const latestRun = sortedRuns[0];
+
+                    let status = "unknown";
+                    if (
+                        latestRun.status === "in_progress" ||
+                        latestRun.status === "queued"
+                    ) {
+                        status = "progress";
+                    } else if (latestRun.status === "completed") {
+                        status =
+                            latestRun.conclusion === "success"
+                                ? "success"
+                                : "failure";
+                    }
+                    return {
+                        workflow,
+                        status,
+                        reason: `Found ${dayRuns.length} runs`,
+                        runData: latestRun,
+                    };
+                } else {
                     return {
                         workflow,
                         status: "unknown",
@@ -1215,28 +1229,12 @@ async function getHistoricWorkflowStatus(glDays) {
                     };
                 }
             } catch (error) {
-                if (error.name === "AbortError") {
-                    console.warn(
-                        `Historic ${workflow.name} (${workflow.id}) timed out`
-                    );
-                    return {
-                        workflow,
-                        status: "unknown",
-                        reason: "Timeout",
-                        runData: null,
-                    };
-                } else {
-                    console.warn(
-                        `Historic ${workflow.name} (${workflow.id}) failed:`,
-                        error.message
-                    );
-                    return {
-                        workflow,
-                        status: "unknown",
-                        reason: error.message,
-                        runData: null,
-                    };
-                }
+                return {
+                    workflow,
+                    status: "unknown",
+                    reason: error.message,
+                    runData: null,
+                };
             }
         });
 
@@ -1324,49 +1322,4 @@ async function getHistoricWorkflowStatus(glDays) {
             workflowRunData: {},
         };
     }
-}
-
-function calculateOverallStatus(packageStatus, workflowStatus) {
-    // Priority: failure > warning > progress > unknown > success
-    // Use computed stage statuses for stages 2-4 only (stage-1 comes from packageStatus)
-    const workflowStageStatuses = [
-        workflowStatus["stage-2"],
-        workflowStatus["stage-3"],
-        workflowStatus["stage-4"],
-    ].filter((status) => status !== undefined);
-
-    // Check for any failures (highest priority)
-    if (
-        packageStatus.status === "error" ||
-        workflowStageStatuses.includes("failure")
-    ) {
-        return "failure";
-    }
-
-    // Check for warning states (second priority)
-    if (packageStatus.status === "warning") {
-        return "warning";
-    }
-
-    // Check for progress states (third priority)
-    if (workflowStageStatuses.includes("progress")) {
-        return "progress";
-    }
-
-    // Check for unknown states (fourth priority) - if any workflow stage is unknown, overall is unknown
-    if (workflowStageStatuses.includes("unknown")) {
-        return "unknown";
-    }
-
-    // Check for success (fifth priority) - package must be successful and at least one workflow stage successful
-    if (
-        packageStatus.status === "success" &&
-        workflowStageStatuses.includes("success") &&
-        !workflowStageStatuses.includes("unknown")
-    ) {
-        return "success";
-    }
-
-    // Default to unknown for any other combination
-    return "unknown";
 }

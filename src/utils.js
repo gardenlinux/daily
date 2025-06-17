@@ -470,3 +470,158 @@ export function calculateHistoricPipelineDuration(
     // Return null if duration can't be calculated
     return null;
 }
+
+// ========================================
+// STAGE 4 VALIDATION UTILITIES
+// ========================================
+
+/**
+ * Validates Stage 4 runs based on date and parent criteria
+ * @param {Array} runs - Array of Stage 4 runs to validate
+ * @param {Date} targetDate - GL target date
+ * @param {Date} nextDay - Day after GL target date
+ * @param {Date} extendedNextDay - GL target date + 7 days
+ * @param {Set} stage3RunIds - Set of valid Stage 3 run IDs
+ * @param {string} glDays - GL version for logging
+ * @param {Object} workflow - Workflow configuration
+ * @returns {Array} Array of valid runs sorted by date (newest first)
+ */
+export async function validateStage4Runs(
+    runs,
+    targetDate,
+    nextDay,
+    extendedNextDay,
+    stage3RunIds,
+    glDays,
+    workflow
+) {
+    const { getParentWorkflowInfo } = await import("./parentWorkflow.js");
+    const { API_CONFIG } = await import("./constants.js");
+
+    const validRuns = [];
+
+    for (const run of runs) {
+        console.log(
+            `[DEBUG] [Historic Stage 4] GL${glDays} - ${workflow.name} (${workflow.id}) - Pre-filter Run ${run.id}: created_at=${run.created_at}`
+        );
+
+        try {
+            // Get parent workflow info for this run
+            const parentInfo = await getParentWorkflowInfo(
+                API_CONFIG.GARDENLINUX_ORG,
+                workflow.repo,
+                run.id
+            );
+
+            const runDate = new Date(run.created_at);
+            const isBaseDate = runDate >= targetDate && runDate < nextDay;
+            const isExtendedDate =
+                runDate >= targetDate && runDate < extendedNextDay;
+
+            // Case 1: Same date validation - any run on the GL date is valid (regardless of parent)
+            if (isBaseDate) {
+                validRuns.push(run);
+                console.log(
+                    `🔍 [Historic Stage 4] GL${glDays} - ${workflow.name} (${workflow.id}) - Run ${run.id}: Added (GL date, always valid)`
+                );
+                continue;
+            }
+
+            // Case 2: Later date validation (+1 to +7 days) - only valid if parent run matches Stage 3
+            if (
+                isExtendedDate &&
+                !isBaseDate &&
+                parentInfo &&
+                parentInfo.parentRunId &&
+                stage3RunIds.has(parentInfo.parentRunId.toString())
+            ) {
+                validRuns.push(run);
+                console.log(
+                    `🔍 [Historic Stage 4] GL${glDays} - ${workflow.name} (${workflow.id}) - Run ${run.id}: Added (later date, matching parent ${parentInfo.parentRunId})`
+                );
+                continue;
+            }
+
+            console.log(
+                `🔍 [Historic Stage 4] GL${glDays} - ${workflow.name} (${workflow.id}) - Run ${run.id}: Skipped (doesn't match validation criteria)`
+            );
+        } catch (error) {
+            console.log(
+                `🔍 [Historic Stage 4] GL${glDays} - ${workflow.name} (${workflow.id}) - Failed to get parent info for run ${run.id}:`,
+                error.message
+            );
+        }
+    }
+
+    // Sort all valid runs by date (newest first) and remove duplicates
+    const sortedValidRuns = validRuns.sort(
+        (a, b) => new Date(b.created_at) - new Date(a.created_at)
+    );
+
+    const uniqueRuns = [];
+    const seenIds = new Set();
+    for (const run of sortedValidRuns) {
+        if (!seenIds.has(run.id)) {
+            seenIds.add(run.id);
+            uniqueRuns.push(run);
+        }
+    }
+
+    return uniqueRuns;
+}
+
+/**
+ * Collects Stage 3 run IDs for a specific GL date
+ * @param {Array} stage3Workflows - Array of Stage 3 workflow configurations
+ * @param {Date} targetDate - GL target date
+ * @param {Date} nextDay - Day after GL target date
+ * @param {string} glDays - GL version for logging
+ * @returns {Set} Set of Stage 3 run IDs
+ */
+export async function collectStage3RunIds(
+    stage3Workflows,
+    targetDate,
+    nextDay,
+    glDays
+) {
+    const { getAuthHeaders, getBranchParameter } = await import("./utils.js");
+    const { API_CONFIG } = await import("./constants.js");
+
+    const stage3RunIds = new Set();
+
+    for (const workflow of stage3Workflows) {
+        const response = await fetch(
+            `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=${API_CONFIG.HISTORIC_RUNS_PER_PAGE}${getBranchParameter()}`,
+            { headers: getAuthHeaders() }
+        );
+
+        if (!response.ok) continue;
+
+        const data = await response.json();
+        const runs = data.workflow_runs || [];
+
+        // Use base date range for Stage 3 run collection (GL date only, not extended)
+        const dayRuns = runs.filter((run) => {
+            const runDate = new Date(run.created_at);
+            return runDate >= targetDate && runDate < nextDay;
+        });
+
+        console.log(
+            `🔍 [Historic Stage 3] GL${glDays} - ${workflow.name}: Found ${dayRuns.length} runs in date range ${targetDate.toISOString().split("T")[0]} (GL date only)`
+        );
+
+        for (const run of dayRuns) {
+            stage3RunIds.add(String(run.id));
+            console.log(
+                `🔍 [Historic Stage 3] GL${glDays} - ${workflow.name}: Collected run ID ${run.id} (created: ${run.created_at})`
+            );
+        }
+    }
+
+    console.log(
+        `[DEBUG] GL${glDays} - Stage 3 run IDs collected:`,
+        Array.from(stage3RunIds)
+    );
+
+    return stage3RunIds;
+}
