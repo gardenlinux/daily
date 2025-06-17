@@ -775,7 +775,7 @@ export async function loadHistoricReleases() {
     // Check if historic releases should be loaded
     if (!shouldLoadHistoricReleases()) {
         loadingDiv.innerHTML = `
-            <div style="text-align: center; padding: 20px; color: var(--text-secondary);">
+            <div style="text-align: center; padding: 20px; color: var(--text-unknown);">
                 📋 Historic releases loading is disabled for this view.
                 <br><br>
                 <small>This improves page load performance when viewing individual historic releases.</small>

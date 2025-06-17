@@ -1,13 +1,13 @@
 /* ====== GARDEN LINUX DASHBOARD - UNIFIED COLOR SYSTEM ====== */
 /*
- * GitHub-inspired color palette for consistency and accessibility:
+ * Color palette based on SAP Design System and Garden Linux brand:
  *
- * - Success: #28a745 (GitHub green) - completed workflows
- * - Warning: #ffc107 (GitHub yellow) - in-progress workflows
- * - Warning: #fd7e14 (GitHub orange) - package issues, etc.
- * - Danger:  #dc3545 (GitHub red) - failed workflows
- * - Info:    #007bff (GitHub blue) - informational elements
- * - Secondary: #6c757d (GitHub grey) - unknown/no-data states
+ * - Success:    #00a67c (Garden Linux green) - successful workflows
+ * - Failure:    #ee3939 (SAP Red/6) - failed workflows
+ * - Progress:   #1b90ff (SAP Blue/6) - in-progress workflows
+ * - Warning:    #ffb300 (SAP Mango/5) - package issues, etc.
+ * - Info:       #5d36ff (SAP Indigo/7) - informational elements
+ * - Grey:       #8396a8 (SAP Grey/5) - unknown/no-data states, blocked workflows
  *
  * Each color has light/dark variants for better contrast
  * All elements use CSS custom properties for easy maintenance
@@ -18,50 +18,102 @@
 /* ========================================= */
 :root {
     /* Primary Status Colors */
-    --color-success: #28a745;
-    --color-success-light: #d4edda;
-    --color-success-dark: #155724;
+    --color-success: #00a67c; /* Garden Linux green */
+    --color-success-light: #ebf5cb; /* SAP Green/2  */
+    --color-success-dark: #256f3a; /* SAP Green/8 */
 
-    --color-progress: #ffc107; /* Yellow for in-progress states */
-    --color-progress-light: #fff3cd;
-    --color-progress-dark: #856404;
+    --color-failure: #aa0808; /* SAP Red/8 */
+    --color-failure-light: #ffeaf4; /* SAP Red/1 */
+    --color-failure-dark: #840606; /* SAP Red/9 */
 
-    --color-warning: #fd7e14; /* Orange for warning states (package issues, etc.) */
-    --color-warning-light: #fff3cd;
-    --color-warning-dark: #d63384;
+    --color-progress: #0070f2; /* SAP Blue/7 */
+    --color-progress-light: #ebf8ff; /* SAP Blue/1 */
+    --color-progress-dark: #0040b0; /* SAP Blue/9 */
 
-    --color-danger: #dc3545;
-    --color-danger-light: #f8d7da;
-    --color-danger-dark: #721c24;
+    --color-warning: #e76500; /* SAP Mango/6 */
+    --color-warning-light: #fff8d6; /* SAP Mango/1 */
+    --color-warning-dark: #8d2a00; /* SAP Mango/9 */
 
-    --color-info: #007bff;
-    --color-info-light: #d1ecf1;
-    --color-info-dark: #0c5460;
+    --color-info: #470ced; /* SAP Indigo/8 */
+    --color-info-light: #f1ecff; /* SAP Indigo/1 */
+    --color-info-dark: #2c13ad; /* SAP Indigo/9 */
 
-    --color-secondary: #6c757d;
-    --color-secondary-light: #f8f9fa;
-    --color-secondary-dark: #495057;
+    --color-unknown: #475e75; /* SAP Grey/7 */
+    --color-unknown-light: #f5f6f7; /* SAP Grey/1 */
+    --color-unknown-dark: #223548; /* SAP Grey/9 */
 
     /* Background Colors */
-    --bg-primary: #ffffff;
-    --bg-secondary: #f8f9fa;
-    --bg-tertiary: #e9ecef;
+    --bg-primary: #ffffff; /* SAP Neutral/White */
+    --bg-unknown: #eaecee; /* SAP Grey/2 */
+    --bg-unknown-transparent: #475e750d; /* SAP Grey/7 with 5% opacity */
 
     /* Text Colors */
-    --text-primary: #212529;
-    --text-secondary: #6c757d;
-    --text-muted: #868e96;
-    --text-white: #ffffff;
+    --text-primary: #223548; /* SAP Grey/9 */
+    --text-unknown: #475e75; /* SAP Grey/7 */
+    --text-muted: #5b738b; /* SAP Grey/6 */
+    --text-white: #ffffff; /* SAP Neutral/White */
+    --text-header: #223548; /* SAP Grey/9 */
 
     /* Border Colors */
-    --border-light: #dee2e6;
-    --border-medium: #ced4da;
-    --border-dark: #6c757d;
+    --border-light: #d5dadd; /* SAP Grey/3 */
+    --border-medium: #8396a8; /* SAP Grey/5 */
 
-    /* Shadow */
-    --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    --shadow-md: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-    --shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+    /* Gradient Colors */
+    --color-success-gradient: linear-gradient(
+        135deg,
+        var(--color-success),
+        var(--color-success-dark)
+    );
+    --color-failure-gradient: linear-gradient(
+        135deg,
+        var(--color-failure),
+        var(--color-failure-dark)
+    );
+    --color-progress-gradient: linear-gradient(
+        135deg,
+        var(--color-progress),
+        var(--color-progress-dark)
+    );
+    --color-warning-gradient: linear-gradient(
+        135deg,
+        var(--color-warning),
+        var(--color-warning-dark)
+    );
+    --color-unknown-gradient: linear-gradient(
+        135deg,
+        var(--color-unknown),
+        var(--color-unknown-dark)
+    );
+
+    /* Shadow Colors */
+    --shadow-color-black: #354a5f14;
+    --shadow-color-black-medium: #354a5f26;
+    --shadow-color-black-large: #354a5f2e;
+    --shadow-color-success: #00a67c66;
+    --shadow-color-success-light: #00a67c26;
+    --shadow-color-success-faint: #00a67c1a;
+    --shadow-color-failure: #ee393966;
+    --shadow-color-failure-light: #ee393926;
+    --shadow-color-failure-faint: #ee39391a;
+    --shadow-color-progress: #1b90ff66;
+    --shadow-color-progress-light: #1b90ff26;
+    --shadow-color-progress-faint: #1b90ff1a;
+    --shadow-color-progress-ultra-faint: #1b90ff0d;
+    --shadow-color-warning: #ffb30066;
+    --shadow-color-warning-light: #ffb30026;
+    --shadow-color-warning-faint: #ffb3001a;
+    --shadow-color-info: #5d36ff66;
+    --shadow-color-info-light: #5d36ff40;
+    --shadow-color-unknown: #8396a866;
+    --shadow-color-unknown-light: #8396a81a;
+
+    /* Shadow Definitions */
+    --shadow-sm: 0 0.125rem 0.25rem var(--shadow-color-black);
+    --shadow-md: 0 0.5rem 1rem var(--shadow-color-black-medium);
+    --shadow-lg: 0 1rem 3rem var(--shadow-color-black-large);
+
+    /* Text Shadow */
+    --text-shadow-header: 0 2px 4px var(--shadow-color-black-medium);
 }
 
 /* ========================================= */
@@ -75,12 +127,12 @@
 .stage-dot,
 .historic-stage-dot {
     display: inline-block;
-    width: 12px;
-    height: 12px;
+    width: 14px;
+    height: 14px;
     border-radius: 50%;
-    background-color: var(--color-secondary);
-    border: 1px solid rgba(255, 255, 255, 0.8);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    background-color: var(--color-unknown);
+    border: 2px solid var(--border-white-transparent);
+    box-shadow: 0 1px 3px var(--shadow-color-black);
     transition: all 0.3s ease;
     margin: 0 auto;
     flex-shrink: 0;
@@ -99,14 +151,15 @@
 .status-text.success,
 .run-status-line .status-success,
 .workflow-box .run-status-line .status-success {
-    color: var(--color-success);
+    color: var(--color-success-dark);
+    font-weight: 600;
 }
 
 .status-failure,
 .status-text.failure,
 .run-status-line .status-failure,
 .workflow-box .run-status-line .status-failure {
-    color: var(--color-danger);
+    color: var(--color-failure);
 }
 
 .status-progress,
@@ -127,7 +180,7 @@
 .status-text.queued,
 .run-status-line .status-queued,
 .workflow-box .run-status-line .status-queued {
-    color: var(--color-secondary);
+    color: var(--color-unknown);
 }
 
 /* SUCCESS STATUS - applies to all success elements (except historic which uses different structure) */
@@ -148,26 +201,25 @@
 .sub-stage.success {
     background-color: var(--color-success);
     border-color: var(--color-success);
-    box-shadow: 0 0 6px rgba(40, 167, 69, 0.4);
+    box-shadow: 0 0 6px var(--shadow-color-success);
 }
 
 .workflow-box.success,
 .package-summary.success {
     background: var(--color-success-light);
-    box-shadow: 0 0 15px rgba(40, 167, 69, 0.15);
+    border: 2px solid var(--color-success);
+    box-shadow: 0 0 15px var(--shadow-color-success-light);
 }
 
 .pipeline-stage.stage-success {
-    background: linear-gradient(
-        to bottom,
-        var(--color-success-light) 0%,
-        var(--bg-primary) 100%
-    );
-    box-shadow: 0 0 20px rgba(40, 167, 69, 0.1);
+    background: var(--color-success-light);
+    border: 2px solid var(--color-success);
+    box-shadow: 0 0 20px var(--shadow-color-success-faint);
 }
 
 .sub-stage.success {
     background: var(--color-success-light);
+    border: 2px solid var(--color-success);
 }
 
 /* FAILURE STATUS - applies to all failure elements (except historic which uses different structure) */
@@ -185,27 +237,27 @@
 .pipeline-stage.stage-failure,
 .pipeline-container.pipeline-failure,
 .sub-stage.failure {
-    background-color: var(--color-danger);
-    border-color: var(--color-danger);
-    box-shadow: 0 0 6px rgba(220, 53, 69, 0.4);
+    background-color: var(--color-failure);
+    border-color: var(--color-failure);
+    box-shadow: 0 0 6px var(--shadow-color-failure);
 }
 
 .workflow-box.failure {
-    background: var(--color-danger-light);
-    box-shadow: 0 0 15px rgba(220, 53, 69, 0.15);
+    background: var(--color-failure-light);
+    box-shadow: 0 0 15px var(--shadow-color-failure-light);
 }
 
 .pipeline-stage.stage-failure {
     background: linear-gradient(
         to bottom,
-        var(--color-danger-light) 0%,
+        var(--color-failure-light) 0%,
         var(--bg-primary) 100%
     );
-    box-shadow: 0 0 20px rgba(220, 53, 69, 0.1);
+    box-shadow: 0 0 20px var(--shadow-color-failure-faint);
 }
 
 .sub-stage.failure {
-    background: var(--color-danger-light);
+    background: var(--color-failure-light);
 }
 
 /* PROGRESS STATUS - applies to all progress elements (except historic which uses different structure) */
@@ -227,31 +279,27 @@
 .sub-stage.progress {
     background-color: var(--color-progress);
     border-color: var(--color-progress);
-    box-shadow: 0 0 6px rgba(255, 193, 7, 0.4);
+    box-shadow: 0 0 6px var(--shadow-color-progress);
     animation: statusPulse 4s infinite ease-in-out;
 }
 
 .gl-version.progress,
 .current-gl-version.progress,
 .historic-gl-version.progress {
-    color: var(--text-primary);
+    color: var(--text-white);
 }
 
 .workflow-box.progress,
 .workflow-box.queued,
 .package-summary.progress {
     background: var(--color-progress-light);
-    box-shadow: 0 0 15px rgba(255, 193, 7, 0.15);
+    box-shadow: 0 0 15px var(--shadow-color-progress-light);
     animation: workflowPulse 5s infinite alternate ease-in-out;
 }
 
 .pipeline-stage.stage-progress {
-    background: linear-gradient(
-        to bottom,
-        var(--color-progress-light) 0%,
-        var(--bg-primary) 100%
-    );
-    box-shadow: 0 0 20px rgba(255, 193, 7, 0.1);
+    background: var(--color-progress-gradient);
+    box-shadow: 0 0 20px var(--shadow-color-progress-faint);
     animation: stagePulse 6s infinite alternate ease-in-out;
 }
 
@@ -278,23 +326,19 @@
 .sub-stage.warning {
     background-color: var(--color-warning);
     border-color: var(--color-warning);
-    box-shadow: 0 0 6px rgba(253, 126, 20, 0.4);
+    box-shadow: 0 0 6px var(--shadow-color-warning);
 }
 
 .workflow-box.warning,
 .package-summary.warning {
     background: var(--color-warning-light);
-    box-shadow: 0 0 15px rgba(253, 126, 20, 0.15);
+    box-shadow: 0 0 15px var(--shadow-color-warning-light);
     animation: workflowPulse 8s infinite alternate ease-in-out;
 }
 
 .pipeline-stage.stage-warning {
-    background: linear-gradient(
-        to bottom,
-        var(--color-warning-light) 0%,
-        var(--bg-primary) 100%
-    );
-    box-shadow: 0 0 20px rgba(253, 126, 20, 0.1);
+    background: var(--color-warning-gradient);
+    box-shadow: 0 0 20px var(--shadow-color-warning-faint);
     animation: stagePulse 8s infinite alternate ease-in-out;
 }
 
@@ -317,13 +361,13 @@
 .pipeline-stage.stage-unknown,
 .pipeline-container.pipeline-unknown,
 .sub-stage.blocked {
-    background-color: var(--color-secondary);
-    border-color: var(--color-secondary);
-    box-shadow: 0 0 6px rgba(108, 117, 125, 0.4);
+    background-color: var(--color-unknown);
+    border-color: var(--color-unknown);
+    box-shadow: 0 0 6px var(--shadow-color-unknown);
 }
 
 .workflow-box.no-runs {
-    background: var(--bg-tertiary);
+    background: var(--bg-unknown);
     border-color: var(--border-medium);
     opacity: 0.8;
 }
@@ -331,14 +375,14 @@
 .pipeline-stage.stage-unknown {
     background: linear-gradient(
         to bottom,
-        var(--bg-secondary) 0%,
+        var(--bg-unknown) 0%,
         var(--bg-primary) 100%
     );
-    box-shadow: 0 0 10px rgba(108, 117, 125, 0.1);
+    box-shadow: 0 0 10px var(--shadow-color-unknown-light);
 }
 
 .sub-stage.blocked {
-    background: var(--bg-tertiary);
+    background: var(--bg-unknown);
     opacity: 0.6;
 }
 
@@ -348,9 +392,9 @@
 .pipeline-stage.stage-cascaded-failure,
 .pipeline-container.pipeline-error,
 .package-summary.api-error {
-    border-color: var(--color-danger);
-    background: var(--color-danger-light);
-    box-shadow: 0 0 15px rgba(220, 53, 69, 0.15);
+    border-color: var(--color-failure);
+    background: var(--color-failure-light);
+    box-shadow: 0 0 15px var(--shadow-color-failure-light);
 }
 
 /* UNIFIED HEADER STATUS STYLING */
@@ -359,20 +403,36 @@
 .current-details-header,
 .platform-cleanup-header,
 .historic-releases-header {
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border-radius: 12px;
+    background: var(--color-progress); /* SAP Blue/7 */
     color: var(--text-white);
-    font-weight: bold;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-md);
+    border: none;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.days h2,
+.current-release-header h2,
+.current-details-header h2,
+.platform-cleanup-header h2,
+.historic-releases-header h2 {
+    margin: 0;
+    font-size: 1.2em;
+    color: var(--text-white);
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .days.header-success,
 .current-release-header.status-success,
 .current-details-header.status-success,
 .platform-cleanup-header.status-success {
-    background: linear-gradient(135deg, var(--color-success), #22863a);
-    border-color: var(--color-success);
+    background: var(--color-success);
+    border: none;
 }
 
 .days.header-failure,
@@ -380,15 +440,15 @@
 .current-release-header.status-failure,
 .current-details-header.status-failure,
 .platform-cleanup-header.status-failure {
-    background: linear-gradient(135deg, var(--color-danger), #bd2130);
-    border-color: var(--color-danger);
+    background: var(--color-failure-gradient);
+    border-color: var(--color-failure);
 }
 
 .days.header-progress,
 .current-release-header.status-progress,
 .current-details-header.status-progress,
 .platform-cleanup-header.status-progress {
-    background: linear-gradient(135deg, var(--color-progress), #e0a800);
+    background: var(--color-progress-gradient);
     border-color: var(--color-progress);
 }
 
@@ -396,7 +456,7 @@
 .current-release-header.status-warning,
 .current-details-header.status-warning,
 .platform-cleanup-header.status-warning {
-    background: linear-gradient(135deg, var(--color-warning), #e8590c);
+    background: var(--color-warning-gradient);
     border-color: var(--color-warning);
 }
 
@@ -408,8 +468,8 @@
 .current-release-header:not([class*="status-"]),
 .current-details-header:not([class*="status-"]),
 .platform-cleanup-header:not([class*="status-"]) {
-    background: linear-gradient(135deg, var(--color-secondary), #5a6268);
-    border-color: var(--color-secondary);
+    background: var(--color-unknown-gradient);
+    border-color: var(--color-unknown);
 }
 
 /* UNIFIED LINK STYLING FOR CONTAINERS */
@@ -426,7 +486,7 @@
     color: var(--color-success-dark);
 }
 .workflow-box.failure a {
-    color: var(--color-danger-dark);
+    color: var(--color-failure-dark);
 }
 .workflow-box.progress a,
 .workflow-box.queued a {
@@ -436,10 +496,10 @@
     color: var(--color-warning-dark);
 }
 .workflow-box.api-error a {
-    color: var(--color-danger-dark);
+    color: var(--color-failure-dark);
 }
 .workflow-box.no-runs a {
-    color: var(--text-secondary);
+    color: var(--text-unknown);
     text-shadow: none;
     opacity: 0.8;
 }
@@ -465,9 +525,9 @@
 .package-table-container tr.failure,
 .package-table-container tr.brokenTimestamp .package-status-cell,
 .package-table-container tr.brokenTimestamp {
-    background: var(--color-danger-light);
-    color: var(--color-danger-dark);
-    border-color: var(--color-danger);
+    background: var(--color-failure-light);
+    color: var(--color-failure-dark);
+    border-color: var(--color-failure);
 }
 
 .package-table-container tr.warning .package-status-cell,
@@ -483,9 +543,9 @@
 .package-table-container tr.workFlowNotFound,
 .package-table-container tr.noRunFound .package-status-cell,
 .package-table-container tr.noRunFound {
-    background: var(--color-secondary-light);
-    color: var(--color-secondary-dark);
-    border-color: var(--color-secondary);
+    background: var(--color-unknown-light);
+    color: var(--color-unknown-dark);
+    border-color: var(--color-unknown);
 }
 
 /* ANIMATIONS */
@@ -503,19 +563,19 @@
 
 @keyframes workflowPulse {
     0% {
-        box-shadow: 0 0 5px rgba(255, 193, 7, 0.05);
+        box-shadow: 0 0 5px var(--shadow-color-progress-ultra-faint);
     }
     100% {
-        box-shadow: 0 0 8px rgba(255, 193, 7, 0.08);
+        box-shadow: 0 0 8px var(--shadow-color-progress-light);
     }
 }
 
 @keyframes stagePulse {
     0% {
-        box-shadow: 0 0 8px rgba(255, 193, 7, 0.03);
+        box-shadow: 0 0 8px var(--shadow-color-progress-ultra-faint);
     }
     100% {
-        box-shadow: 0 0 12px rgba(255, 193, 7, 0.05);
+        box-shadow: 0 0 12px var(--shadow-color-progress-faint);
     }
 }
 
@@ -524,19 +584,19 @@
         border-color: var(--color-progress);
     }
     100% {
-        border-color: #e0a800;
-        box-shadow: 0 0 5px rgba(255, 193, 7, 0.05);
+        border-color: var(--color-progress-dark);
+        box-shadow: 0 0 5px var(--shadow-color-progress-ultra-faint);
     }
 }
 
 @keyframes subStagePulse {
     0% {
         border-color: var(--color-progress);
-        box-shadow: 0 0 3px rgba(255, 193, 7, 0.03);
+        box-shadow: 0 0 3px var(--shadow-color-progress-ultra-faint);
     }
     100% {
-        border-color: #e0a800;
-        box-shadow: 0 0 6px rgba(255, 193, 7, 0.05);
+        border-color: var(--color-progress-dark);
+        box-shadow: 0 0 6px var(--shadow-color-progress-faint);
     }
 }
 
@@ -563,7 +623,7 @@ html {
         -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
         Arial, sans-serif;
     color: var(--text-primary);
-    background-color: var(--bg-secondary);
+    background-color: var(--bg-unknown);
     line-height: 1.5;
     font-size: 16px;
 }
@@ -580,7 +640,7 @@ table {
     text-align: center;
     margin-bottom: 20px;
     font-size: 1em;
-    color: #666;
+    color: var(--text-header);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -636,52 +696,58 @@ table {
     align-items: center;
     gap: 8px;
     font-size: 0.9em;
-    color: var(--text-secondary);
+    color: var(--text-unknown);
 }
 
 .legend-dot {
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    border: 1px solid rgba(255, 255, 255, 0.8);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border-white-transparent);
+    box-shadow: 0 1px 2px var(--shadow-color-black);
     flex-shrink: 0;
 }
 
 .legend-dot.success {
     background-color: var(--color-success);
-    border-color: var(--color-success);
-    box-shadow: 0 0 6px rgba(40, 167, 69, 0.4);
+    border: 2px solid var(--color-success);
+    box-shadow: 0 0 6px var(--shadow-color-success);
 }
 
 .legend-dot.failure {
-    background-color: var(--color-danger);
-    border-color: var(--color-danger);
-    box-shadow: 0 0 6px rgba(220, 53, 69, 0.4);
+    background-color: var(--color-failure);
+    border-color: var(--color-failure);
+    box-shadow: 0 0 6px var(--shadow-color-failure);
 }
 
 .legend-dot.progress {
     background-color: var(--color-progress);
     border-color: var(--color-progress);
-    box-shadow: 0 0 6px rgba(255, 193, 7, 0.4);
+    box-shadow: 0 0 6px var(--shadow-color-progress);
     animation: statusPulse 4s infinite ease-in-out;
 }
 
 .legend-dot.warning {
     background-color: var(--color-warning);
     border-color: var(--color-warning);
-    box-shadow: 0 0 6px rgba(253, 126, 20, 0.4);
+    box-shadow: 0 0 6px var(--shadow-color-warning);
+}
+
+.legend-dot.info {
+    background-color: var(--color-info);
+    border-color: var(--color-info);
+    box-shadow: 0 0 6px var(--shadow-color-info);
 }
 
 .legend-dot.unknown {
-    background-color: var(--color-secondary);
-    border-color: var(--color-secondary);
-    box-shadow: 0 0 6px rgba(108, 117, 125, 0.4);
+    background-color: var(--color-unknown);
+    border-color: var(--color-unknown);
+    box-shadow: 0 0 6px var(--shadow-color-unknown);
 }
 
 .legend-text {
-    font-weight: 500;
-    white-space: nowrap;
+    font-weight: 600;
+    color: var(--text-primary);
 }
 
 /* Responsive design for legend */
@@ -725,7 +791,7 @@ table {
     padding: 25px;
     box-shadow: var(--shadow-md);
     font-size: 1.6em;
-    border: 3px solid var(--color-secondary);
+    border: 3px solid var(--color-unknown);
 }
 
 /* CURRENT DAILY RELEASE SECTION */
@@ -774,7 +840,7 @@ table {
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.4s ease;
-    background: var(--bg-secondary);
+    background: var(--bg-unknown);
 }
 
 .current-release-content.expanded {
@@ -818,7 +884,7 @@ table {
     color: var(--text-white);
     width: 100px;
     flex-shrink: 0;
-    background: var(--color-secondary);
+    background: var(--color-unknown);
     padding: 6px 10px;
     border-radius: 4px;
     text-align: center;
@@ -828,7 +894,7 @@ table {
 /* Unified date styling */
 .current-date,
 .historic-date {
-    color: var(--text-secondary);
+    color: var(--text-unknown);
     font-size: 1em;
     font-weight: 500;
     width: 130px;
@@ -849,12 +915,12 @@ table {
 /* Current status indicator - the actual styled dot inside the container */
 .current-status-indicator {
     display: inline-block;
-    width: 12px;
-    height: 12px;
+    width: 14px;
+    height: 14px;
     border-radius: 50%;
-    background-color: var(--color-secondary);
-    border: 1px solid rgba(255, 255, 255, 0.8);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    background-color: var(--color-unknown);
+    border: 2px solid var(--border-white-transparent);
+    box-shadow: 0 1px 3px var(--shadow-color-black);
     transition: all 0.3s ease;
     margin: 0 auto;
     flex-shrink: 0;
@@ -862,34 +928,34 @@ table {
 
 /* Current status indicator colors */
 .current-status-indicator.success {
-    background-color: var(--color-success);
-    border-color: var(--color-success);
-    box-shadow: 0 0 6px rgba(40, 167, 69, 0.4);
+    background-color: var(--color-success) !important;
+    border-color: var(--color-success) !important;
+    box-shadow: 0 0 6px var(--shadow-color-success) !important;
 }
 
 .current-status-indicator.failure {
-    background-color: var(--color-danger);
-    border-color: var(--color-danger);
-    box-shadow: 0 0 6px rgba(220, 53, 69, 0.4);
+    background-color: var(--color-failure) !important;
+    border-color: var(--color-failure) !important;
+    box-shadow: 0 0 6px var(--shadow-color-failure) !important;
 }
 
 .current-status-indicator.progress {
-    background-color: var(--color-progress);
-    border-color: var(--color-progress);
-    box-shadow: 0 0 6px rgba(255, 193, 7, 0.4);
-    animation: statusPulse 4s infinite ease-in-out;
+    background-color: var(--color-progress) !important;
+    border-color: var(--color-progress) !important;
+    box-shadow: 0 0 6px var(--shadow-color-progress) !important;
+    animation: statusPulse 4s infinite ease-in-out !important;
 }
 
 .current-status-indicator.warning {
-    background-color: var(--color-warning);
-    border-color: var(--color-warning);
-    box-shadow: 0 0 6px rgba(253, 126, 20, 0.4);
+    background-color: var(--color-warning) !important;
+    border-color: var(--color-warning) !important;
+    box-shadow: 0 0 6px var(--shadow-color-warning) !important;
 }
 
 .current-status-indicator.unknown {
-    background-color: var(--color-secondary);
-    border-color: var(--color-secondary);
-    box-shadow: 0 0 6px rgba(108, 117, 125, 0.4);
+    background-color: var(--color-unknown) !important;
+    border-color: var(--color-unknown) !important;
+    box-shadow: 0 0 6px var(--shadow-color-unknown) !important;
 }
 
 /* Container for both current and historic status indicators */
@@ -921,7 +987,7 @@ table {
 
 .current-release-row:hover,
 .historic-release-row:hover {
-    background: var(--bg-secondary);
+    background: var(--bg-unknown);
     transform: translateX(3px);
     box-shadow: var(--shadow-sm);
     border-color: var(--color-info);
@@ -944,7 +1010,7 @@ table {
     width: 140px;
     flex-shrink: 0;
     text-align: center;
-    color: var(--text-secondary);
+    color: var(--text-unknown);
     font-size: 0.95em;
 }
 
@@ -965,7 +1031,7 @@ table {
     width: 100px;
     flex-shrink: 0;
     text-align: center;
-    color: var(--text-secondary);
+    color: var(--text-unknown);
     font-size: 0.95em;
     font-weight: 600;
 }
@@ -980,7 +1046,7 @@ table {
     background: linear-gradient(
         to bottom,
         var(--bg-primary) 0%,
-        var(--bg-secondary) 100%
+        var(--bg-unknown) 100%
     );
     box-shadow: var(--shadow-md);
     transition: all 0.3s ease;
@@ -1000,9 +1066,10 @@ table {
 .stage-header {
     display: flex;
     align-items: center;
-    padding: 14px 20px;
-    background: rgba(108, 117, 125, 0.05);
+    padding: 15px 20px;
+    background: var(--bg-primary);
     border-bottom: 2px solid var(--border-light);
+    margin-bottom: 15px;
 }
 
 .stage-icon {
@@ -1012,8 +1079,9 @@ table {
 
 .stage-header h3 {
     margin: 0;
-    font-size: 1.4em;
-    color: var(--text-secondary);
+    font-size: 1.2em;
+    color: var(--text-primary);
+    font-weight: 600;
 }
 
 .stage-workflows {
@@ -1109,7 +1177,7 @@ table {
 }
 
 .run-item:hover {
-    background-color: var(--bg-secondary);
+    background-color: var(--bg-unknown);
     border-color: var(--color-info);
     box-shadow: var(--shadow-sm);
 }
@@ -1138,7 +1206,7 @@ table {
 
 .run-timing-line {
     font-size: 0.85em;
-    color: var(--text-secondary);
+    color: var(--text-unknown);
     margin-bottom: 4px;
     padding-bottom: 4px;
     border-bottom: 1px solid var(--border-light);
@@ -1148,7 +1216,7 @@ table {
 
 .run-duration-line {
     font-size: 0.8em;
-    color: var(--text-secondary);
+    color: var(--text-unknown);
     margin-bottom: 6px;
     padding-bottom: 4px;
     border-bottom: 1px solid var(--border-light);
@@ -1160,12 +1228,12 @@ table {
 
 .run-time {
     font-size: 0.95em;
-    color: var(--text-secondary);
+    color: var(--text-unknown);
 }
 
 .run-meta {
     font-size: 0.8em;
-    color: var(--text-secondary);
+    color: var(--text-unknown);
     margin-bottom: 4px;
     line-height: 1.2;
 }
@@ -1178,11 +1246,11 @@ table {
     display: flex;
     align-items: center;
     gap: 6px;
-    color: var(--text-secondary);
+    color: var(--text-unknown);
 }
 
 .parent-run-label {
-    color: var(--text-secondary);
+    color: var(--text-unknown);
     font-weight: 500;
     white-space: nowrap;
 }
@@ -1212,26 +1280,26 @@ table {
     text-align: center;
     padding: 12px;
     font-style: italic;
-    color: var(--text-secondary);
-    background: var(--bg-tertiary);
+    color: var(--text-unknown);
+    background: var(--bg-unknown);
     border-radius: 6px;
     margin: 6px 0;
     border: 2px dashed var(--border-medium);
 }
 
 .error-message {
-    color: var(--color-danger);
-    background: var(--color-danger-light);
-    border: 2px solid var(--color-danger);
+    color: var(--color-failure);
+    background: var(--color-failure-light);
+    border: 2px solid var(--color-failure);
 }
 
 .workflow-box.no-runs .no-runs-message {
-    background: var(--bg-tertiary);
+    background: var(--bg-unknown);
     border: 2px dashed var(--border-medium);
     margin: 0;
     padding: 12px;
     font-size: 0.85em;
-    color: var(--text-secondary);
+    color: var(--text-unknown);
 }
 
 /* Special indicators */
@@ -1240,7 +1308,7 @@ table {
     position: absolute;
     top: 10px;
     right: 10px;
-    background: var(--color-danger);
+    background: var(--color-failure);
     color: var(--text-white);
     padding: 4px 8px;
     border-radius: 4px;
@@ -1267,7 +1335,7 @@ table {
     position: absolute;
     top: 10px;
     right: 10px;
-    background: var(--color-secondary);
+    background: var(--color-unknown);
     color: var(--text-white);
     padding: 4px 8px;
     border-radius: 4px;
@@ -1300,7 +1368,7 @@ table {
     font-weight: bold;
     font-size: 1.1em;
     border-top: 1px solid var(--border-light);
-    background: var(--bg-secondary);
+    background: var(--bg-unknown);
 }
 
 .package-summary.success .package-status {
@@ -1329,8 +1397,8 @@ table {
 }
 
 .package-summary.api-error .package-status {
-    background: var(--color-danger-light);
-    color: var(--color-danger-dark);
+    background: var(--color-failure-light);
+    color: var(--color-failure-dark);
 }
 
 .package-table-container {
@@ -1359,7 +1427,7 @@ table {
 }
 
 .package-table-container tr:hover td {
-    background: var(--bg-secondary);
+    background: var(--bg-unknown);
 }
 
 .package-table-container td:nth-child(1) {
@@ -1382,11 +1450,11 @@ table {
 .package-error-details {
     margin-top: 8px;
     padding: 10px;
-    background: var(--color-danger-light);
-    border: 1px solid var(--color-danger);
+    background: var(--color-failure-light);
+    border: 1px solid var(--color-failure);
     border-radius: 4px;
     font-size: 0.85em;
-    color: var(--color-danger-dark);
+    color: var(--color-failure-dark);
 }
 
 .package-error-details strong {
@@ -1395,13 +1463,13 @@ table {
 }
 
 #packages-table .api-error {
-    background: var(--color-danger-light);
-    border-color: var(--color-danger);
+    background: var(--color-failure-light);
+    border-color: var(--color-failure);
 }
 
 #packages-table .api-error td {
-    color: var(--color-danger-dark);
-    border-color: var(--color-danger);
+    color: var(--color-failure-dark);
+    border-color: var(--color-failure);
 }
 
 /* SETTINGS PANEL */
@@ -1466,13 +1534,13 @@ table {
     border-radius: 4px 0 0 4px;
     font-size: 0.9em;
     font-family: monospace;
-    background: var(--bg-secondary);
+    background: var(--bg-unknown);
 }
 
 .token-input-group input:focus {
     outline: none;
     border-color: var(--color-info);
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    box-shadow: 0 0 0 2px var(--shadow-color-info-light);
 }
 
 .token-input-group button {
@@ -1495,12 +1563,12 @@ table {
 }
 
 .token-input-group button:last-child:hover {
-    background: var(--color-danger);
+    background: var(--color-failure);
 }
 
 #settings-panel small {
     display: block;
-    color: var(--text-secondary);
+    color: var(--text-unknown);
     font-size: 0.8em;
     margin-top: 5px;
 }
@@ -1537,7 +1605,7 @@ table {
 .gl-btn {
     padding: 6px 12px;
     border: 1px solid var(--border-medium);
-    background: var(--bg-secondary);
+    background: var(--bg-unknown);
     color: var(--text-primary);
     border-radius: 4px;
     cursor: pointer;
@@ -1565,19 +1633,19 @@ table {
     border-radius: 4px;
     font-size: 0.85em;
     font-family: monospace;
-    background: var(--bg-secondary);
+    background: var(--bg-unknown);
     color: var(--text-primary);
 }
 
 #gl-input:focus {
     outline: none;
     border-color: var(--color-info);
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    box-shadow: 0 0 0 2px var(--shadow-color-info-light);
 }
 
 .gl-info {
     font-size: 0.8em;
-    color: var(--text-secondary);
+    color: var(--text-unknown);
 }
 
 .gl-info small {
@@ -1643,7 +1711,7 @@ table {
 
 .sub-stage-icon {
     font-size: 1.3em;
-    color: var(--text-secondary);
+    color: var(--text-unknown);
     width: 24px;
     text-align: center;
     flex-shrink: 0;
@@ -1692,7 +1760,7 @@ table {
 
 .historic-releases-header {
     padding: 20px;
-    background: var(--bg-secondary);
+    background: var(--bg-unknown);
     cursor: pointer;
     transition: all 0.3s ease;
     display: flex;
@@ -1702,7 +1770,7 @@ table {
 }
 
 .historic-releases-header:hover {
-    background: var(--bg-tertiary);
+    background: var(--bg-unknown);
 }
 
 .historic-releases-header h2 {
@@ -1717,7 +1785,7 @@ table {
 .toggle-icon {
     transition: transform 0.3s ease;
     font-size: 1.2em;
-    color: var(--text-secondary);
+    color: var(--text-unknown);
 }
 
 .toggle-icon.expanded {
@@ -1738,13 +1806,13 @@ table {
 .historic-loading {
     padding: 40px;
     text-align: center;
-    color: var(--text-secondary);
+    color: var(--text-unknown);
     font-style: italic;
-    background: var(--bg-secondary);
+    background: var(--bg-unknown);
 }
 
 .historic-releases-list {
-    background: var(--bg-secondary);
+    background: var(--bg-unknown);
 }
 
 .historic-release-row {
@@ -1762,7 +1830,7 @@ table {
 }
 
 .historic-release-row:hover {
-    background: var(--bg-secondary);
+    background: var(--bg-unknown);
     transform: translateX(3px);
     box-shadow: var(--shadow-sm);
     border-color: var(--color-info);
@@ -1785,35 +1853,48 @@ table {
 }
 
 /* Historic status indicator colors */
+.historic-status-indicator {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background-color: var(--color-unknown);
+    border: 2px solid var(--border-white-transparent);
+    box-shadow: 0 1px 3px var(--shadow-color-black);
+    transition: all 0.3s ease;
+    margin: 0 auto;
+    flex-shrink: 0;
+}
+
 .historic-status-indicator.success {
     background-color: var(--color-success) !important;
     border-color: var(--color-success) !important;
-    box-shadow: 0 0 6px rgba(40, 167, 69, 0.4) !important;
+    box-shadow: 0 0 6px var(--shadow-color-success) !important;
 }
 
 .historic-status-indicator.failure {
-    background-color: var(--color-danger) !important;
-    border-color: var(--color-danger) !important;
-    box-shadow: 0 0 6px rgba(220, 53, 69, 0.4) !important;
+    background-color: var(--color-failure) !important;
+    border-color: var(--color-failure) !important;
+    box-shadow: 0 0 6px var(--shadow-color-failure) !important;
 }
 
 .historic-status-indicator.progress {
     background-color: var(--color-progress) !important;
     border-color: var(--color-progress) !important;
-    box-shadow: 0 0 6px rgba(255, 193, 7, 0.4) !important;
+    box-shadow: 0 0 6px var(--shadow-color-progress) !important;
     animation: statusPulse 4s infinite ease-in-out !important;
 }
 
 .historic-status-indicator.warning {
     background-color: var(--color-warning) !important;
     border-color: var(--color-warning) !important;
-    box-shadow: 0 0 6px rgba(253, 126, 20, 0.4) !important;
+    box-shadow: 0 0 6px var(--shadow-color-warning) !important;
 }
 
 .historic-status-indicator.unknown {
-    background-color: var(--color-secondary) !important;
-    border-color: var(--color-secondary) !important;
-    box-shadow: 0 0 6px rgba(108, 117, 125, 0.4) !important;
+    background-color: var(--color-unknown) !important;
+    border-color: var(--color-unknown) !important;
+    box-shadow: 0 0 6px var(--shadow-color-unknown) !important;
 }
 
 /* Historic overall status container */
@@ -1914,7 +1995,7 @@ table {
 
     .extracted-field label {
         font-size: 0.8em;
-        color: var(--text-secondary);
+        color: var(--text-unknown);
     }
 
     .extracted-value {
@@ -1928,47 +2009,4 @@ table {
     .artifact-content {
         font-size: 0.8em;
     }
-}
-
-/* Consistent text sizing across workflow content */
-.workflow-box h3,
-.workflow-box h4 {
-    font-size: 1.1em;
-    margin: 0 0 8px 0;
-    color: var(--text-primary);
-    font-weight: 600;
-    line-height: 1.3;
-}
-
-.workflow-box p {
-    font-size: 0.9em;
-    line-height: 1.4;
-    margin: 0 0 8px 0;
-    color: var(--text-secondary);
-}
-
-/* Sequential arrow improvement */
-.sequential-arrow {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 24px;
-    color: var(--color-info);
-    font-size: 1.1em;
-    margin: 8px 0;
-    opacity: 0.7;
-}
-
-/* Historic status indicators - base styling */
-.historic-status-indicator {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background-color: var(--color-secondary);
-    border: 1px solid rgba(255, 255, 255, 0.8);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
-    margin: 0 auto;
-    flex-shrink: 0;
 }
