@@ -604,6 +604,119 @@ table {
     font-weight: bold;
 }
 
+/* Color Legend Styles */
+.color-legend {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 15px 20px;
+    margin: 0 auto 20px auto;
+    max-width: 800px;
+    box-shadow: var(--shadow-sm);
+}
+
+.color-legend h3 {
+    margin: 0 0 12px 0;
+    font-size: 1.1em;
+    color: var(--text-primary);
+    text-align: center;
+    font-weight: 600;
+}
+
+.legend-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+    align-items: center;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9em;
+    color: var(--text-secondary);
+}
+
+.legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+}
+
+.legend-dot.success {
+    background-color: var(--color-success);
+    border-color: var(--color-success);
+    box-shadow: 0 0 6px rgba(40, 167, 69, 0.4);
+}
+
+.legend-dot.failure {
+    background-color: var(--color-danger);
+    border-color: var(--color-danger);
+    box-shadow: 0 0 6px rgba(220, 53, 69, 0.4);
+}
+
+.legend-dot.progress {
+    background-color: var(--color-progress);
+    border-color: var(--color-progress);
+    box-shadow: 0 0 6px rgba(255, 193, 7, 0.4);
+    animation: statusPulse 4s infinite ease-in-out;
+}
+
+.legend-dot.warning {
+    background-color: var(--color-warning);
+    border-color: var(--color-warning);
+    box-shadow: 0 0 6px rgba(253, 126, 20, 0.4);
+}
+
+.legend-dot.unknown {
+    background-color: var(--color-secondary);
+    border-color: var(--color-secondary);
+    box-shadow: 0 0 6px rgba(108, 117, 125, 0.4);
+}
+
+.legend-text {
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* Responsive design for legend */
+@media (max-width: 768px) {
+    .legend-items {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+
+    .legend-item {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .color-legend {
+        margin: 0 10px 20px 10px;
+        padding: 12px 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .legend-items {
+        gap: 8px;
+    }
+
+    .legend-item {
+        font-size: 0.85em;
+    }
+
+    .color-legend h3 {
+        font-size: 1em;
+    }
+}
+
 /* GL DAYS HEADER SECTION */
 .days {
     text-align: center;
