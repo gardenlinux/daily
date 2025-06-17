@@ -2,7 +2,7 @@ name: Build and Deploy Dashboard
 
 on:
     push:
-        branches: [main, feat/build_and_publish_a_release]
+        branches: [main]
     pull_request:
         branches: [main]
     workflow_dispatch:
