@@ -51,10 +51,10 @@ export function renderHistoricReleases(historicData) {
             </div>
 
             <div class="historic-stages" title="Stages: Package | Repo | Build | Publish">
-                <span class="historic-stage-dot ${day.workflowStatus ? day.workflowStatus["stage-1"] : "unknown"}" title="Package Builds"></span>
-                <span class="historic-stage-dot ${day.workflowStatus ? day.workflowStatus["stage-2"] : "unknown"}" title="Repository"></span>
-                <span class="historic-stage-dot ${day.workflowStatus ? day.workflowStatus["stage-3"] : "unknown"}" title="Build & Release"></span>
-                <span class="historic-stage-dot ${day.workflowStatus ? day.workflowStatus["stage-4"] : "unknown"}" title="Publish"></span>
+                <span class="historic-stage-dot ${day.workflowStatus && day.workflowStatus["stage-1"] ? day.workflowStatus["stage-1"] : "unknown"}" title="Package Builds"></span>
+                <span class="historic-stage-dot ${day.workflowStatus && day.workflowStatus["stage-2"] ? day.workflowStatus["stage-2"] : "unknown"}" title="Repository"></span>
+                <span class="historic-stage-dot ${day.workflowStatus && day.workflowStatus["stage-3"] ? day.workflowStatus["stage-3"] : "unknown"}" title="Build & Release"></span>
+                <span class="historic-stage-dot ${day.workflowStatus && day.workflowStatus["stage-4"] ? day.workflowStatus["stage-4"] : "unknown"}" title="Publish"></span>
             </div>
 
             <div class="historic-package-status">

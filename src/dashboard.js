@@ -31,6 +31,10 @@ import {
     validateStage4Runs,
     collectStage3RunIds,
     getAllWorkflowConfigs,
+    calculateStageStatuses,
+    calculatePipelineStatus,
+    processWorkflowRuns,
+    getRepoBranchParameter,
 } from "./utils.js";
 
 import {
@@ -169,7 +173,7 @@ async function processWorkflow(
 
     // Special handling for Platform Test Cleanup - get more runs for date filtering
     if (isPlatformCleanup) {
-        apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50${getBranchParameter()}`;
+        apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50${workflow.repo === "repo" ? getRepoBranchParameter() : getBranchParameter()}`;
     }
     // Only filter by daily tag for the repo build workflow
     else if (workflow.id === WORKFLOW_IDS.REPO_BUILD) {
@@ -184,10 +188,10 @@ async function processWorkflow(
             const commitSha = tagData.object.sha;
             apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50&head_sha=${commitSha}`;
         } catch (error) {
-            apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50${getBranchParameter()}`;
+            apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50${workflow.repo === "repo" ? getRepoBranchParameter() : getBranchParameter()}`;
         }
     } else {
-        apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50${getBranchParameter()}`;
+        apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50${workflow.repo === "repo" ? getRepoBranchParameter() : getBranchParameter()}`;
     }
 
     const response = await fetch(apiUrl, {
@@ -311,18 +315,37 @@ async function processWorkflow(
                 const isExtendedDate =
                     runDate >= targetDate && runDate < extendedNextDay;
 
-                // Case 1: Day matches and parent ID does not exist in artifact
-                if (isBaseDate && (!parentInfo || !parentInfo.parentRunId)) {
-                    validRuns.push(run);
+                // Case 1: Day matches - only valid if no parent info OR parent matches Stage 3
+                if (isBaseDate) {
+                    // If there's no parent info, include the run (manual run or no parent data)
+                    if (!parentInfo || !parentInfo.parentRunId) {
+                        validRuns.push(run);
+                        console.log(
+                            `🔍 [Stage 4] Run ${run.id}: Added (GL date, no parent)`
+                        );
+                        continue;
+                    }
+
+                    // If there's a parent ID, it must match a Stage 3 run
+                    if (stage3RunIds.has(parentInfo.parentRunId.toString())) {
+                        validRuns.push(run);
+                        console.log(
+                            `🔍 [Stage 4] Run ${run.id}: Added (GL date, matching parent ${parentInfo.parentRunId})`
+                        );
+                        continue;
+                    }
+
+                    // Skip runs with parent IDs that don't match Stage 3
                     console.log(
-                        `🔍 [Stage 4] Run ${run.id}: Added (base date, no parent)`
+                        `🔍 [Stage 4] Run ${run.id}: Skipped (GL date, parent ${parentInfo.parentRunId} doesn't match Stage 3)`
                     );
                     continue;
                 }
 
-                // Case 2: Day matches (or 7 days into future) and parent ID matches any Stage 3 workflow
+                // Case 2: Extended date validation (+1 to +7 days) - only valid if parent run matches Stage 3
                 if (
                     isExtendedDate &&
+                    !isBaseDate &&
                     parentInfo &&
                     parentInfo.parentRunId &&
                     stage3RunIds.has(parentInfo.parentRunId.toString())
@@ -672,82 +695,25 @@ export function updatePipelineHierarchy() {
     console.log("Workflow statuses:", workflowStatuses);
     console.log("Package status:", packageStatus);
 
-    // Evaluate each stage status
-    const stageStatuses = {};
+    // Use shared stage status calculation (same as current view)
+    const stageStatuses = calculateStageStatuses(
+        workflowStatuses,
+        packageStatus,
+        STAGE_WORKFLOWS
+    );
 
-    // Stage 1: Package status (map package status values to stage dot CSS classes)
-    let stage1Status = packageStatus;
-    if (packageStatus === "no-data") {
-        stage1Status = "unknown"; // Map no-data to unknown for stage dots
-    } else if (packageStatus === "api-error") {
-        stage1Status = "failure"; // Map api-error to failure for stage dots
-    }
-    stageStatuses["stage-1"] = stage1Status;
-
-    // Stages 2-4: Based on workflow statuses using constants
-    for (const [stageId, workflowIds] of Object.entries(STAGE_WORKFLOWS)) {
-        if (stageId === "stage-1") continue; // Already handled above
-
-        const relevantStatuses = workflowIds.map(
-            (id) => workflowStatuses[id] || "unknown"
-        );
-
-        // Special logic for Stage 3 (Build & Release):
-        // If ANY workflow is successful, make the whole stage successful
-        if (stageId === "stage-3") {
-            if (relevantStatuses.some((status) => status === "success")) {
-                stageStatuses[stageId] = "success";
-            } else if (
-                relevantStatuses.some(
-                    (status) => status === "progress" || status === "queued"
-                )
-            ) {
-                stageStatuses[stageId] = "progress";
-            } else if (
-                relevantStatuses.some((status) => status === "failure")
-            ) {
-                stageStatuses[stageId] = "failure";
-            } else if (
-                relevantStatuses.some((status) => status === "api-error")
-            ) {
-                stageStatuses[stageId] = "error";
-            } else {
-                stageStatuses[stageId] = "unknown";
-            }
-        } else {
-            // Standard logic for other stages: prioritize failures
-            if (relevantStatuses.some((status) => status === "failure")) {
-                stageStatuses[stageId] = "failure";
-            } else if (
-                relevantStatuses.some((status) => status === "api-error")
-            ) {
-                stageStatuses[stageId] = "error";
-            } else if (
-                relevantStatuses.some(
-                    (status) => status === "progress" || status === "queued"
-                )
-            ) {
-                stageStatuses[stageId] = "progress";
-            } else if (
-                relevantStatuses.every((status) => status === "success")
-            ) {
-                stageStatuses[stageId] = "success";
-            } else {
-                stageStatuses[stageId] = "unknown";
-            }
-        }
-    }
+    console.log(`[Current View] Stage statuses:`, stageStatuses);
+    console.log(`[Current View] Workflow statuses:`, workflowStatuses);
 
     // Update stage colors
     for (const [stageId, status] of Object.entries(stageStatuses)) {
         updateStageColor(stageId, status);
     }
 
-    // Evaluate overall pipeline status
-    const allStatuses = Object.values(stageStatuses);
-    let pipelineStatus = "unknown";
+    // Use shared pipeline status calculation (same as current view)
+    const pipelineStatus = calculatePipelineStatus(stageStatuses);
 
-    // Count expected vs actual workflow statuses to avoid premature success
+    // Count expected vs actual workflow statuses for logging
     const loadedWorkflowStatuses = EXPECTED_WORKFLOW_IDS.filter(
         (id) => workflowStatuses[id] && workflowStatuses[id] !== "unknown"
     );
@@ -758,34 +724,7 @@ export function updatePipelineHierarchy() {
     console.log("- Expected workflows:", EXPECTED_WORKFLOW_IDS.length);
     console.log("- Loaded workflows:", loadedWorkflowStatuses.length);
     console.log("- All workflows loaded:", allWorkflowsLoaded);
-    console.log("- Stage statuses:", allStatuses);
-
-    // Priority order: failure > warning > progress > success > error > no-data > unknown
-    // Any failure should immediately mark the entire pipeline as failed
-    if (
-        allStatuses.some(
-            (status) => status === "failure" || status === "api-error"
-        )
-    ) {
-        pipelineStatus = "failure";
-    } else if (allStatuses.some((status) => status === "warning")) {
-        pipelineStatus = "warning";
-    } else if (allStatuses.some((status) => status === "progress")) {
-        pipelineStatus = "progress";
-    } else if (allStatuses.some((status) => status === "unknown")) {
-        // If any stage is unknown, overall status should be unknown
-        pipelineStatus = "unknown";
-    } else if (
-        allStatuses.some((status) => status === "success") &&
-        allWorkflowsLoaded
-    ) {
-        // Only show success if all workflows are loaded and at least one stage is successful
-        pipelineStatus = "success";
-    } else if (allStatuses.some((status) => status === "no-data")) {
-        pipelineStatus = "unknown";
-    } else {
-        pipelineStatus = "unknown";
-    }
+    console.log("- Stage statuses:", Object.values(stageStatuses));
 
     // Update pipeline container and header colors
     updatePipelineColor(pipelineStatus);
@@ -887,44 +826,19 @@ async function loadHistoricDay(glDays) {
         // Load package status for this day
         const packageStatus = await getHistoricPackageStatus(glDays);
 
-        // Load workflow statuses for this day (now returns both statuses and run data)
-        const workflowResult = await getHistoricWorkflowStatus(glDays);
-        const workflowStatus = workflowResult.stageStatuses;
-        const workflowRunData = workflowResult.workflowRunData;
+        // Use shared workflow status processing
+        const { workflowStatuses, workflowRunData } =
+            await getHistoricWorkflowStatuses(glDays);
 
-        // --- Use the same logic as updatePipelineHierarchy to compute stageStatuses and pipelineStatus ---
-        const stageStatuses = { ...workflowStatus };
-        // Stage 1: Package status (map package status values to stage dot CSS classes)
-        let stage1Status = packageStatus.status;
-        if (packageStatus.status === "no-data") {
-            stage1Status = "unknown";
-        } else if (packageStatus.status === "api-error") {
-            stage1Status = "failure";
-        }
-        stageStatuses["stage-1"] = stage1Status;
+        // Use shared stage status calculation (same as current view)
+        const stageStatuses = calculateStageStatuses(
+            workflowStatuses,
+            packageStatus.status,
+            STAGE_WORKFLOWS
+        );
 
-        // Evaluate overall pipeline status
-        const allStatuses = Object.values(stageStatuses);
-        let pipelineStatus = "unknown";
-        if (
-            allStatuses.some(
-                (status) => status === "failure" || status === "api-error"
-            )
-        ) {
-            pipelineStatus = "failure";
-        } else if (allStatuses.some((status) => status === "warning")) {
-            pipelineStatus = "warning";
-        } else if (allStatuses.some((status) => status === "progress")) {
-            pipelineStatus = "progress";
-        } else if (allStatuses.some((status) => status === "unknown")) {
-            pipelineStatus = "unknown";
-        } else if (allStatuses.some((status) => status === "success")) {
-            pipelineStatus = "success";
-        } else if (allStatuses.some((status) => status === "no-data")) {
-            pipelineStatus = "unknown";
-        } else {
-            pipelineStatus = "unknown";
-        }
+        // Use shared pipeline status calculation (same as current view)
+        const pipelineStatus = calculatePipelineStatus(stageStatuses);
 
         // Calculate pipeline duration
         const duration = calculateHistoricPipelineDuration(
@@ -980,16 +894,9 @@ async function getHistoricPackageStatus(glDays) {
     }
 }
 
-async function getHistoricWorkflowStatus(glDays) {
-    // More robust workflow status check for historic data
-    const stageStatuses = {
-        "stage-1": "unknown", // Package status is handled separately
-        "stage-2": "unknown",
-        "stage-3": "unknown",
-        "stage-4": "unknown",
-    };
-
-    // Store actual run data for duration calculation
+async function getHistoricWorkflowStatuses(glDays) {
+    // Returns workflow statuses and run data for shared status calculation
+    const workflowStatuses = {};
     const workflowRunData = {};
 
     const targetDate = calculateTargetDate(glDays, GL_INITIAL_DATE);
@@ -1001,18 +908,6 @@ async function getHistoricWorkflowStatus(glDays) {
     extendedDate.setDate(extendedDate.getDate() + 7);
     const extendedNextDay = new Date(extendedDate);
     extendedNextDay.setDate(extendedNextDay.getDate() + 1);
-
-    // Expand date range slightly to catch runs that might be on boundary (for Stage 3 and others)
-    const prevDay = new Date(targetDate);
-    prevDay.setDate(prevDay.getDate() - 1);
-    prevDay.setHours(20, 0, 0, 0); // Start from 8 PM previous day
-
-    const extendedRangeEnd = new Date(extendedNextDay);
-    extendedRangeEnd.setHours(4, 0, 0, 0); // End at 4 AM GL date + 7
-
-    console.log(
-        `[DEBUG] [Stage 4] Date range for GL ${glDays}: prevDay=${prevDay.toISOString()}, extendedRangeEnd=${extendedRangeEnd.toISOString()}`
-    );
 
     try {
         // Check multiple workflows per stage for better coverage using constants
@@ -1060,7 +955,7 @@ async function getHistoricWorkflowStatus(glDays) {
             },
         ];
 
-        // Collect all Stage 3 run IDs first using the utility function
+        // Collect Stage 3 run IDs first
         const stage3Workflows = workflowChecks.filter(
             (w) => w.stage === "stage-3"
         );
@@ -1074,12 +969,6 @@ async function getHistoricWorkflowStatus(glDays) {
         // Process workflows with timeout and better error handling
         const promises = workflowChecks.map(async (workflow) => {
             try {
-                // Check if this is a Stage 3 workflow to collect run IDs
-                const isStage3Workflow = [
-                    WORKFLOW_IDS.NIGHTLY,
-                    WORKFLOW_IDS.MANUAL_RELEASE,
-                ].includes(workflow.id);
-
                 // eslint-disable-next-line no-undef
                 const controller = new AbortController();
                 const timeoutId = setTimeout(
@@ -1088,7 +977,7 @@ async function getHistoricWorkflowStatus(glDays) {
                 );
 
                 const response = await fetch(
-                    `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=${API_CONFIG.HISTORIC_RUNS_PER_PAGE}${getBranchParameter()}`,
+                    `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=${API_CONFIG.HISTORIC_RUNS_PER_PAGE}${workflow.repo === "repo" ? getRepoBranchParameter() : getBranchParameter()}`,
                     {
                         headers: getAuthHeaders(),
                         signal: controller.signal,
@@ -1104,7 +993,6 @@ async function getHistoricWorkflowStatus(glDays) {
                     return {
                         workflow,
                         status: "unknown",
-                        reason: `API Error ${response.status}`,
                         runData: null,
                     };
                 }
@@ -1112,108 +1000,26 @@ async function getHistoricWorkflowStatus(glDays) {
                 const data = await response.json();
                 const runs = data.workflow_runs || [];
 
-                // Filter runs for the target date range - use extended range only for Stage 4
-                let dayRuns;
-                if (workflow.stage === "stage-4") {
-                    // Use the exact same Stage 4 logic as detail view
-                    const baseRuns = runs.filter((run) => {
-                        const runDate = new Date(run.created_at);
-                        return runDate >= targetDate && runDate < nextDay;
-                    });
+                // Use shared workflow processing logic (same as current view)
+                const result = await processWorkflowRuns(
+                    workflow,
+                    runs,
+                    targetDate,
+                    nextDay,
+                    extendedNextDay,
+                    stage3RunIds,
+                    glDays
+                );
 
-                    const extendedRuns = runs.filter((run) => {
-                        const runDate = new Date(run.created_at);
-                        return (
-                            runDate >= targetDate && runDate < extendedNextDay
-                        );
-                    });
-
-                    console.log(
-                        `🔍 [Historic Stage 4] ${workflow.name}: Found ${baseRuns.length} base runs (GL date: ${targetDate.toISOString().split("T")[0]})`
-                    );
-                    console.log(
-                        `🔍 [Historic Stage 4] ${workflow.name}: Found ${extendedRuns.length} extended runs (GL date to GL+7: ${targetDate.toISOString().split("T")[0]} to ${extendedDate.toISOString().split("T")[0]})`
-                    );
-
-                    // Use the utility function to validate Stage 4 runs
-                    const uniqueRuns = await validateStage4Runs(
-                        extendedRuns,
-                        targetDate,
-                        nextDay,
-                        extendedNextDay,
-                        stage3RunIds,
-                        glDays,
-                        workflow
-                    );
-
-                    dayRuns = uniqueRuns;
-                    console.log(
-                        `🔍 [Historic Stage 4] GL${glDays} - ${workflow.name} (${workflow.id}): Found ${uniqueRuns.length} valid runs, latest run: ${uniqueRuns.length > 0 ? `${uniqueRuns[0].id} (${uniqueRuns[0].created_at})` : "none"}`
-                    );
-                    if (uniqueRuns.length > 0) {
-                        console.log(
-                            `🔍 [Historic Stage 4] GL${glDays} - ${workflow.name} (${workflow.id}): All valid runs: [${uniqueRuns.map((r) => r.id).join(", ")}]`
-                        );
-                    }
-                } else {
-                    // For other stages, use the standard date range (GL + 1 day)
-                    dayRuns = runs.filter((run) => {
-                        const runDate = new Date(run.created_at);
-                        return runDate >= targetDate && runDate < nextDay;
-                    });
-                }
-
-                // Collect Stage 3 run IDs for later Stage 4 matching
-                if (isStage3Workflow && dayRuns.length > 0) {
-                    dayRuns.forEach((run) => {
-                        stage3RunIds.add(run.id.toString());
-                        console.log(
-                            `🔍 [Stage 3] Collected run ID ${run.id} from ${workflow.name}`
-                        );
-                    });
-                }
-
-                // Status determination logic
-                if (dayRuns.length > 0) {
-                    // For historic data, use the most recent run regardless of completion status
-                    // This ensures that in-progress runs are shown even if there are completed runs
-                    const sortedRuns = dayRuns.sort(
-                        (a, b) =>
-                            new Date(b.created_at) - new Date(a.created_at)
-                    );
-                    const latestRun = sortedRuns[0];
-
-                    let status = "unknown";
-                    if (
-                        latestRun.status === "in_progress" ||
-                        latestRun.status === "queued"
-                    ) {
-                        status = "progress";
-                    } else if (latestRun.status === "completed") {
-                        status =
-                            latestRun.conclusion === "success"
-                                ? "success"
-                                : "failure";
-                    }
-                    return {
-                        workflow,
-                        status,
-                        reason: `Found ${dayRuns.length} runs`,
-                        runData: latestRun,
-                    };
-                } else {
-                    return {
-                        workflow,
-                        status: "unknown",
-                        reason: "No runs found",
-                        runData: null,
-                    };
-                }
+                return {
+                    workflow,
+                    status: result.status,
+                    runData: result.runData,
+                };
             } catch (error) {
                 return {
                     workflow,
                     status: "unknown",
-                    reason: error.message,
                     runData: null,
                 };
             }
@@ -1222,17 +1028,11 @@ async function getHistoricWorkflowStatus(glDays) {
         // Wait for all API calls to complete
         const results = await Promise.allSettled(promises);
 
-        // Process results with stage-specific logic and collect run data
-        const stageResults = {
-            "stage-2": [],
-            "stage-3": [],
-            "stage-4": [],
-        };
-
+        // Process results and store in workflowStatuses
         for (const result of results) {
             if (result.status === "fulfilled" && result.value) {
                 const { workflow, status, runData } = result.value;
-                stageResults[workflow.stage].push(status);
+                workflowStatuses[workflow.id] = status;
 
                 // Store run data for duration calculation
                 if (runData) {
@@ -1241,55 +1041,14 @@ async function getHistoricWorkflowStatus(glDays) {
             }
         }
 
-        // Determine stage statuses - only use actual data, no assumptions
-        for (const [stageId, statuses] of Object.entries(stageResults)) {
-            if (statuses.length === 0) {
-                // No data for this stage - keep as unknown
-                stageStatuses[stageId] = "unknown";
-                continue;
-            }
+        console.log(
+            `Historic GL${glDays} workflow statuses:`,
+            workflowStatuses
+        );
 
-            // Filter out unknown statuses to work with actual data
-            const knownStatuses = statuses.filter(
-                (status) => status !== "unknown"
-            );
-
-            if (knownStatuses.length === 0) {
-                // All statuses are unknown - keep stage as unknown
-                stageStatuses[stageId] = "unknown";
-                continue;
-            }
-
-            // Stage 3 special rule: ANY success makes stage successful
-            if (stageId === "stage-3") {
-                if (knownStatuses.includes("success")) {
-                    stageStatuses[stageId] = "success";
-                } else if (knownStatuses.includes("progress")) {
-                    stageStatuses[stageId] = "progress";
-                } else if (knownStatuses.includes("failure")) {
-                    stageStatuses[stageId] = "failure";
-                } else {
-                    stageStatuses[stageId] = "unknown";
-                }
-            } else {
-                // Standard priority logic for other stages
-                if (knownStatuses.includes("failure")) {
-                    stageStatuses[stageId] = "failure";
-                } else if (knownStatuses.includes("progress")) {
-                    stageStatuses[stageId] = "progress";
-                } else if (knownStatuses.includes("success")) {
-                    stageStatuses[stageId] = "success";
-                } else {
-                    stageStatuses[stageId] = "unknown";
-                }
-            }
-        }
-
-        console.log(`Historic GL${glDays} workflow statuses:`, stageStatuses);
-
-        // Return both stage statuses and run data for duration calculation
+        // Return workflow statuses for shared status calculation
         return {
-            stageStatuses,
+            workflowStatuses,
             workflowRunData,
         };
     } catch (error) {
@@ -1297,9 +1056,9 @@ async function getHistoricWorkflowStatus(glDays) {
             `Failed to load historic workflow status for GL ${glDays}:`,
             error
         );
-        // On error, all stages remain unknown - no assumptions
+        // On error, return empty statuses
         return {
-            stageStatuses,
+            workflowStatuses: {},
             workflowRunData: {},
         };
     }
