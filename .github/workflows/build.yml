@@ -2,7 +2,7 @@ name: Build and Deploy Dashboard
 
 on:
     push:
-        branches: [gh-pages]
+        branches: [gh-pages, packages]
     pull_request:
         branches: [gh-pages]
     workflow_dispatch:
