@@ -1,4 +1,20 @@
-// UI rendering and DOM manipulation functions for the dashboard
+/**
+ * ========================================
+ * GARDEN LINUX DASHBOARD - UI RENDERING & DOM MANIPULATION
+ * ========================================
+ *
+ * This file contains all UI rendering and DOM manipulation functions:
+ * - Historic releases list rendering and HTML generation
+ * - Workflow box HTML generation for pipeline stages
+ * - Current release summary updates and status indicators
+ * - Pipeline stage color management and status updates
+ * - Workflow run item HTML creation with detailed information
+ * - Header color updates based on pipeline status
+ * - Run status evaluation and duration calculations
+ *
+ * Handles all visual representation and user interface updates.
+ */
+
 import {
     setElementStatus,
     formatDetailedDate,

@@ -1,11 +1,17 @@
 /**
  * ========================================
- * GARDEN LINUX DASHBOARD - CONSTANTS
+ * GARDEN LINUX DASHBOARD - CONFIGURATION & CONSTANTS
  * ========================================
  *
- * Centralized configuration and constants for the Garden Linux Dashboard.
- * All hardcoded values, workflow IDs, API endpoints, and configuration
- * should be defined here for easy maintenance.
+ * Central configuration hub for the Garden Linux Dashboard containing:
+ * - GitHub workflow definitions and IDs for all pipeline stages
+ * - API endpoints and timeout configurations
+ * - Pipeline stage mappings and workflow groupings
+ * - Package status definitions and problem indicators
+ * - UI configuration settings and batch processing limits
+ * - Date/version calculation base settings
+ *
+ * All hardcoded values and configuration should be defined here for maintainability.
  */
 
 // ========================================
@@ -144,27 +150,3 @@ export const UI_CONFIG = {
     BATCH_SIZE: 3, // API request batch size for rate limiting
     BATCH_DELAY: 200, // Delay between batches in milliseconds
 };
-
-// ========================================
-// HELPER FUNCTIONS FOR WORKFLOW ACCESS
-// ========================================
-export function getWorkflowById(id) {
-    return Object.values(WORKFLOWS).find((workflow) => workflow.id === id);
-}
-
-export function getWorkflowsByStage(stage) {
-    return STAGE_WORKFLOWS[stage] || [];
-}
-
-export function getAllWorkflowConfigs() {
-    return Object.values(WORKFLOWS);
-}
-
-// ========================================
-// HTML GENERATION FUNCTIONS
-// ========================================
-export function getWorkflowsByStageForHTML(stageId) {
-    return Object.values(WORKFLOWS).filter(
-        (workflow) => workflow.stage === stageId
-    );
-}

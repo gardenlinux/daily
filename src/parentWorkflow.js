@@ -1,3 +1,17 @@
+/**
+ * ========================================
+ * GARDEN LINUX DASHBOARD - PARENT WORKFLOW TRACKER
+ * ========================================
+ *
+ * This file handles parent workflow relationship tracking for Stage 4 workflows:
+ * - Downloads and extracts artifacts from workflow runs
+ * - Parses parent workflow information from artifact data
+ * - Validates allowed artifact names for security
+ * - Provides parent run ID mapping for Stage 4 publishing workflows
+ *
+ * Used to track which Stage 3 build triggered each Stage 4 publish workflow.
+ */
+
 import { ALLOWED_ARTIFACT_NAMES, API_CONFIG } from "./constants.js";
 import { getAuthHeaders } from "./utils.js";
 import JSZip from "jszip";
@@ -106,7 +120,6 @@ export async function getParentWorkflowInfo(owner, repo, runId) {
         }
         const artifactsData = await artifactsResponse.json();
         const artifacts = artifactsData.artifacts || [];
-        // Enhanced parent workflow artifact detection
         const parentWorkflowArtifacts = artifacts.filter(
             (artifact) =>
                 artifact.name &&
@@ -140,7 +153,7 @@ export async function getParentWorkflowInfo(owner, repo, runId) {
                 }
             }
         }
-        // Enhanced detection for all artifacts that might contain parent workflow information
+        // Detection for all artifacts that might contain parent workflow information
         const allParentWorkflowArtifacts = artifacts.filter(
             (artifact) =>
                 artifact.name && artifact.name === "parent-workflow-data"

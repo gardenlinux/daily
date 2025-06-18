@@ -1,16 +1,24 @@
 /**
  * ========================================
- * GARDEN LINUX DASHBOARD - UTILITY FUNCTIONS
+ * GARDEN LINUX DASHBOARD - UTILITY FUNCTIONS & HELPERS
  * ========================================
  *
- * This file contains shared utility functions for:
- * - Date and GL version calculations
- * - GitHub API authentication
- * - UI state helpers
- * - Data formatting utilities
+ * Comprehensive utility library containing shared functions for:
+ * - Date and GL version calculations and URL parameter parsing
+ * - GitHub API authentication and request headers
+ * - UI state management and historic view detection
+ * - DOM manipulation utilities and element status management
+ * - Data formatting for dates, times, and durations
+ * - Pipeline duration calculations for current and historic data
+ * - Stage 4 workflow validation and parent run ID collection
+ * - Branch search configuration and settings management
+ * - Collapsible section toggling and bulk status updates
+ * - Helper functions for workflow access and HTML generation
+ *
+ * Core support library used across all dashboard components.
  */
 
-import { GL_INITIAL_DATE } from "./constants.js";
+import { GL_INITIAL_DATE, WORKFLOWS } from "./constants.js";
 
 // ========================================
 // DATE AND GL VERSION CALCULATIONS
@@ -624,4 +632,17 @@ export async function collectStage3RunIds(
     );
 
     return stage3RunIds;
+}
+
+// ========================================
+// HELPER FUNCTIONS FOR WORKFLOW ACCESS
+// ========================================
+export function getAllWorkflowConfigs() {
+    return Object.values(WORKFLOWS);
+}
+
+export function getWorkflowsByStage(stageId) {
+    return Object.values(WORKFLOWS).filter(
+        (workflow) => workflow.stage === stageId
+    );
 }

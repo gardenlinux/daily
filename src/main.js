@@ -1,19 +1,24 @@
 /**
  * ========================================
- * GARDEN LINUX DASHBOARD - MAIN ENTRY POINT
+ * GARDEN LINUX DASHBOARD - APPLICATION ENTRY POINT
  * ========================================
  *
- * This file contains:
- * - Application initialization
- * - Settings panel management
- * - GL version selector functionality
- * - UI event handlers and global functions
+ * Main application entry point and initialization hub containing:
+ * - Application bootstrapping and DOM ready event handling
+ * - Settings panel management (GitHub token, branch search configuration)
+ * - GL version selector functionality and URL parameter handling
+ * - Dynamic HTML generation for workflow boxes and pipeline stages
+ * - Global UI event handlers and section toggle functionality
+ * - Authentication status management and display
+ * - Historic vs current view mode detection and UI adaptation
+ * - Navigation and URL manipulation for GL version switching
+ *
+ * Orchestrates application startup and provides global UI interaction handlers.
  */
 
 import { getRun, fillPackageTable, loadHistoricReleases } from "./dashboard.js";
 
 import {
-    getWorkflowsByStageForHTML,
     WORKFLOW_IDS,
     GL_INITIAL_DATE,
     API_CONFIG,
@@ -28,6 +33,7 @@ import {
     toggleSection,
     formatDetailedDateFromDate,
     isHistoricView,
+    getWorkflowsByStage,
 } from "./utils.js";
 
 import { generateWorkflowBoxHTML as uiGenerateWorkflowBoxHTML } from "./ui.js";
@@ -236,7 +242,7 @@ function generateWorkflowHTML() {
     console.log("Generating workflow HTML from constants...");
 
     // Stage 4: Publish Images
-    const stage4Workflows = getWorkflowsByStageForHTML("stage-4");
+    const stage4Workflows = getWorkflowsByStage("stage-4");
     const stage4Container = document.querySelector("#stage-4 .stage-workflows");
     if (stage4Container && stage4Workflows.length > 0) {
         stage4Container.innerHTML = stage4Workflows
@@ -247,7 +253,7 @@ function generateWorkflowHTML() {
     }
 
     // Stage 3: Build & Release Images
-    const stage3Workflows = getWorkflowsByStageForHTML("stage-3");
+    const stage3Workflows = getWorkflowsByStage("stage-3");
     const stage3Container = document.querySelector("#stage-3 .stage-workflows");
     if (stage3Container && stage3Workflows.length > 0) {
         stage3Container.innerHTML = stage3Workflows
@@ -258,7 +264,7 @@ function generateWorkflowHTML() {
     }
 
     // Stage 2: Repository (special handling for sequential workflows)
-    const stage2Workflows = getWorkflowsByStageForHTML("stage-2");
+    const stage2Workflows = getWorkflowsByStage("stage-2");
     if (stage2Workflows.length >= 2) {
         // Find repo build and repo update workflows using constants
         const repoBuild = stage2Workflows.find(

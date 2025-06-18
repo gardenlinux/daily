@@ -1,14 +1,20 @@
 /**
  * ========================================
- * GARDEN LINUX DASHBOARD - MAIN LOGIC
+ * GARDEN LINUX DASHBOARD - CORE PIPELINE ENGINE
  * ========================================
  *
- * This file contains the core dashboard functionality including:
- * - GitHub API interactions for workflow data
- * - Package status monitoring
- * - Pipeline hierarchy management
- * - Historic releases functionality
- * - UI state management and color coding
+ * Main dashboard logic engine containing the core functionality:
+ * - GitHub API workflow data fetching and processing
+ * - Multi-stage pipeline status evaluation and hierarchy management
+ * - Package build status monitoring and table population
+ * - Stage 3/4 workflow parent-child relationship tracking
+ * - Historic releases data loading and processing
+ * - Pipeline color coding and status aggregation
+ * - Workflow run filtering by date ranges and parent relationships
+ * - Global state management for workflow and package statuses
+ * - Real-time pipeline status updates and UI synchronization
+ *
+ * The heart of the dashboard that orchestrates all data collection and processing.
  */
 
 import {
@@ -24,6 +30,7 @@ import {
     calculateHistoricPipelineDuration,
     validateStage4Runs,
     collectStage3RunIds,
+    getAllWorkflowConfigs,
 } from "./utils.js";
 
 import {
@@ -35,7 +42,6 @@ import {
     API_CONFIG,
     PACKAGE_STATUSES,
     UI_CONFIG,
-    getAllWorkflowConfigs,
 } from "./constants.js";
 
 import {
