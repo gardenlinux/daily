@@ -12,8 +12,9 @@
         "lint": "npm run lint:js && npm run lint:format",
         "lint:js": "eslint src/**/*.js",
         "lint:format": "prettier --check .",
-        "lint:fix": "eslint src/**/*.js --fix && prettier --write .",
-        "fix": "prettier --write ."
+        "fix:js": "eslint src/**/*.js --fix",
+        "fix:format": "prettier --write .",
+        "fix": "eslint src/**/*.js --fix; prettier --write ."
     },
     "keywords": [
         "garden-linux",
