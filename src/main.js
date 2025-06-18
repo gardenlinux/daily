@@ -21,14 +21,13 @@ import {
 } from "./constants.js";
 
 import {
-    isHistoricView,
     getGlDays,
     getCurrentGlDays,
     updateGLDateInfo,
     shouldLoadHistoricReleases,
     toggleSection,
     formatDetailedDateFromDate,
-    shouldSearchAllBranches,
+    isHistoricView,
 } from "./utils.js";
 
 import { generateWorkflowBoxHTML as uiGenerateWorkflowBoxHTML } from "./ui.js";

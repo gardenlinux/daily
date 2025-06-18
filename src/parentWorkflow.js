@@ -31,14 +31,14 @@ export async function downloadAndExtractArtifact(owner, repo, artifact) {
                     success: false,
                     reason: "auth_required",
                     message: `${status}: Authentication required`,
-                    status: status,
+                    status,
                 };
             } else {
                 return {
                     success: false,
                     reason: "download_failed",
                     message: `${status}: ${downloadResponse.statusText}`,
-                    status: status,
+                    status,
                 };
             }
         }
@@ -47,7 +47,7 @@ export async function downloadAndExtractArtifact(owner, repo, artifact) {
         const loadedZip = await zip.loadAsync(arrayBuffer);
         // Extract and parse files
         const extractedData = {};
-        let jobId = null;
+        const jobId = null;
         let parentRunId = null;
         for (const [filename, file] of Object.entries(loadedZip.files)) {
             if (!file.dir) {
@@ -57,7 +57,7 @@ export async function downloadAndExtractArtifact(owner, repo, artifact) {
                 try {
                     if (filename.toLowerCase().endsWith(".json")) {
                         const jsonData = JSON.parse(content);
-                        extractedData[filename + "_parsed"] = jsonData;
+                        extractedData[`${filename}_parsed`] = jsonData;
                         // Look for id in the JSON data
                         if (jsonData.id && !parentRunId) {
                             parentRunId = jsonData.id;
@@ -70,9 +70,9 @@ export async function downloadAndExtractArtifact(owner, repo, artifact) {
         }
         return {
             success: true,
-            extractedData: extractedData,
-            jobId: jobId,
-            parentRunId: parentRunId,
+            extractedData,
+            jobId,
+            parentRunId,
             fileCount: Object.keys(extractedData).length,
             message: `Successfully extracted ${Object.keys(extractedData).length} files`,
         };
@@ -81,7 +81,7 @@ export async function downloadAndExtractArtifact(owner, repo, artifact) {
             success: false,
             reason: "extraction_error",
             message: error.message,
-            error: error,
+            error,
         };
     }
 }

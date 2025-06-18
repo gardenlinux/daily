@@ -35,12 +35,9 @@ import {
     API_CONFIG,
     PACKAGE_STATUSES,
     UI_CONFIG,
-    ALLOWED_ARTIFACT_NAMES,
     getAllWorkflowConfigs,
 } from "./constants.js";
 
-// Import JSZip for artifact extraction
-import JSZip from "jszip";
 import {
     renderHistoricReleases,
     updateCurrentReleaseHeaderColors,
@@ -67,7 +64,7 @@ let packageStatus = "unknown";
 // ========================================
 export async function getRun() {
     // Use workflow configurations from constants
-    const reposWorkflows = getAllWorkflowConfigs();
+    getAllWorkflowConfigs();
 
     // Reset workflow statuses
     workflowStatuses = {};
@@ -158,10 +155,11 @@ async function processWorkflow(
     extendedNextDay,
     stage3RunIds,
     tagName,
-    isStage3Phase
+    _isStage3Phase
 ) {
     let apiUrl;
-    let isPlatformCleanup = workflow.id === WORKFLOW_IDS.PLATFORM_TEST_CLEANUP;
+    const isPlatformCleanup =
+        workflow.id === WORKFLOW_IDS.PLATFORM_TEST_CLEANUP;
 
     // Special handling for Platform Test Cleanup - get more runs for date filtering
     if (isPlatformCleanup) {
@@ -658,29 +656,6 @@ export async function fillPackageTable() {
 // ========================================
 // SHARED WORKFLOW UTILITIES
 // ========================================
-function calculateDuration(run) {
-    if (run.status !== "completed") return "";
-
-    const startTime = new Date(run.created_at);
-    const endTime = new Date(run.updated_at);
-    const durationMs = endTime - startTime;
-
-    // Handle negative durations (shouldn't happen but just in case)
-    if (durationMs < 0) return "Invalid duration";
-
-    const durationHours = Math.floor(durationMs / 3600000);
-    const durationMinutes = Math.floor((durationMs % 3600000) / 60000);
-    const durationSeconds = Math.floor((durationMs % 60000) / 1000);
-
-    // Format duration cleanly without parentheses since it's now on its own line
-    if (durationHours > 0) {
-        return `${durationHours}h ${durationMinutes}m ${durationSeconds}s`;
-    } else if (durationMinutes > 0) {
-        return `${durationMinutes}m ${durationSeconds}s`;
-    } else {
-        return `${durationSeconds}s`;
-    }
-}
 
 // ========================================
 // PIPELINE HIERARCHY & UI STATE MANAGEMENT
@@ -1167,7 +1142,7 @@ async function getHistoricWorkflowStatus(glDays) {
 
                     dayRuns = uniqueRuns;
                     console.log(
-                        `🔍 [Historic Stage 4] GL${glDays} - ${workflow.name} (${workflow.id}): Found ${uniqueRuns.length} valid runs, latest run: ${uniqueRuns.length > 0 ? uniqueRuns[0].id + " (" + uniqueRuns[0].created_at + ")" : "none"}`
+                        `🔍 [Historic Stage 4] GL${glDays} - ${workflow.name} (${workflow.id}): Found ${uniqueRuns.length} valid runs, latest run: ${uniqueRuns.length > 0 ? `${uniqueRuns[0].id} (${uniqueRuns[0].created_at})` : "none"}`
                     );
                     if (uniqueRuns.length > 0) {
                         console.log(

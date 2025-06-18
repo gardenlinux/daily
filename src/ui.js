@@ -82,7 +82,7 @@ export function renderHistoricReleases(historicData) {
 }
 
 // Generate a workflow box for the dashboard
-export function generateWorkflowBoxHTML(workflow, API_CONFIG, WORKFLOWS) {
+export function generateWorkflowBoxHTML(workflow, API_CONFIG, _WORKFLOWS) {
     return `
         <div id="daily-info-${workflow.id}" class="workflow-box">
             <a href="${API_CONFIG.GITHUB_BASE}/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.workflowFile}" target="_blank">
@@ -212,7 +212,7 @@ export function updatePipelineColor(status) {
 }
 
 // Create HTML for a workflow run item
-export async function createRunItemHTML(run, workflow, useFullDate = false) {
+export async function createRunItemHTML(run, workflow, _useFullDate = false) {
     const { statusClass, statusText } = getRunStatus(run);
 
     // Check if this is a Stage 4 workflow or platform cleanup
@@ -220,8 +220,6 @@ export async function createRunItemHTML(run, workflow, useFullDate = false) {
         WORKFLOW_IDS.PUBLISH_GHCR,
         WORKFLOW_IDS.PUBLISH_S3,
     ].includes(workflow.id);
-    const isPlatformCleanup =
-        workflow.id === WORKFLOW_IDS.PLATFORM_TEST_CLEANUP;
 
     // Use detailed date/time format for all stages and platform cleanup
     const useDetailedDateTime = true; // Always use detailed format now
