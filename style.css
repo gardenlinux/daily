@@ -1,9 +1,631 @@
+/* ====== GARDEN LINUX DASHBOARD - UNIFIED COLOR SYSTEM ====== */
+/*
+ * Color palette based on SAP Design System and Garden Linux brand:
+ *
+ * - Success:    #00a67c (Garden Linux green) - successful workflows
+ * - Failure:    #ee3939 (SAP Red/6) - failed workflows
+ * - Progress:   #1b90ff (SAP Blue/6) - in-progress workflows
+ * - Warning:    #ffb300 (SAP Mango/5) - package issues, etc.
+ * - Info:       #5d36ff (SAP Indigo/7) - informational elements
+ * - Grey:       #8396a8 (SAP Grey/5) - unknown/no-data states, blocked workflows
+ *
+ * Each color has light/dark variants for better contrast
+ * All elements use CSS custom properties for easy maintenance
+ */
+
+/* ========================================= */
+/* CSS CUSTOM PROPERTIES & COLOR SYSTEM     */
+/* ========================================= */
+:root {
+    /* Primary Status Colors */
+    --color-success: #00a67c; /* Garden Linux green */
+    --color-success-light: #ebf5cb; /* SAP Green/2  */
+    --color-success-dark: #256f3a; /* SAP Green/8 */
+
+    --color-failure: #aa0808; /* SAP Red/8 */
+    --color-failure-light: #ffeaf4; /* SAP Red/1 */
+    --color-failure-dark: #840606; /* SAP Red/9 */
+
+    --color-progress: #0070f2; /* SAP Blue/7 */
+    --color-progress-light: #ebf8ff; /* SAP Blue/1 */
+    --color-progress-dark: #0040b0; /* SAP Blue/9 */
+
+    --color-warning: #e76500; /* SAP Mango/6 */
+    --color-warning-light: #fff8d6; /* SAP Mango/1 */
+    --color-warning-dark: #8d2a00; /* SAP Mango/9 */
+
+    --color-info: #470ced; /* SAP Indigo/8 */
+    --color-info-light: #f1ecff; /* SAP Indigo/1 */
+    --color-info-dark: #2c13ad; /* SAP Indigo/9 */
+
+    --color-unknown: #475e75; /* SAP Grey/7 */
+    --color-unknown-light: #f5f6f7; /* SAP Grey/1 */
+    --color-unknown-dark: #223548; /* SAP Grey/9 */
+
+    /* Background Colors */
+    --bg-primary: #ffffff; /* SAP Neutral/White */
+    --bg-unknown: #eaecee; /* SAP Grey/2 */
+    --bg-unknown-transparent: #475e750d; /* SAP Grey/7 with 5% opacity */
+
+    /* Text Colors */
+    --text-primary: #223548; /* SAP Grey/9 */
+    --text-unknown: #475e75; /* SAP Grey/7 */
+    --text-muted: #5b738b; /* SAP Grey/6 */
+    --text-white: #ffffff; /* SAP Neutral/White */
+    --text-header: #223548; /* SAP Grey/9 */
+
+    /* Border Colors */
+    --border-light: #d5dadd; /* SAP Grey/3 */
+    --border-medium: #8396a8; /* SAP Grey/5 */
+
+    /* Gradient Colors */
+    --color-success-gradient: linear-gradient(
+        135deg,
+        var(--color-success),
+        var(--color-success-dark)
+    );
+    --color-failure-gradient: linear-gradient(
+        135deg,
+        var(--color-failure),
+        var(--color-failure-dark)
+    );
+    --color-progress-gradient: linear-gradient(
+        135deg,
+        var(--color-progress),
+        var(--color-progress-dark)
+    );
+    --color-warning-gradient: linear-gradient(
+        135deg,
+        var(--color-warning),
+        var(--color-warning-dark)
+    );
+    --color-unknown-gradient: linear-gradient(
+        135deg,
+        var(--color-unknown),
+        var(--color-unknown-dark)
+    );
+
+    /* Shadow Colors */
+    --shadow-color-black: #354a5f14;
+    --shadow-color-black-medium: #354a5f26;
+    --shadow-color-black-large: #354a5f2e;
+    --shadow-color-success: #00a67c66;
+    --shadow-color-success-light: #00a67c26;
+    --shadow-color-success-faint: #00a67c1a;
+    --shadow-color-failure: #ee393966;
+    --shadow-color-failure-light: #ee393926;
+    --shadow-color-failure-faint: #ee39391a;
+    --shadow-color-progress: #1b90ff66;
+    --shadow-color-progress-light: #1b90ff26;
+    --shadow-color-progress-faint: #1b90ff1a;
+    --shadow-color-progress-ultra-faint: #1b90ff0d;
+    --shadow-color-warning: #ffb30066;
+    --shadow-color-warning-light: #ffb30026;
+    --shadow-color-warning-faint: #ffb3001a;
+    --shadow-color-info: #5d36ff66;
+    --shadow-color-info-light: #5d36ff40;
+    --shadow-color-unknown: #8396a866;
+    --shadow-color-unknown-light: #8396a81a;
+
+    /* Shadow Definitions */
+    --shadow-sm: 0 0.125rem 0.25rem var(--shadow-color-black);
+    --shadow-md: 0 0.5rem 1rem var(--shadow-color-black-medium);
+    --shadow-lg: 0 1rem 3rem var(--shadow-color-black-large);
+
+    /* Text Shadow */
+    --text-shadow-header: 0 2px 4px var(--shadow-color-black-medium);
+}
+
+/* ========================================= */
+/* UNIFIED STATUS SYSTEM                     */
+/* ========================================= */
+
+/* Status indicator dots - unified base class (remove current-overall-status to avoid conflicts) */
+.status-indicator,
+.current-status-indicator,
+.current-stage-dot,
+.stage-dot,
+.historic-stage-dot {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background-color: var(--color-unknown);
+    border: 2px solid var(--border-white-transparent);
+    box-shadow: 0 1px 3px var(--shadow-color-black);
+    transition: all 0.3s ease;
+    margin: 0 auto;
+    flex-shrink: 0;
+}
+
+/* Smaller stage dots */
+.stage-dot,
+.current-stage-dot,
+.historic-stage-dot {
+    width: 10px;
+    height: 10px;
+}
+
+/* Status text colors - unified */
+.status-success,
+.status-text.success,
+.run-status-line .status-success,
+.workflow-box .run-status-line .status-success {
+    color: var(--color-success-dark);
+    font-weight: 600;
+}
+
+.status-failure,
+.status-text.failure,
+.run-status-line .status-failure,
+.workflow-box .run-status-line .status-failure {
+    color: var(--color-failure);
+}
+
+.status-progress,
+.status-text.progress,
+.run-status-line .status-progress,
+.workflow-box .run-status-line .status-progress {
+    color: var(--color-progress-dark);
+}
+
+.status-warning,
+.status-text.warning,
+.run-status-line .status-warning,
+.workflow-box .run-status-line .status-warning {
+    color: var(--color-warning);
+}
+
+.status-unknown,
+.status-text.queued,
+.run-status-line .status-queued,
+.workflow-box .run-status-line .status-queued {
+    color: var(--color-unknown);
+}
+
+/* SUCCESS STATUS - applies to all success elements (except historic which uses different structure) */
+.success,
+.status-indicator.success,
+.current-status-indicator.success,
+.stage-dot.success,
+.current-stage-dot.success,
+.historic-stage-dot.success,
+.gl-version.success,
+.current-gl-version.success,
+.historic-gl-version.success,
+.gl-version-status.success,
+.workflow-box.success,
+.pipeline-stage.stage-success,
+.pipeline-container.pipeline-success,
+.package-summary.success,
+.sub-stage.success {
+    background-color: var(--color-success);
+    border-color: var(--color-success);
+    box-shadow: 0 0 6px var(--shadow-color-success);
+}
+
+.workflow-box.success,
+.package-summary.success {
+    background: var(--color-success-light);
+    border: 2px solid var(--color-success);
+    box-shadow: 0 0 15px var(--shadow-color-success-light);
+}
+
+.pipeline-stage.stage-success {
+    background: var(--color-success-light);
+    border: 2px solid var(--color-success);
+    box-shadow: 0 0 20px var(--shadow-color-success-faint);
+}
+
+.sub-stage.success {
+    background: var(--color-success-light);
+    border: 2px solid var(--color-success);
+}
+
+/* FAILURE STATUS - applies to all failure elements (except historic which uses different structure) */
+.failure,
+.status-indicator.failure,
+.current-status-indicator.failure,
+.stage-dot.failure,
+.current-stage-dot.failure,
+.historic-stage-dot.failure,
+.gl-version.failure,
+.current-gl-version.failure,
+.historic-gl-version.failure,
+.gl-version-status.failure,
+.workflow-box.failure,
+.pipeline-stage.stage-failure,
+.pipeline-container.pipeline-failure,
+.sub-stage.failure {
+    background-color: var(--color-failure);
+    border-color: var(--color-failure);
+    box-shadow: 0 0 6px var(--shadow-color-failure);
+}
+
+.workflow-box.failure {
+    background: var(--color-failure-light);
+    box-shadow: 0 0 15px var(--shadow-color-failure-light);
+}
+
+.pipeline-stage.stage-failure {
+    background: linear-gradient(
+        to bottom,
+        var(--color-failure-light) 0%,
+        var(--bg-primary) 100%
+    );
+    box-shadow: 0 0 20px var(--shadow-color-failure-faint);
+}
+
+.sub-stage.failure {
+    background: var(--color-failure-light);
+}
+
+/* PROGRESS STATUS - applies to all progress elements (except historic which uses different structure) */
+.progress,
+.status-indicator.progress,
+.current-status-indicator.progress,
+.stage-dot.progress,
+.current-stage-dot.progress,
+.historic-stage-dot.progress,
+.gl-version.progress,
+.current-gl-version.progress,
+.historic-gl-version.progress,
+.gl-version-status.progress,
+.workflow-box.progress,
+.workflow-box.queued,
+.pipeline-stage.stage-progress,
+.pipeline-container.pipeline-progress,
+.package-summary.progress,
+.sub-stage.progress {
+    background-color: var(--color-progress);
+    border-color: var(--color-progress);
+    box-shadow: 0 0 6px var(--shadow-color-progress);
+    animation: statusPulse 4s infinite ease-in-out;
+}
+
+.gl-version.progress,
+.current-gl-version.progress,
+.historic-gl-version.progress {
+    color: var(--text-white);
+}
+
+.workflow-box.progress,
+.workflow-box.queued,
+.package-summary.progress {
+    background: var(--color-progress-light);
+    box-shadow: 0 0 15px var(--shadow-color-progress-light);
+    animation: workflowPulse 5s infinite alternate ease-in-out;
+}
+
+.pipeline-stage.stage-progress {
+    background: var(--color-progress-gradient);
+    box-shadow: 0 0 20px var(--shadow-color-progress-faint);
+    animation: stagePulse 6s infinite alternate ease-in-out;
+}
+
+.sub-stage.progress {
+    background: var(--color-progress-light);
+    animation: subStagePulse 5s infinite alternate ease-in-out;
+}
+
+/* WARNING STATUS - applies to all warning elements (except historic which uses different structure) */
+.warning,
+.status-indicator.warning,
+.current-status-indicator.warning,
+.stage-dot.warning,
+.current-stage-dot.warning,
+.historic-stage-dot.warning,
+.gl-version.warning,
+.current-gl-version.warning,
+.historic-gl-version.warning,
+.gl-version-status.warning,
+.workflow-box.warning,
+.pipeline-stage.stage-warning,
+.pipeline-container.pipeline-warning,
+.package-summary.warning,
+.sub-stage.warning {
+    background-color: var(--color-warning);
+    border-color: var(--color-warning);
+    box-shadow: 0 0 6px var(--shadow-color-warning);
+}
+
+.workflow-box.warning,
+.package-summary.warning {
+    background: var(--color-warning-light);
+    box-shadow: 0 0 15px var(--shadow-color-warning-light);
+    animation: workflowPulse 8s infinite alternate ease-in-out;
+}
+
+.pipeline-stage.stage-warning {
+    background: var(--color-warning-gradient);
+    box-shadow: 0 0 20px var(--shadow-color-warning-faint);
+    animation: stagePulse 8s infinite alternate ease-in-out;
+}
+
+.sub-stage.warning {
+    background: var(--color-warning-light);
+}
+
+/* UNKNOWN STATUS - applies to all unknown elements (except historic which uses different structure) */
+.unknown,
+.status-indicator.unknown,
+.current-status-indicator.unknown,
+.stage-dot.unknown,
+.current-stage-dot.unknown,
+.historic-stage-dot.unknown,
+.gl-version.unknown,
+.current-gl-version.unknown,
+.historic-gl-version.unknown,
+.gl-version-status.unknown,
+.workflow-box.no-runs,
+.pipeline-stage.stage-unknown,
+.pipeline-container.pipeline-unknown,
+.sub-stage.blocked {
+    background-color: var(--color-unknown);
+    border-color: var(--color-unknown);
+    box-shadow: 0 0 6px var(--shadow-color-unknown);
+}
+
+.workflow-box.no-runs {
+    background: var(--bg-unknown);
+    border-color: var(--border-medium);
+    opacity: 0.8;
+}
+
+.pipeline-stage.stage-unknown {
+    background: linear-gradient(
+        to bottom,
+        var(--bg-unknown) 0%,
+        var(--bg-primary) 100%
+    );
+    box-shadow: 0 0 10px var(--shadow-color-unknown-light);
+}
+
+.sub-stage.blocked {
+    background: var(--bg-unknown);
+    opacity: 0.6;
+}
+
+/* ERROR STATUS */
+.workflow-box.api-error,
+.pipeline-stage.stage-error,
+.pipeline-stage.stage-cascaded-failure,
+.pipeline-container.pipeline-error,
+.package-summary.api-error {
+    border-color: var(--color-failure);
+    background: var(--color-failure-light);
+    box-shadow: 0 0 15px var(--shadow-color-failure-light);
+}
+
+/* UNIFIED HEADER STATUS STYLING */
+.days,
+.current-release-header,
+.current-details-header,
+.platform-cleanup-header,
+.historic-releases-header {
+    background: var(--color-progress); /* SAP Blue/7 */
+    color: var(--text-white);
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-md);
+    border: none;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.days h2,
+.current-release-header h2,
+.current-details-header h2,
+.platform-cleanup-header h2,
+.historic-releases-header h2 {
+    margin: 0;
+    font-size: 1.2em;
+    color: var(--text-white);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.days.header-success,
+.current-release-header.status-success,
+.current-details-header.status-success,
+.platform-cleanup-header.status-success {
+    background: var(--color-success);
+    border: none;
+}
+
+.days.header-failure,
+.days.error,
+.current-release-header.status-failure,
+.current-details-header.status-failure,
+.platform-cleanup-header.status-failure {
+    background: var(--color-failure-gradient);
+    border-color: var(--color-failure);
+}
+
+.days.header-progress,
+.current-release-header.status-progress,
+.current-details-header.status-progress,
+.platform-cleanup-header.status-progress {
+    background: var(--color-progress-gradient);
+    border-color: var(--color-progress);
+}
+
+.days.header-warning,
+.current-release-header.status-warning,
+.current-details-header.status-warning,
+.platform-cleanup-header.status-warning {
+    background: var(--color-warning-gradient);
+    border-color: var(--color-warning);
+}
+
+.days.header-unknown,
+.days.historic,
+.current-release-header.status-unknown,
+.current-details-header.status-unknown,
+.platform-cleanup-header.status-unknown,
+.current-release-header:not([class*="status-"]),
+.current-details-header:not([class*="status-"]),
+.platform-cleanup-header:not([class*="status-"]) {
+    background: var(--color-unknown-gradient);
+    border-color: var(--color-unknown);
+}
+
+/* UNIFIED LINK STYLING FOR CONTAINERS */
+.workflow-box a {
+    text-decoration: none;
+    transition: all 0.3s ease;
+    display: block;
+    padding: 18px;
+    line-height: 1.6;
+    font-size: 1em;
+}
+
+.workflow-box.success a {
+    color: var(--color-success-dark);
+}
+.workflow-box.failure a {
+    color: var(--color-failure-dark);
+}
+.workflow-box.progress a,
+.workflow-box.queued a {
+    color: var(--color-progress-dark);
+}
+.workflow-box.warning a {
+    color: var(--color-warning-dark);
+}
+.workflow-box.api-error a {
+    color: var(--color-failure-dark);
+}
+.workflow-box.no-runs a {
+    color: var(--text-unknown);
+    text-shadow: none;
+    opacity: 0.8;
+}
+
+/* UNIFIED PACKAGE TABLE STATUS STYLING */
+.package-status-cell {
+    font-weight: bold;
+    text-align: center;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    border: 1px solid var(--border-light);
+}
+
+.package-table-container tr.progress .package-status-cell,
+.package-table-container tr.progress {
+    background: var(--color-progress-light);
+    color: var(--color-progress-dark);
+    border-color: var(--color-progress);
+}
+
+.package-table-container tr.failure .package-status-cell,
+.package-table-container tr.failure,
+.package-table-container tr.brokenTimestamp .package-status-cell,
+.package-table-container tr.brokenTimestamp {
+    background: var(--color-failure-light);
+    color: var(--color-failure-dark);
+    border-color: var(--color-failure);
+}
+
+.package-table-container tr.warning .package-status-cell,
+.package-table-container tr.warning {
+    background: var(--color-warning-light);
+    color: var(--color-warning-dark);
+    border-color: var(--color-warning);
+}
+
+.package-table-container tr.stale .package-status-cell,
+.package-table-container tr.stale,
+.package-table-container tr.workFlowNotFound .package-status-cell,
+.package-table-container tr.workFlowNotFound,
+.package-table-container tr.noRunFound .package-status-cell,
+.package-table-container tr.noRunFound {
+    background: var(--color-unknown-light);
+    color: var(--color-unknown-dark);
+    border-color: var(--color-unknown);
+}
+
+/* ANIMATIONS */
+@keyframes statusPulse {
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.01);
+        opacity: 0.98;
+    }
+}
+
+@keyframes workflowPulse {
+    0% {
+        box-shadow: 0 0 5px var(--shadow-color-progress-ultra-faint);
+    }
+    100% {
+        box-shadow: 0 0 8px var(--shadow-color-progress-light);
+    }
+}
+
+@keyframes stagePulse {
+    0% {
+        box-shadow: 0 0 8px var(--shadow-color-progress-ultra-faint);
+    }
+    100% {
+        box-shadow: 0 0 12px var(--shadow-color-progress-faint);
+    }
+}
+
+@keyframes pipelinePulse {
+    0% {
+        border-color: var(--color-progress);
+    }
+    100% {
+        border-color: var(--color-progress-dark);
+        box-shadow: 0 0 5px var(--shadow-color-progress-ultra-faint);
+    }
+}
+
+@keyframes subStagePulse {
+    0% {
+        border-color: var(--color-progress);
+        box-shadow: 0 0 3px var(--shadow-color-progress-ultra-faint);
+    }
+    100% {
+        border-color: var(--color-progress-dark);
+        box-shadow: 0 0 6px var(--shadow-color-progress-faint);
+    }
+}
+
+@keyframes arrowPulse {
+    0% {
+        opacity: 0.5;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(2px);
+    }
+}
+
+/* ========================================= */
+/* BASE STYLES & TYPOGRAPHY                  */
+/* ========================================= */
 body,
 html {
     margin: 0;
     padding: 0;
     height: 100%;
-    font-family: Sans-Serif;
+    font-family:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+        Arial, sans-serif;
+    color: var(--text-primary);
+    background-color: var(--bg-unknown);
+    line-height: 1.5;
+    font-size: 16px;
 }
 
 table {
@@ -13,285 +635,1407 @@ table {
     justify-content: center;
 }
 
-.dashboard {
+/* Header styles for title */
+.header-title {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 1em;
+    color: var(--text-header);
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: nowrap;
+}
+
+.header-logo {
+    height: 60px;
+    width: auto;
+    max-width: 250px;
+    object-fit: contain;
+    order: 1;
+}
+
+.header-title h1 {
+    order: 2;
+    margin: 0;
+    font-size: 2.8em;
+    color: var(--text-primary);
+    font-weight: bold;
+}
+
+/* Color Legend Styles */
+.color-legend {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 15px 20px;
+    margin: 0 auto 20px auto;
+    max-width: 800px;
+    box-shadow: var(--shadow-sm);
+}
+
+.color-legend h3 {
+    margin: 0 0 12px 0;
+    font-size: 1.1em;
+    color: var(--text-primary);
+    text-align: center;
+    font-weight: 600;
+}
+
+.legend-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+    align-items: center;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9em;
+    color: var(--text-unknown);
+}
+
+.legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid var(--border-white-transparent);
+    box-shadow: 0 1px 2px var(--shadow-color-black);
+    flex-shrink: 0;
+}
+
+.legend-dot.success {
+    background-color: var(--color-success);
+    border: 2px solid var(--color-success);
+    box-shadow: 0 0 6px var(--shadow-color-success);
+}
+
+.legend-dot.failure {
+    background-color: var(--color-failure);
+    border-color: var(--color-failure);
+    box-shadow: 0 0 6px var(--shadow-color-failure);
+}
+
+.legend-dot.progress {
+    background-color: var(--color-progress);
+    border-color: var(--color-progress);
+    box-shadow: 0 0 6px var(--shadow-color-progress);
+    animation: statusPulse 4s infinite ease-in-out;
+}
+
+.legend-dot.warning {
+    background-color: var(--color-warning);
+    border-color: var(--color-warning);
+    box-shadow: 0 0 6px var(--shadow-color-warning);
+}
+
+.legend-dot.info {
+    background-color: var(--color-info);
+    border-color: var(--color-info);
+    box-shadow: 0 0 6px var(--shadow-color-info);
+}
+
+.legend-dot.unknown {
+    background-color: var(--color-unknown);
+    border-color: var(--color-unknown);
+    box-shadow: 0 0 6px var(--shadow-color-unknown);
+}
+
+.legend-text {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Responsive design for legend */
+@media (max-width: 768px) {
+    .legend-items {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+
+    .legend-item {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .color-legend {
+        margin: 0 10px 20px 10px;
+        padding: 12px 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .legend-items {
+        gap: 8px;
+    }
+
+    .legend-item {
+        font-size: 0.85em;
+    }
+
+    .color-legend h3 {
+        font-size: 1em;
+    }
+}
+
+/* GL DAYS HEADER SECTION */
+.days {
+    text-align: center;
+    margin: 25px auto;
+    max-width: 1200px;
+    padding: 25px;
+    box-shadow: var(--shadow-md);
+    font-size: 1.6em;
+    border: 3px solid var(--color-unknown);
+}
+
+/* CURRENT DAILY RELEASE SECTION */
+.current-release-container,
+.current-details-container,
+.platform-cleanup-container {
+    margin: 25px auto;
+    max-width: 1200px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    transition: all 0.3s ease;
+    border-radius: 12px;
+}
+
+.current-release-header,
+.current-details-header,
+.platform-cleanup-header {
+    padding: 15px 20px;
+    border-bottom: 2px solid var(--border-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.current-details-header:hover,
+.platform-cleanup-header:hover {
+    opacity: 0.9;
+}
+
+.current-release-header h2,
+.current-details-header h2,
+.platform-cleanup-header h2 {
+    margin: 0;
+    font-size: 1.2em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.current-release-content,
+.current-details-content,
+.platform-cleanup-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease;
+    background: var(--bg-unknown);
+}
+
+.current-release-content.expanded {
+    max-height: 500px;
+    overflow: hidden;
+}
+
+.current-details-content.expanded,
+.platform-cleanup-content.expanded {
+    max-height: none;
+    overflow: hidden;
+}
+
+.platform-cleanup-workflow {
+    padding: 20px;
+    background: var(--bg-primary);
+}
+
+.current-release-summary {
+    padding: 20px;
+    background: var(--bg-primary);
+}
+
+.current-release-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 18px 25px;
+    background: var(--bg-primary);
+    border-radius: 8px;
+    border: 1px solid var(--border-light);
+    margin: 8px 0;
+}
+
+/* Unified GL version badge styling for both current and historic sections */
+.current-gl-version,
+.historic-gl-version {
+    font-weight: bold;
+    font-family: monospace;
+    font-size: 1.1em;
+    color: var(--text-white);
+    width: 100px;
+    flex-shrink: 0;
+    background: var(--color-unknown);
+    padding: 6px 10px;
+    border-radius: 4px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+/* Unified date styling */
+.current-date,
+.historic-date {
+    color: var(--text-unknown);
+    font-size: 1em;
+    font-weight: 500;
+    width: 130px;
+    flex-shrink: 0;
+    text-align: left;
+}
+
+/* Current overall status container - just a container, not a styled indicator */
+.current-overall-status {
+    width: 25px;
+    height: 25px;
+    flex-shrink: 0;
+    display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.days {
-    font-size: 1.5em;
+/* Current status indicator - the actual styled dot inside the container */
+.current-status-indicator {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background-color: var(--color-unknown);
+    border: 2px solid var(--border-white-transparent);
+    box-shadow: 0 1px 3px var(--shadow-color-black);
+    transition: all 0.3s ease;
+    margin: 0 auto;
+    flex-shrink: 0;
 }
 
-.boxed {
+/* Current status indicator colors */
+.current-status-indicator.success {
+    background-color: var(--color-success) !important;
+    border-color: var(--color-success) !important;
+    box-shadow: 0 0 6px var(--shadow-color-success) !important;
+}
+
+.current-status-indicator.failure {
+    background-color: var(--color-failure) !important;
+    border-color: var(--color-failure) !important;
+    box-shadow: 0 0 6px var(--shadow-color-failure) !important;
+}
+
+.current-status-indicator.progress {
+    background-color: var(--color-progress) !important;
+    border-color: var(--color-progress) !important;
+    box-shadow: 0 0 6px var(--shadow-color-progress) !important;
+    animation: statusPulse 4s infinite ease-in-out !important;
+}
+
+.current-status-indicator.warning {
+    background-color: var(--color-warning) !important;
+    border-color: var(--color-warning) !important;
+    box-shadow: 0 0 6px var(--shadow-color-warning) !important;
+}
+
+.current-status-indicator.unknown {
+    background-color: var(--color-unknown) !important;
+    border-color: var(--color-unknown) !important;
+    box-shadow: 0 0 6px var(--shadow-color-unknown) !important;
+}
+
+/* Container for both current and historic status indicators */
+.current-overall-status-container,
+.historic-overall-status-container {
+    width: 25px;
+    height: 25px;
+    flex-shrink: 0;
     display: flex;
-    width: 70%;
-    margin-bottom: 20px;
-    padding: 18px;
-    align-items: stretch;
-    flex-flow: column;
-    border: 2px solid #a0a0a0;
-    border-radius: 10px;
+    align-items: center;
+    justify-content: center;
 }
 
-.label {
-    font-size: 3em;
-    margin-bottom: 20px;
-    padding: 20px;
-    border-radius: 10px;
-    width: 70%;
-    text-align: center;
-}
-
-.boxed > .label {
-    width: 100%;
-    padding: 20px 0;
-}
-
-.lined-up {
+/* Ensure historic sections have consistent styling */
+.current-release-row,
+.historic-release-row {
     display: flex;
-    justify-content: space-evenly;
-    flex-flow: row;
-    column-gap: 20px;
-    align-content: center;
+    align-items: center;
+    gap: 15px;
+    padding: 18px 25px;
+    background: var(--bg-primary);
+    border-radius: 8px;
+    border: 1px solid var(--border-light);
+    margin: 8px 0;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    line-height: 1.4;
 }
 
-.boxed > .lined-up {
-    width: 100%;
-    margin-bottom: -20px;
+.current-release-row:hover,
+.historic-release-row:hover {
+    background: var(--bg-unknown);
+    transform: translateX(3px);
+    box-shadow: var(--shadow-sm);
+    border-color: var(--color-info);
 }
 
-.label-5 {
-    width: 100%;
+/* Unified stages container styling */
+.current-stages,
+.historic-stages {
+    display: flex;
+    gap: 4px;
+    width: 70px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
 }
 
-.success {
-    background-color: #5cb85c;
-    /* Green */
-    color: white;
-}
-
-.failure {
-    background-color: #d9534f;
-    /* Red */
-    color: white;
-}
-
-.progress {
-    animation: pulseProgress 5s infinite;
-    color: black;
-}
-
-.queued {
-    animation: pulseProgress 5s infinite;
-    color: black;
-}
-
-@keyframes pulseProgress {
-    0%,
-    100% {
-        background-color: #f3d000;
-    }
-
-    50% {
-        background-color: #f3d000;
-    }
-}
-
-.stale {
-    background-color: #f3d000;
-    /* Yellow */
-    color: black;
-}
-
-.legend {
-    font-size: 1.5em;
-    margin-bottom: 20px;
-    padding: 20px;
-    border-radius: 10px;
-    width: 70%;
+/* Unified package status styling */
+.current-package-status,
+.historic-package-status {
+    width: 140px;
+    flex-shrink: 0;
     text-align: center;
+    color: var(--text-unknown);
+    font-size: 0.95em;
 }
 
-.noIssues {
-    background-color: #5cb85c;
-    /* Green */
-    color: white;
+/* Unified summary styling */
+.current-summary,
+.historic-summary {
+    flex: 1;
+    min-width: 120px;
+    text-align: left;
+    color: var(--text-primary);
+    font-size: 0.95em;
+    font-weight: 600;
 }
 
-.issues {
-    background-color: #f3d000;
-    /* Yellow */
-    color: white;
+/* Unified duration styling */
+.current-duration,
+.historic-duration {
+    width: 100px;
+    flex-shrink: 0;
+    text-align: center;
+    color: var(--text-unknown);
+    font-size: 0.95em;
+    font-weight: 600;
 }
 
-/* Styles for run details */
-.run-details {
-    margin-top: 10px;
-    padding: 10px;
-    font-size: 0.4em;
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 5px;
-    max-height: 200px;
+/* PIPELINE HIERARCHY SYSTEM */
+.pipeline-container {
+    max-width: 1200px;
+    margin: 25px auto;
+    padding: 25px;
+    border: 4px solid var(--border-medium);
+    border-radius: 15px;
+    background: linear-gradient(
+        to bottom,
+        var(--bg-primary) 0%,
+        var(--bg-unknown) 100%
+    );
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.pipeline-stage {
+    margin-bottom: 16px;
+    border: 3px solid var(--border-light);
+    border-radius: 12px;
+    background: var(--bg-primary);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.stage-header {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    background: var(--bg-primary);
+    border-bottom: 2px solid var(--border-light);
+    margin-bottom: 15px;
+}
+
+.stage-icon {
+    font-size: 1.8em;
+    margin-right: 15px;
+}
+
+.stage-header h3 {
+    margin: 0;
+    font-size: 1.2em;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.stage-workflows {
+    padding: 16px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    overflow: hidden;
+}
+
+/* WORKFLOW BOX BASE STYLES - Compact Version */
+.workflow-box {
+    flex: 1;
+    min-width: 280px;
+    border: 2px solid var(--border-light);
+    border-radius: 10px;
+    background: var(--bg-primary);
+    transition: all 0.3s ease;
+    position: relative;
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+/* Standardize all workflow content styling - Compact */
+.workflow-box a {
+    text-decoration: none;
+    transition: all 0.3s ease;
+    display: block;
+    padding: 14px;
+    line-height: 1.5;
+    font-size: 1em;
+    color: inherit;
+    min-height: 50px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+.workflow-box a:hover {
+    color: var(--color-info);
+    text-decoration: underline;
+}
+
+/* Ensure no red borders or visual artifacts */
+.workflow-box *,
+.sub-stage *,
+.pipeline-stage * {
+    box-sizing: border-box;
+}
+
+/* Remove any problematic outline or debug styling */
+* {
+    outline: none !important;
+}
+
+*:focus {
+    outline: 2px solid var(--color-info) !important;
+    outline-offset: 2px !important;
+}
+
+/* WORKFLOW DETAILS & RUN ITEMS - Compact Version */
+.workflow-details {
+    font-size: 0.9em;
+    line-height: 1.4;
+    background: var(--bg-primary);
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 8px;
+    border: 1px solid var(--border-light);
+    max-height: 400px;
     overflow-y: auto;
+    color: var(--text-primary);
+    flex: 1;
 }
 
 .run-item {
     margin-bottom: 8px;
-    padding: 5px;
-    border-radius: 3px;
-    background-color: rgba(255, 255, 255, 0.1);
+    padding: 10px;
+    border-radius: 6px;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-light);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    line-height: 1.3;
 }
 
 .run-item:last-child {
     margin-bottom: 0;
 }
 
-/* Color individual run items based on their status */
-.run-item .run-status.success {
-    background-color: #5cb85c;
-    color: white;
-    padding: 3px 6px;
-    border-radius: 3px;
-    display: inline-block;
+.run-item:hover {
+    background-color: var(--bg-unknown);
+    border-color: var(--color-info);
+    box-shadow: var(--shadow-sm);
 }
 
-.run-item .run-status.failure {
-    background-color: #d9534f;
-    color: white;
-    padding: 3px 6px;
-    border-radius: 3px;
-    display: inline-block;
-}
-
-.run-item .run-status.progress {
-    animation: pulseProgress 5s infinite;
-    color: black;
-    padding: 3px 6px;
-    border-radius: 3px;
-    display: inline-block;
-}
-
-.run-item .run-status.queued {
-    animation: pulseProgress 5s infinite;
-    color: black;
-    padding: 3px 6px;
-    border-radius: 3px;
-    display: inline-block;
-}
-
-.run-status a {
-    color: inherit;
+.run-item-link {
+    display: block;
     text-decoration: none;
+    color: inherit;
 }
 
-.run-status a:hover {
-    text-decoration: underline;
+.run-item-link:hover {
+    text-decoration: none;
+    color: inherit;
 }
 
-.branch-commit {
-    opacity: 0.8;
-    font-size: 0.9em;
+.run-status-line {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border-light);
+    font-weight: 600;
+    font-size: 0.95em;
 }
 
-.no-runs {
-    background-color: #f3d000;
-    /* Yellow - like GitHub Actions */
-    color: black;
+.run-timing-line {
+    font-size: 0.85em;
+    color: var(--text-unknown);
+    margin-bottom: 4px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border-light);
+    font-family: monospace;
+    line-height: 1.3;
 }
 
-.api-error {
-    background-color: #6c757d;
-    /* Gray for API errors */
-    color: white;
+.run-duration-line {
+    font-size: 0.8em;
+    color: var(--text-unknown);
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border-light);
+    font-family: monospace;
+    font-weight: 500;
+    text-align: left;
+    font-style: italic;
 }
 
-/* Settings panel styles */
+.run-time {
+    font-size: 0.95em;
+    color: var(--text-unknown);
+}
+
+.run-meta {
+    font-size: 0.8em;
+    color: var(--text-unknown);
+    margin-bottom: 0;
+    line-height: 1.2;
+    display: block;
+    width: 100%;
+}
+
+.run-meta * {
+    white-space: normal;
+}
+
+.parent-run-info {
+    font-size: 0.8em;
+    color: var(--text-unknown);
+    margin-bottom: 0;
+    line-height: 1.2;
+    display: block;
+    width: 100%;
+}
+
+.parent-run-link,
+.parent-run-unavailable {
+    display: inline;
+    line-height: inherit;
+    font-size: inherit;
+    color: var(--text-unknown);
+}
+
+.no-runs-message,
+.error-message {
+    text-align: center;
+    padding: 12px;
+    font-style: italic;
+    color: var(--text-unknown);
+    background: var(--bg-unknown);
+    border-radius: 6px;
+    margin: 6px 0;
+    border: 2px dashed var(--border-medium);
+}
+
+.error-message {
+    color: var(--color-failure);
+    background: var(--color-failure-light);
+    border: 2px solid var(--color-failure);
+}
+
+.workflow-box.no-runs .no-runs-message {
+    background: var(--bg-unknown);
+    border: 2px dashed var(--border-medium);
+    margin: 0;
+    padding: 12px;
+    font-size: 0.85em;
+    color: var(--text-unknown);
+}
+
+/* Special indicators */
+.pipeline-stage.stage-cascaded-failure::before {
+    content: "⚠️ Cascaded Failure";
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: var(--color-failure);
+    color: var(--text-white);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+.stage-warning-indicator {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: var(--color-warning);
+    color: var(--text-white);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: bold;
+    box-shadow: var(--shadow-sm);
+    animation: stagePulse 2s infinite alternate;
+}
+
+.sub-stage.blocked::after {
+    content: "🚫 Blocked";
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: var(--color-unknown);
+    color: var(--text-white);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+/* PACKAGE MANAGEMENT SECTION */
+.package-summary {
+    margin: 25px auto;
+    max-width: 1200px;
+    background: var(--bg-primary);
+    border-radius: 12px;
+    border: 2px solid var(--border-light);
+    overflow: hidden;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-md);
+}
+
+.package-status {
+    padding: 18px 25px;
+    font-weight: bold;
+    font-size: 1.2em;
+    text-align: center;
+    line-height: 1.4;
+}
+
+.package-issues-header {
+    padding: 15px 25px;
+    font-weight: bold;
+    font-size: 1.1em;
+    border-top: 1px solid var(--border-light);
+    background: var(--bg-unknown);
+}
+
+.package-summary.success .package-status {
+    background: var(--color-success-light);
+    color: var(--color-success-dark);
+}
+
+.package-summary.progress .package-status {
+    background: var(--color-progress-light);
+    color: var(--color-progress-dark);
+    animation: pipelinePulse 2s infinite alternate;
+}
+
+.package-summary.warning .package-status,
+.package-summary.warning .package-issues-header {
+    background: var(--color-warning-light);
+    color: var(--color-warning-dark);
+}
+
+.package-summary.warning .package-table-container {
+    background: var(--bg-primary);
+}
+
+.package-summary.warning .package-table-container td {
+    border-color: var(--color-warning);
+}
+
+.package-summary.api-error .package-status {
+    background: var(--color-failure-light);
+    color: var(--color-failure-dark);
+}
+
+.package-table-container {
+    padding: 15px 20px 20px;
+    background: var(--bg-primary);
+    border-top: 1px solid var(--border-light);
+    max-height: 400px;
+    overflow-y: auto;
+    border-radius: 0 0 8px 8px;
+}
+
+.package-table-container table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95em;
+    margin-top: 10px;
+    background: var(--bg-primary);
+}
+
+.package-table-container td {
+    padding: 12px 15px;
+    border: 1px solid var(--border-light);
+    text-align: left;
+    background: var(--bg-primary);
+    transition: background-color 0.2s ease;
+}
+
+.package-table-container tr:hover td {
+    background: var(--bg-unknown);
+}
+
+.package-table-container td:nth-child(1) {
+    font-weight: bold;
+    width: 30%;
+}
+
+.package-table-container td:nth-child(2) {
+    width: 20%;
+}
+
+.package-table-container td:nth-child(3) {
+    width: 50%;
+}
+
+.package-table-container tr:last-child td {
+    border-bottom: none;
+}
+
+.package-error-details {
+    margin-top: 8px;
+    padding: 10px;
+    background: var(--color-failure-light);
+    border: 1px solid var(--color-failure);
+    border-radius: 4px;
+    font-size: 0.85em;
+    color: var(--color-failure-dark);
+}
+
+.package-error-details strong {
+    display: block;
+    margin-bottom: 5px;
+}
+
+#packages-table .api-error {
+    background: var(--color-failure-light);
+    border-color: var(--color-failure);
+}
+
+#packages-table .api-error td {
+    color: var(--color-failure-dark);
+    border-color: var(--color-failure);
+}
+
+/* SETTINGS PANEL */
 #settings-container {
     position: fixed;
-    top: 20px;
+    bottom: 20px;
     right: 20px;
     z-index: 1000;
 }
 
 #settings-btn {
-    background-color: #007bff;
-    color: white;
+    background: var(--color-info);
+    color: var(--text-white);
     border: none;
-    padding: 10px 15px;
-    border-radius: 5px;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    font-size: 1.2em;
     cursor: pointer;
-    font-size: 16px;
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s ease;
 }
 
 #settings-btn:hover {
-    background-color: #0056b3;
+    transform: scale(1.1);
+    background: var(--color-info-dark);
 }
 
 #settings-panel {
     position: absolute;
-    top: 50px;
+    bottom: 60px;
     right: 0;
-    background: white;
-    border: 2px solid #007bff;
+    width: 300px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-light);
     border-radius: 8px;
+    box-shadow: var(--shadow-lg);
     padding: 20px;
-    min-width: 300px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: none;
 }
 
 #settings-panel h3 {
-    margin-top: 0;
-    margin-bottom: 15px;
-    color: #333;
+    margin: 0 0 15px 0;
+    color: var(--text-primary);
+    font-size: 1.1em;
 }
 
 .token-status {
     margin-bottom: 15px;
-    font-weight: bold;
+    font-size: 0.9em;
 }
 
 .token-input-group {
-    margin-bottom: 15px;
+    display: flex;
+    margin-bottom: 10px;
 }
 
 .token-input-group input {
-    width: 100%;
+    flex: 1;
     padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    margin-bottom: 10px;
+    border: 1px solid var(--border-medium);
+    border-radius: 4px 0 0 4px;
+    font-size: 0.9em;
     font-family: monospace;
+    background: var(--bg-unknown);
+}
+
+.token-input-group input:focus {
+    outline: none;
+    border-color: var(--color-info);
+    box-shadow: 0 0 0 2px var(--shadow-color-info-light);
 }
 
 .token-input-group button {
-    background-color: #28a745;
-    color: white;
-    border: none;
     padding: 8px 12px;
-    border-radius: 4px;
+    border: 1px solid var(--border-medium);
+    border-left: none;
+    background: var(--color-info);
+    color: var(--text-white);
     cursor: pointer;
-    margin-right: 5px;
+    font-size: 0.85em;
+    transition: background 0.2s ease;
 }
 
 .token-input-group button:hover {
-    background-color: #218838;
+    background: var(--color-info-dark);
 }
 
 .token-input-group button:last-child {
-    background-color: #dc3545;
+    border-radius: 0 4px 4px 0;
 }
 
 .token-input-group button:last-child:hover {
-    background-color: #c82333;
+    background: var(--color-failure);
 }
 
 #settings-panel small {
-    color: #666;
-    line-height: 1.4;
+    display: block;
+    color: var(--text-unknown);
+    font-size: 0.8em;
+    margin-top: 5px;
 }
 
 #settings-panel a {
-    color: #007bff;
+    color: var(--color-info);
+    text-decoration: none;
+}
+
+.settings-separator {
+    border-top: 1px solid var(--border-light);
+    margin: 15px 0;
+}
+
+.gl-selector {
+    margin-bottom: 15px;
+}
+
+.gl-selector label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: var(--text-primary);
+    font-size: 0.9em;
+}
+
+.gl-input-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.gl-btn {
+    padding: 6px 12px;
+    border: 1px solid var(--border-medium);
+    background: var(--bg-unknown);
+    color: var(--text-primary);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+}
+
+.gl-btn:hover {
+    background: var(--color-info);
+    color: var(--text-white);
+    border-color: var(--color-info);
+}
+
+.gl-btn:active {
+    transform: translateY(1px);
+}
+
+#gl-input {
+    flex: 1;
+    padding: 6px 8px;
+    border: 1px solid var(--border-medium);
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-family: monospace;
+    background: var(--bg-unknown);
+    color: var(--text-primary);
+}
+
+#gl-input:focus {
+    outline: none;
+    border-color: var(--color-info);
+    box-shadow: 0 0 0 2px var(--shadow-color-info-light);
+}
+
+.gl-info {
+    font-size: 0.8em;
+    color: var(--text-unknown);
+}
+
+.gl-info small {
+    color: var(--text-muted);
+}
+
+.gl-actions {
+    margin-top: 10px;
+}
+
+.today-btn {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--color-success);
+    background: var(--color-success);
+    color: var(--text-white);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: block;
+    text-align: center;
+}
+
+.today-btn:hover {
+    background: var(--color-success-dark);
+    border-color: var(--color-success-dark);
+    transform: translateY(-1px);
+}
+
+/* SEQUENTIAL WORKFLOWS & SUB-STAGES */
+.sequential-workflows {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Compact sub-stage styling */
+.sub-stage {
+    padding: 14px;
+    background: var(--bg-primary);
+    border-radius: 10px;
+    border: 2px solid var(--border-light);
+    position: relative;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+}
+
+.sub-stage-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
+}
+
+.sub-stage-icon {
+    font-size: 1.3em;
+    color: var(--text-unknown);
+    width: 24px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.sub-stage-header h4 {
+    margin: 0;
+    font-size: 1.1em;
+    color: var(--text-primary);
+    font-weight: 600;
+    flex-grow: 1;
+}
+
+.sub-stage .workflow-box {
+    border: 2px solid var(--border-light);
+    margin: 0;
+    box-shadow: var(--shadow-sm);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    min-height: 80px;
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Ensure consistent padding and layout in sub-stages - Compact */
+.sub-stage .workflow-box a {
+    padding: 14px;
+    min-height: 50px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+/* HISTORIC RELEASES SECTION */
+.historic-releases-container {
+    margin: 20px auto;
+    max-width: 1200px;
+    background: var(--bg-primary);
+    border-radius: 12px;
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+}
+
+.historic-releases-header {
+    padding: 20px;
+    background: var(--bg-unknown);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.historic-releases-header:hover {
+    background: var(--bg-unknown);
+}
+
+.historic-releases-header h2 {
+    margin: 0;
+    font-size: 1.2em;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.toggle-icon {
+    transition: transform 0.3s ease;
+    font-size: 1.2em;
+    color: var(--text-unknown);
+}
+
+.toggle-icon.expanded {
+    transform: rotate(180deg);
+}
+
+.historic-releases-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease;
+}
+
+.historic-releases-content.expanded {
+    max-height: none;
+    overflow: visible;
+}
+
+.historic-loading {
+    padding: 40px;
+    text-align: center;
+    color: var(--text-unknown);
+    font-style: italic;
+    background: var(--bg-unknown);
+}
+
+.historic-releases-list {
+    background: var(--bg-unknown);
+}
+
+.historic-release-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 18px 25px;
+    background: var(--bg-primary);
+    border-radius: 8px;
+    border: 1px solid var(--border-light);
+    margin: 8px 0;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    line-height: 1.4;
+}
+
+.historic-release-row:hover {
+    background: var(--bg-unknown);
+    transform: translateX(3px);
+    box-shadow: var(--shadow-sm);
+    border-color: var(--color-info);
+}
+
+.historic-release-row:last-child {
+    margin-bottom: 0;
+}
+
+/* Remove underlines from historic release row links */
+.historic-release-row a,
+.historic-release-row a:hover,
+.historic-release-row a:visited {
+    text-decoration: none !important;
+    color: inherit;
+}
+
+.historic-release-row a:hover {
+    color: var(--color-info);
+}
+
+/* Historic status indicator colors */
+.historic-status-indicator {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background-color: var(--color-unknown);
+    border: 2px solid var(--border-white-transparent);
+    box-shadow: 0 1px 3px var(--shadow-color-black);
+    transition: all 0.3s ease;
+    margin: 0 auto;
+    flex-shrink: 0;
+}
+
+.historic-status-indicator.success {
+    background-color: var(--color-success) !important;
+    border-color: var(--color-success) !important;
+    box-shadow: 0 0 6px var(--shadow-color-success) !important;
+}
+
+.historic-status-indicator.failure {
+    background-color: var(--color-failure) !important;
+    border-color: var(--color-failure) !important;
+    box-shadow: 0 0 6px var(--shadow-color-failure) !important;
+}
+
+.historic-status-indicator.progress {
+    background-color: var(--color-progress) !important;
+    border-color: var(--color-progress) !important;
+    box-shadow: 0 0 6px var(--shadow-color-progress) !important;
+    animation: statusPulse 4s infinite ease-in-out !important;
+}
+
+.historic-status-indicator.warning {
+    background-color: var(--color-warning) !important;
+    border-color: var(--color-warning) !important;
+    box-shadow: 0 0 6px var(--shadow-color-warning) !important;
+}
+
+.historic-status-indicator.unknown {
+    background-color: var(--color-unknown) !important;
+    border-color: var(--color-unknown) !important;
+    box-shadow: 0 0 6px var(--shadow-color-unknown) !important;
+}
+
+/* Historic overall status container */
+.historic-overall-status {
+    width: 25px;
+    height: 25px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Remove underlines and fix hover colors for historic release row links */
+.historic-release-row {
+    text-decoration: none !important;
+    color: inherit;
+}
+
+.historic-release-row:hover {
+    text-decoration: none !important;
+}
+
+.historic-release-row * {
+    text-decoration: none !important;
+}
+
+/* RESPONSIVE DESIGN */
+@media (max-width: 768px) {
+    .header-title {
+        gap: 15px;
+    }
+
+    .header-logo {
+        height: 45px;
+        max-width: 180px;
+    }
+
+    .header-title h1 {
+        font-size: 2em;
+    }
+
+    .current-release-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 18px 15px;
+    }
+
+    .current-date,
+    .current-overall-status,
+    .current-stages,
+    .current-package-status,
+    .current-duration,
+    .current-summary {
+        align-self: stretch;
+        width: auto;
+        flex-shrink: 1;
+        text-align: center;
+    }
+
+    .current-gl-version {
+        font-size: 1.2em;
+        padding: 8px 14px;
+        align-self: center;
+        width: auto;
+    }
+
+    .current-stages {
+        justify-content: center;
+        width: auto;
+    }
+
+    .current-summary {
+        text-align: center;
+    }
+
+    .stage-workflows {
+        flex-direction: column;
+    }
+
+    .workflow-box {
+        min-height: auto;
+    }
+
+    .pipeline-container {
+        margin: 10px;
+        padding: 15px;
+    }
+
+    .stage-header h3 {
+        font-size: 1em;
+    }
+
+    .extracted-field {
+        display: block;
+        margin-bottom: 10px;
+    }
+
+    .extracted-field label {
+        font-size: 0.8em;
+        color: var(--text-unknown);
+    }
+
+    .extracted-value {
+        font-size: 0.9em;
+    }
+
+    .debug-details {
+        font-size: 0.8em;
+    }
+
+    .artifact-content {
+        font-size: 0.8em;
+    }
+}
+
+.workflow-box.success a.parent-run-link,
+.workflow-box.failure a.parent-run-link,
+.workflow-box.progress a.parent-run-link,
+.workflow-box.queued a.parent-run-link,
+.workflow-box.warning a.parent-run-link,
+.workflow-box.api-error a.parent-run-link,
+.workflow-box.no-runs a.parent-run-link,
+.workflow-box.success a.parent-run-unavailable,
+.workflow-box.failure a.parent-run-unavailable,
+.workflow-box.progress a.parent-run-unavailable,
+.workflow-box.queued a.parent-run-unavailable,
+.workflow-box.warning a.parent-run-unavailable,
+.workflow-box.api-error a.parent-run-unavailable,
+.workflow-box.no-runs a.parent-run-unavailable,
+.parent-run-link,
+.parent-run-unavailable {
+    color: var(--text-unknown) !important;
+    text-decoration: none;
+    font-family: inherit;
+    font-weight: normal;
+    transition: all 0.2s ease;
+}
+
+.workflow-box.success a.parent-run-link:hover,
+.workflow-box.failure a.parent-run-link:hover,
+.workflow-box.progress a.parent-run-link:hover,
+.workflow-box.queued a.parent-run-link:hover,
+.workflow-box.warning a.parent-run-link:hover,
+.workflow-box.api-error a.parent-run-link:hover,
+.workflow-box.no-runs a.parent-run-link:hover,
+.workflow-box.success a.parent-run-unavailable:hover,
+.workflow-box.failure a.parent-run-unavailable:hover,
+.workflow-box.progress a.parent-run-unavailable:hover,
+.workflow-box.queued a.parent-run-unavailable:hover,
+.workflow-box.warning a.parent-run-unavailable:hover,
+.workflow-box.api-error a.parent-run-unavailable:hover,
+.workflow-box.no-runs a.parent-run-unavailable:hover,
+.parent-run-link:hover,
+.parent-run-unavailable:hover {
+    color: var(--text-muted) !important;
+    text-decoration: underline;
 }

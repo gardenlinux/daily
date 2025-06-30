@@ -1,20 +1,30 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Garden Linux Daily Dashboard</title>
+        <link
+            rel="icon"
+            type="image/svg+xml"
+            href="https://raw.githubusercontent.com/gardenlinux/gardenlinux/main/logo/gardenlinux.svg"
+        />
         <link rel="stylesheet" href="style.css" />
     </head>
 
     <body>
-        <h1>Garden Linux Daily Dashboard</h1>
+        <div class="header-title">
+            <img
+                src="https://raw.githubusercontent.com/gardenlinux/gardenlinux/main/logo/gardenlinux.svg"
+                alt="Garden Linux Logo"
+                class="header-logo"
+            />
+            <h1>Daily Dashboard</h1>
+        </div>
 
-        <!-- Settings Panel -->
+        <!-- Settings Container -->
         <div id="settings-container">
-            <button id="settings-btn" onclick="toggleSettings()">
-                ⚙️ Settings
-            </button>
+            <button id="settings-btn" onclick="toggleSettings()">⚙️</button>
             <div id="settings-panel" style="display: none">
                 <h3>GitHub Authentication</h3>
                 <div class="token-status">
@@ -24,7 +34,8 @@
                     <input
                         type="password"
                         id="token-input"
-                        placeholder="Enter GitHub Personal Access Token" />
+                        placeholder="Enter GitHub Personal Access Token"
+                    />
                     <button onclick="saveToken()">Save</button>
                     <button onclick="clearToken()">Clear</button>
                 </div>
@@ -39,512 +50,400 @@
                     • <strong>Fine-grained</strong>: needs 'Actions:Read' +
                     'Metadata:Read' permissions
                 </small>
+
+                <hr class="settings-separator" />
+
+                <h3>Historic Daily Releases</h3>
+                <div class="gl-selector">
+                    <label for="gl-input">Garden Linux Version:</label>
+                    <div class="gl-input-group">
+                        <button class="gl-btn" onclick="decrementGL()">
+                            ▼
+                        </button>
+                        <input
+                            type="number"
+                            id="gl-input"
+                            min="1"
+                            step="1"
+                            onchange="goToGL()"
+                            onkeypress="handleGLKeypress(event)"
+                            oninput="handleGLInput()"
+                        />
+                        <button class="gl-btn" onclick="incrementGL()">
+                            ▲
+                        </button>
+                    </div>
+                    <div class="gl-info">
+                        <small id="gl-date-info">Loading...</small>
+                    </div>
+                    <div class="gl-actions">
+                        <button onclick="goToToday()" class="today-btn">
+                            Go to Today
+                        </button>
+                    </div>
+                </div>
+
+                <hr class="settings-separator" />
+
+                <h3>Workflow Branch Settings</h3>
+                <div class="branch-settings">
+                    <div class="branch-toggle-group">
+                        <label
+                            for="search-all-branches"
+                            class="branch-toggle-label"
+                        >
+                            <input
+                                type="checkbox"
+                                id="search-all-branches"
+                                onchange="toggleBranchSearch()"
+                            />
+                            Search all branches instead of default ones
+                        </label>
+                        <div class="branch-status" id="branch-status">
+                            <small
+                                >Currently searching:
+                                <span id="branch-mode"
+                                    >default branches only</span
+                                ></small
+                            >
+                        </div>
+                    </div>
+                    <small class="branch-help">
+                        By default, workflows search only their main/default
+                        branches.
+                        <br />
+                        Enable this to search all branches for each workflow,
+                        which may include feature branches and development work.
+                    </small>
+                </div>
             </div>
         </div>
 
-        <div class="days" id="gl-days"></div>
-        <div class="dashboard">
-            <div class="boxed">
-                <div class="lined-up">
-                    <div id="daily-info-28837699" class="label label-5">
-                        <a
-                            href="https://github.com/gardenlinux/gardenlinux/actions/workflows/nightly.yml"
-                            >Garden Linux Nightly - Schedule</a
+        <!-- Main Container for consistent column width -->
+        <div class="main-container">
+            <div class="days" id="gl-days"></div>
+
+            <!-- Current Daily Release Section -->
+            <div
+                id="current-release-container"
+                class="current-release-container"
+            >
+                <div class="current-release-header" id="current-release-header">
+                    <h2>🚀 Current Daily Release</h2>
+                </div>
+                <div
+                    id="current-release-content"
+                    class="current-release-content expanded"
+                >
+                    <!-- Current Release Summary -->
+                    <div class="current-release-summary">
+                        <div
+                            class="current-release-row"
+                            id="current-release-row"
                         >
-                    </div>
-                    <div id="daily-info-152444842" class="label label-5">
-                        <a
-                            href="https://github.com/gardenlinux/gardenlinux/actions/workflows/manual_release.yml"
-                            >Build and publish a release - Manual</a
-                        >
+                            <div
+                                class="current-gl-version"
+                                id="current-gl-version"
+                            >
+                                GL --
+                            </div>
+                            <div class="current-date" id="current-date">
+                                Loading...
+                            </div>
+
+                            <div class="current-overall-status">
+                                <span
+                                    class="current-status-indicator unknown"
+                                    id="current-status-indicator"
+                                    title="Overall Status: unknown"
+                                ></span>
+                            </div>
+
+                            <div
+                                class="current-stages"
+                                title="Stages: Package | Repo | Build | Publish"
+                            >
+                                <span
+                                    class="current-stage-dot unknown"
+                                    id="current-stage-1"
+                                    title="Package Builds"
+                                ></span>
+                                <span
+                                    class="current-stage-dot unknown"
+                                    id="current-stage-2"
+                                    title="Repository"
+                                ></span>
+                                <span
+                                    class="current-stage-dot unknown"
+                                    id="current-stage-3"
+                                    title="Build & Release"
+                                ></span>
+                                <span
+                                    class="current-stage-dot unknown"
+                                    id="current-stage-4"
+                                    title="Publish"
+                                ></span>
+                            </div>
+
+                            <div
+                                class="current-package-status"
+                                id="current-package-status"
+                            >
+                                Loading...
+                            </div>
+
+                            <div class="current-duration" id="current-duration">
+                                Calculating...
+                            </div>
+
+                            <div class="current-summary" id="current-summary">
+                                Loading...
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="lined-up">
-                    <div id="daily-info-152444846" class="label label-5">
-                        <a
-                            href="https://github.com/gardenlinux/gardenlinux/actions/workflows/publish.yml"
-                            >Publish to ghcr.io</a
-                        >
-                    </div>
+            <!-- Current Daily Release Details Section -->
+            <div
+                id="current-details-container"
+                class="current-details-container"
+            >
+                <div
+                    class="current-details-header"
+                    id="current-details-header"
+                    onclick="toggleCurrentDetails()"
+                >
+                    <h2>🔧 Current Daily Release Details</h2>
+                    <span id="current-details-toggle-icon" class="toggle-icon"
+                        >▼</span
+                    >
+                </div>
+                <div
+                    id="current-details-content"
+                    class="current-details-content"
+                    style="display: none"
+                >
+                    <!-- Pipeline Hierarchy Container -->
+                    <div
+                        class="pipeline-stages-container"
+                        id="pipeline-stages-container"
+                    >
+                        <div class="pipeline-container" id="pipeline-container">
+                            <!-- Stage 4: Publish Images -->
+                            <div class="pipeline-stage stage-4" id="stage-4">
+                                <div class="stage-header">
+                                    <span class="stage-icon">🚀</span>
+                                    <h3>Stage 4: Publish Images</h3>
+                                </div>
+                                <div class="stage-workflows">
+                                    <!-- Workflow boxes will be generated dynamically from constants -->
+                                </div>
+                            </div>
 
-                    <div id="daily-info-152444850" class="label label-5">
-                        <a
-                            href="https://github.com/gardenlinux/gardenlinux/actions/workflows/publish_s3.yml"
-                            >Publish to S3</a
-                        >
+                            <!-- Stage 3: Build & Release Images -->
+                            <div class="pipeline-stage stage-3" id="stage-3">
+                                <div class="stage-header">
+                                    <span class="stage-icon">🔄</span>
+                                    <h3>Stage 3: Build & Release Images</h3>
+                                </div>
+                                <div class="stage-workflows">
+                                    <!-- Workflow boxes will be generated dynamically from constants -->
+                                </div>
+                            </div>
+
+                            <!-- Stage 2: Repository -->
+                            <div class="pipeline-stage stage-2" id="stage-2">
+                                <div class="stage-header">
+                                    <span class="stage-icon">📦</span>
+                                    <h3>Stage 2: Repository</h3>
+                                </div>
+                                <div
+                                    class="stage-workflows sequential-workflows"
+                                >
+                                    <div
+                                        class="sub-stage"
+                                        id="sub-stage-repo-build"
+                                    >
+                                        <div class="sub-stage-header">
+                                            <span class="sub-stage-icon"
+                                                >🏗️</span
+                                            >
+                                            <h4>Repo Build</h4>
+                                        </div>
+                                        <div class="workflow-box">
+                                            <!-- Workflow box will be generated dynamically -->
+                                        </div>
+                                    </div>
+                                    <div class="sequential-arrow">↑</div>
+                                    <div
+                                        class="sub-stage"
+                                        id="sub-stage-repo-update"
+                                    >
+                                        <div class="sub-stage-header">
+                                            <span class="sub-stage-icon"
+                                                >🔄</span
+                                            >
+                                            <h4>Repo Update</h4>
+                                        </div>
+                                        <div class="workflow-box">
+                                            <!-- Workflow box will be generated dynamically -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Stage 1: Package Builds -->
+                            <div class="pipeline-stage stage-1" id="stage-1">
+                                <div class="stage-header">
+                                    <span class="stage-icon">🧱</span>
+                                    <h3>Stage 1: Package Builds</h3>
+                                </div>
+                                <div class="stage-workflows">
+                                    <div
+                                        class="package-summary"
+                                        id="package-summary"
+                                    >
+                                        <div
+                                            class="package-status"
+                                            id="package-status"
+                                        >
+                                            Loading package status...
+                                        </div>
+
+                                        <!-- Package Issues Section -->
+                                        <div
+                                            id="package-issues-section"
+                                            style="display: none"
+                                        >
+                                            <div class="package-issues-header">
+                                                <strong
+                                                    >Package repos that need
+                                                    attention:</strong
+                                                >
+                                            </div>
+                                            <div
+                                                class="package-table-container"
+                                            >
+                                                <table
+                                                    id="packages-table"
+                                                ></table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div id="daily-info-84300234" class="label">
-                <a
-                    href="https://github.com/gardenlinux/repo/actions/workflows/update.yml"
-                    >Repo Update</a
+            <!-- Platform Test Cleanup Section -->
+            <div
+                id="platform-cleanup-container"
+                class="platform-cleanup-container"
+            >
+                <div
+                    class="platform-cleanup-header"
+                    id="platform-cleanup-header"
+                    onclick="togglePlatformCleanup()"
                 >
-            </div>
-
-            <div id="daily-info-84300233" class="label">
-                <a
-                    href="https://github.com/gardenlinux/repo/actions/workflows/build.yml"
-                    >Repo Build</a
+                    <h2>🧹 Platform Test Cleanup</h2>
+                    <span id="platform-cleanup-toggle-icon" class="toggle-icon"
+                        >▼</span
+                    >
+                </div>
+                <div
+                    id="platform-cleanup-content"
+                    class="platform-cleanup-content"
+                    style="display: none"
                 >
+                    <div class="platform-cleanup-workflow">
+                        <div class="workflow-box" id="daily-info-152444845">
+                            <a
+                                href="https://github.com/gardenlinux/gardenlinux/actions/workflows/platform_test_cleanup.yml"
+                                target="_blank"
+                            >
+                                Platform Test Cleanup
+                            </a>
+                            <div
+                                class="workflow-details"
+                                id="workflow-details-152444845"
+                            >
+                                Loading workflow details...
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div id="legend-issues" class="legend issues">
-                <p>Package repos that need attention:</p>
-            </div>
-            <div id="legend-no-isues" class="legend noIssues">
-                <p>
-                    No package builds need attention. Continue doing awesome
-                    work :-)
-                </p>
-            </div>
-
-            <div id="packages">
-                <table id="packages-table"></table>
+            <!-- Historic Daily Releases Section -->
+            <div
+                id="historic-releases-container"
+                class="historic-releases-container"
+            >
+                <div
+                    class="historic-releases-header"
+                    onclick="toggleHistoricReleases()"
+                >
+                    <h2>📅 Historic Daily Releases (Last 14 Days)</h2>
+                    <span id="historic-toggle-icon" class="toggle-icon">▼</span>
+                </div>
+                <div
+                    id="historic-releases-content"
+                    class="historic-releases-content"
+                    style="display: none"
+                >
+                    <div
+                        id="historic-releases-loading"
+                        class="historic-loading"
+                    >
+                        Loading historic data...
+                    </div>
+                    <div
+                        id="historic-releases-list"
+                        class="historic-releases-list"
+                    >
+                        <!-- Historic release rows will be inserted here -->
+                    </div>
+                </div>
             </div>
         </div>
 
-        <script>
-            // GitHub authentication - supports both Classic and Fine-grained tokens
-            function getAuthHeaders() {
-                const token = localStorage.getItem("github_token");
+        <!-- Settings Panel -->
 
-                if (token) {
-                    let authHeader;
-                    if (token.startsWith("ghp_")) {
-                        authHeader = `token ${token}`;
-                    } else if (token.startsWith("github_pat_")) {
-                        authHeader = `Bearer ${token}`;
-                    } else {
-                        authHeader = `token ${token}`;
-                    }
+        <!-- Color Legend -->
+        <div class="color-legend">
+            <h3>Status Legend</h3>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <span class="legend-dot success"></span>
+                    <span class="legend-text">Success</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot failure"></span>
+                    <span class="legend-text">Failure</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot warning"></span>
+                    <span class="legend-text">Warning</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot progress"></span>
+                    <span class="legend-text">In Progress</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot info"></span>
+                    <span class="legend-text">Info</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot unknown"></span>
+                    <span class="legend-text">Unknown</span>
+                </div>
+            </div>
+        </div>
 
-                    return {
-                        Authorization: authHeader,
-                        Accept: "application/vnd.github.v3+json",
-                        "X-GitHub-Api-Version": "2022-11-28",
-                    };
-                } else {
-                    return {
-                        Accept: "application/vnd.github.v3+json",
-                        "X-GitHub-Api-Version": "2022-11-28",
-                    };
-                }
-            }
-
-            async function getTriggerInfo(owner, repo, runData) {
-                try {
-                    const event = runData.event;
-
-                    switch (event) {
-                        case "workflow_dispatch":
-                            return "workflow_dispatch (manual or bot)";
-                        case "workflow_run":
-                            return "workflow_run (by workflow)";
-                        case "schedule":
-                            return "schedule";
-                        case "push":
-                            return "push";
-                        case "pull_request":
-                            return "pull_request";
-                        default:
-                            return event;
-                    }
-                } catch (error) {
-                    console.error("Failed to get trigger info:", error);
-                    return "unknown";
-                }
-            }
-
-            // Settings panel functions
-            function toggleSettings() {
-                const panel = document.getElementById("settings-panel");
-                panel.style.display =
-                    panel.style.display === "none" ? "block" : "none";
-                updateAuthStatus();
-            }
-
-            function saveToken() {
-                const tokenInput = document.getElementById("token-input");
-                const token = tokenInput.value.trim();
-
-                if (!token) {
-                    alert("Please enter a token");
-                    return;
-                }
-
-                // Validate token format
-                if (
-                    !token.startsWith("ghp_") &&
-                    !token.startsWith("github_pat_")
-                ) {
-                    const confirmSave = confirm(
-                        "Warning: This doesn't look like a valid GitHub token.\n" +
-                            'GitHub tokens start with "ghp_" (classic) or "github_pat_" (fine-grained).\n\n' +
-                            "Do you want to save it anyway?"
-                    );
-                    if (!confirmSave) {
-                        return;
-                    }
-                }
-
-                localStorage.setItem("github_token", token);
-                tokenInput.value = "";
-                updateAuthStatus();
-                alert("Token saved successfully! Refreshing data...");
-                location.reload(); // Refresh to use new token
-            }
-
-            function clearToken() {
-                localStorage.removeItem("github_token");
-                updateAuthStatus();
-                alert("Token cleared! Page will reload...");
-                location.reload();
-            }
-
-            function updateAuthStatus() {
-                const token = localStorage.getItem("github_token");
-                const statusElement = document.getElementById("auth-status");
-
-                if (token) {
-                    statusElement.textContent = "Authenticated ✅";
-                    statusElement.style.color = "#5cb85c";
-                } else {
-                    statusElement.textContent = "Not authenticated ❌";
-                    statusElement.style.color = "#d9534f";
-                }
-            }
-
-            async function getRun() {
-                const reposWorkflows = [
-                    // nightly.yml
-                    {
-                        repo: "gardenlinux",
-                        workflowId: "28837699",
-                    },
-                    // Build and publish a release -  manual_release.yml
-                    {
-                        repo: "gardenlinux",
-                        workflowId: "152444842",
-                    },
-                    // Publish to ghcr.io - publish.yml
-                    {
-                        repo: "gardenlinux",
-                        workflowId: "152444846",
-                    },
-                    // Publish to S3 - publish_s3.yml
-                    {
-                        repo: "gardenlinux",
-                        workflowId: "152444850",
-                    },
-                    // nightly
-                    {
-                        repo: "repo",
-                        workflowId: "84300234",
-                    },
-                    // nightly
-                    {
-                        repo: "repo",
-                        workflowId: "84300233",
-                    },
-                ];
-
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const todayStart = today.toISOString();
-                const tomorrow = new Date(today);
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                const tomorrowStart = tomorrow.toISOString();
-
-                const tagName = `${getGlDays()}.0`;
-
-                // First, fetch nightly workflow runs to use for SHA matching
-                let nightlyRuns = [];
-                try {
-                    const nightlyResponse = await fetch(
-                        `https://api.github.com/repos/gardenlinux/gardenlinux/actions/workflows/28837699/runs?per_page=200&branch=main`,
-                        {
-                            headers: getAuthHeaders(),
-                        }
-                    );
-                    if (nightlyResponse.ok) {
-                        const nightlyData = await nightlyResponse.json();
-                        nightlyRuns = nightlyData.workflow_runs || [];
-                    }
-                } catch (error) {
-                    console.error(
-                        "Failed to fetch nightly runs for SHA matching:",
-                        error
-                    );
-                }
-
-                for await (const workflow of reposWorkflows) {
-                    let apiUrl;
-
-                    // Only filter by daily tag for the repo build workflow
-                    if (workflow.workflowId === "84300233") {
-                        try {
-                            const tagResponse = await fetch(
-                                `https://api.github.com/repos/gardenlinux/${workflow.repo}/git/ref/tags/${tagName}`,
-                                {
-                                    headers: getAuthHeaders(),
-                                }
-                            );
-                            const tagData = await tagResponse.json();
-                            const commitSha = tagData.object.sha;
-                            apiUrl = `https://api.github.com/repos/gardenlinux/${workflow.repo}/actions/workflows/${workflow.workflowId}/runs?per_page=50&head_sha=${commitSha}`;
-                        } catch (error) {
-                            apiUrl = `https://api.github.com/repos/gardenlinux/${workflow.repo}/actions/workflows/${workflow.workflowId}/runs?per_page=50&branch=main`;
-                        }
-                    } else {
-                        apiUrl = `https://api.github.com/repos/gardenlinux/${workflow.repo}/actions/workflows/${workflow.workflowId}/runs?per_page=20&branch=main`;
-                    }
-
-                    const response = await fetch(apiUrl, {
-                        headers: getAuthHeaders(),
-                    });
-
-                    if (!response.ok) {
-                        console.error(
-                            `API Error for workflow ${workflow.workflowId}:`,
-                            response.status,
-                            response.statusText
-                        );
-                        const workflowDomElement = document.getElementById(
-                            `daily-info-${workflow.workflowId}`
-                        );
-                        workflowDomElement.classList.add("api-error");
-                        const detailsDiv = document.createElement("div");
-                        detailsDiv.className = "run-details";
-                        detailsDiv.innerHTML = `<small>API Error: ${response.status} ${response.statusText}</small>`;
-                        workflowDomElement.appendChild(detailsDiv);
-                        continue;
-                    }
-
-                    const runs = await response.json();
-                    const workflowRuns = runs.workflow_runs;
-
-                    if (!workflowRuns) {
-                        console.error(
-                            `No workflow_runs in response for workflow ${workflow.workflowId}:`,
-                            runs
-                        );
-                        const workflowDomElement = document.getElementById(
-                            `daily-info-${workflow.workflowId}`
-                        );
-                        workflowDomElement.classList.add("api-error");
-                        const detailsDiv = document.createElement("div");
-                        detailsDiv.className = "run-details";
-                        detailsDiv.innerHTML = `<small>No workflow runs data</small>`;
-                        workflowDomElement.appendChild(detailsDiv);
-                        continue;
-                    }
-
-                    // Filter runs for today
-                    const todayRunsUnsorted = workflowRuns.filter((run) => {
-                        const runDate = new Date(run.created_at);
-                        return runDate >= today && runDate < tomorrow;
-                    });
-
-                    // Sort today's runs by run.id in descending order (newest first)
-                    const todayRuns = todayRunsUnsorted.sort(
-                        (a, b) => b.id - a.id
-                    );
-
-                    const workflowDomElement = document.getElementById(
-                        `daily-info-${workflow.workflowId}`
-                    );
-
-                    // Clear existing content
-                    const existingDetails =
-                        workflowDomElement.querySelector(".run-details");
-                    if (existingDetails) {
-                        existingDetails.remove();
-                    }
-
-                    // Reset classes
-                    workflowDomElement.className =
-                        workflowDomElement.className.replace(
-                            /\b(progress|success|failure)\b/g,
-                            ""
-                        );
-
-                    if (todayRuns.length === 0) {
-                        // No runs today
-                        workflowDomElement.classList.add("no-runs");
-                        const detailsDiv = document.createElement("div");
-                        detailsDiv.className = "run-details";
-                        detailsDiv.innerHTML = "<small>No runs today</small>";
-                        workflowDomElement.appendChild(detailsDiv);
-                        continue;
-                    }
-
-                    // Determine overall status based on the most recent run
-                    // After sorting by ID descending, the first element is the most recent
-                    const mostRecentRun =
-                        todayRuns.length > 0 ? todayRuns[0] : null;
-
-                    if (!mostRecentRun) {
-                        // Handles the case where todayRuns might be empty after filtering
-                        workflowDomElement.classList.add("no-runs");
-                        const detailsDiv = document.createElement("div");
-                        detailsDiv.className = "run-details";
-                        detailsDiv.innerHTML = "<small>No runs today</small>";
-                        workflowDomElement.appendChild(detailsDiv);
-                        continue;
-                    }
-
-                    if (mostRecentRun.status === "in_progress") {
-                        workflowDomElement.classList.add("progress");
-                    } else if (mostRecentRun.status === "queued") {
-                        workflowDomElement.classList.add("queued");
-                    } else if (mostRecentRun.status === "completed") {
-                        if (mostRecentRun.conclusion === "success") {
-                            workflowDomElement.classList.add("success");
-                        } else {
-                            workflowDomElement.classList.add("failure");
-                        }
-                    } else {
-                        workflowDomElement.classList.add("queued");
-                    }
-
-                    // Create details section for all runs
-                    const detailsDiv = document.createElement("div");
-                    detailsDiv.className = "run-details";
-
-                    // Iterate over the sorted runs (descending by ID - newest first)
-                    todayRuns.forEach(async (run, index) => {
-                        const runDiv = document.createElement("div");
-                        runDiv.className = "run-item";
-
-                        let statusClass = "";
-                        let statusText = "";
-
-                        if (run.status === "in_progress") {
-                            statusClass = "progress";
-                            statusText = "In Progress";
-                        } else if (run.status === "queued") {
-                            statusClass = "queued";
-                            statusText = "Queued";
-                        } else if (run.status === "completed") {
-                            if (run.conclusion === "success") {
-                                statusClass = "success";
-                                statusText = "Success";
-                            } else {
-                                statusClass = "failure";
-                                statusText = run.conclusion || "Failed";
-                            }
-                        } else {
-                            statusClass = "queued";
-                            statusText = run.status;
-                        }
-
-                        const createdTime = new Date(
-                            run.created_at
-                        ).toLocaleTimeString();
-                        const branch = run.head_branch || "main";
-                        const commitSha = run.head_sha
-                            ? run.head_sha.substring(0, 7)
-                            : "unknown";
-
-                        // Get trigger information for all workflows
-                        const triggerInfo = await getTriggerInfo(
-                            "gardenlinux",
-                            workflow.repo,
-                            run
-                        );
-
-                        runDiv.innerHTML = `
-                            <small class="run-status ${statusClass}">
-                                <a href="${run.html_url}" target="_blank">
-                                    ${statusText} - ${createdTime}
-                                </a>
-                                <br>
-                                <span class="branch-commit">
-                                    Branch: ${branch} | Commit: ${commitSha} | Run: ${run.id} | Trigger: ${triggerInfo}
-                                </span>
-                            </small>
-                        `;
-
-                        detailsDiv.appendChild(runDiv);
-                    });
-
-                    workflowDomElement.appendChild(detailsDiv);
-                }
-            }
-            function getGlDays() {
-                var today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const initialDay = new Date("2020-03-31");
-
-                const todayTime = today.getTime();
-                const initialTime = initialDay.getTime();
-
-                return Math.round(
-                    (todayTime - initialTime) / (1000 * 60 * 60 * 24)
-                );
-            }
-
-            async function fillPackageTable() {
-                // Set to invisible by default, and only make visible if we have packages with build-issues
-                let legend = document.getElementById("legend-issues");
-                legend.style.display = "none";
-
-                let table = document.getElementById("packages-table");
-                let file = "packages/" + getGlDays() + ".json";
-                const response = await fetch(file);
-                const packages = await response.json();
-
-                // group by status
-                const packageByStatus = Object.groupBy(
-                    packages,
-                    ({ Status }) => Status
-                );
-
-                // two loops, first by status then iterate over array
-                for (const status of [
-                    "progress",
-                    "workFlowNotFound",
-                    "noRunFound",
-                    "brokenTimestamp",
-                    "stale",
-                    "failure",
-                ]) {
-                    if (status in packageByStatus) {
-                        // We have at least one package-build that needs attention
-                        legend.style.display = "block";
-
-                        for (const pkg of packageByStatus[status]) {
-                            let row = table.insertRow(0);
-                            row.classList.add(pkg.Status);
-
-                            let a = document.createElement("a");
-                            a.innerHTML = pkg.Name;
-                            a.href =
-                                "https://github.com/gardenlinux/" +
-                                pkg.Name +
-                                "/actions/workflows/build.yml";
-
-                            let pkgName = row.insertCell(0);
-                            pkgName.appendChild(a);
-
-                            let pkgStatusTime = row.insertCell(1);
-                            pkgStatusTime.innerHTML = pkg.Time;
-                        }
-                    }
-                }
-                // Show no issues banner only if the issue banner is not shown
-                let legendNoIssues = document.getElementById("legend-no-isues");
-                legendNoIssues.style.display =
-                    legend.style.display === "block" ? "none" : "block";
-            }
-
-            getRun();
-            document.getElementById("gl-days").innerText = "GL " + getGlDays();
-            fillPackageTable();
-            updateAuthStatus(); // Initialize auth status display
-        </script>
+        <!-- Bundled JavaScript -->
+        <script src="dist/dashboard.js"></script>
     </body>
 </html>
