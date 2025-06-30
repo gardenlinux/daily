@@ -28,7 +28,6 @@ import {
     getBranchParameter,
     calculateTargetDate,
     calculateHistoricPipelineDuration,
-    validateStage4Runs,
     collectStage3RunIds,
     getAllWorkflowConfigs,
     calculateStageStatuses,
