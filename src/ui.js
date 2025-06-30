@@ -38,7 +38,20 @@ export function renderHistoricReleases(historicData) {
         return;
     }
 
-    historicList.innerHTML = historicData
+    // Safety: Ensure all days have valid pipeline status before rendering
+    const safeHistoricData = historicData.map((day) => ({
+        ...day,
+        pipelineStatus:
+            day.pipelineStatus &&
+            typeof day.pipelineStatus === "string" &&
+            ["success", "failure", "progress", "warning", "unknown"].includes(
+                day.pipelineStatus
+            )
+                ? day.pipelineStatus
+                : "unknown",
+    }));
+
+    historicList.innerHTML = safeHistoricData
         .map(
             (day) => `
         <a href="?gl=${day.glDays}&no_historic_releases=true" target="_blank" class="historic-release-row ${day.pipelineStatus}" title="View detailed dashboard for GL ${day.glDays}">
@@ -295,22 +308,19 @@ export async function createRunItemHTML(run, workflow, _useFullDate = false) {
         }
     }
 
-    // Build the parent run display
+    // Build the parent run display as a separate element
     let parentRunDisplay = "";
     if (parentRunInfo && parentRunInfo.parentRunId) {
         parentRunDisplay = `
             <div class="parent-run-info">
-                parent run: <a href="https://github.com/gardenlinux/gardenlinux/actions/runs/${parentRunInfo.parentRunId}"
-                   target="_blank"
-                   class="parent-run-link"
-                   title="View parent workflow run that triggered this">${parentRunInfo.parentRunId}</a>
+                <a href="https://github.com/gardenlinux/gardenlinux/actions/runs/${parentRunInfo.parentRunId}" target="_blank" class="parent-run-link" title="View parent workflow run that triggered this">Parent Run: ${parentRunInfo.parentRunId}</a>
             </div>
         `;
     } else if (isStage4Workflow) {
-        // Always show parent run info for Stage 4 workflows, even if not found
+        // Always show parent run info for Stage 4 workflows, even if not found - use same structure
         parentRunDisplay = `
             <div class="parent-run-info">
-                <span class="parent-run-unavailable" title="${parentRunInfo?.message || "No parent run information available"}">parent run: Not found</span>
+                <a class="parent-run-unavailable" title="${parentRunInfo?.message || "No parent run information available"}">Parent Run: Not found</a>
             </div>
         `;
     }
@@ -330,8 +340,8 @@ export async function createRunItemHTML(run, workflow, _useFullDate = false) {
                 <span>Run: ${run.id}</span> |
                 <span>Trigger: ${triggerInfo}</span>
             </div>
-            ${parentRunDisplay}
         </a>
+        ${parentRunDisplay}
     `;
 }
 

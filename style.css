@@ -1234,45 +1234,31 @@ table {
 .run-meta {
     font-size: 0.8em;
     color: var(--text-unknown);
-    margin-bottom: 4px;
+    margin-bottom: 0;
     line-height: 1.2;
+    display: block;
+    width: 100%;
+}
+
+.run-meta * {
+    white-space: normal;
 }
 
 .parent-run-info {
-    font-size: 0.75em;
-    margin-top: 4px;
-    padding-top: 4px;
-    border-top: 1px solid var(--border-light);
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    font-size: 0.8em;
     color: var(--text-unknown);
+    margin-bottom: 0;
+    line-height: 1.2;
+    display: block;
+    width: 100%;
 }
 
-.parent-run-label {
-    color: var(--text-unknown);
-    font-weight: 500;
-    white-space: nowrap;
-}
-
-.parent-run-link {
-    color: var(--color-info);
-    text-decoration: none;
-    font-family: monospace;
-    font-weight: normal;
-    font-size: 0.85em;
-    transition: all 0.2s ease;
-}
-
-.parent-run-link:hover {
-    color: var(--color-info-dark);
-    text-decoration: underline;
-}
-
+.parent-run-link,
 .parent-run-unavailable {
-    color: var(--text-muted);
-    font-style: italic;
-    font-size: 0.85em;
+    display: inline;
+    line-height: inherit;
+    font-size: inherit;
+    color: var(--text-unknown);
 }
 
 .no-runs-message,
@@ -2009,4 +1995,47 @@ table {
     .artifact-content {
         font-size: 0.8em;
     }
+}
+
+.workflow-box.success a.parent-run-link,
+.workflow-box.failure a.parent-run-link,
+.workflow-box.progress a.parent-run-link,
+.workflow-box.queued a.parent-run-link,
+.workflow-box.warning a.parent-run-link,
+.workflow-box.api-error a.parent-run-link,
+.workflow-box.no-runs a.parent-run-link,
+.workflow-box.success a.parent-run-unavailable,
+.workflow-box.failure a.parent-run-unavailable,
+.workflow-box.progress a.parent-run-unavailable,
+.workflow-box.queued a.parent-run-unavailable,
+.workflow-box.warning a.parent-run-unavailable,
+.workflow-box.api-error a.parent-run-unavailable,
+.workflow-box.no-runs a.parent-run-unavailable,
+.parent-run-link,
+.parent-run-unavailable {
+    color: var(--text-unknown) !important;
+    text-decoration: none;
+    font-family: inherit;
+    font-weight: normal;
+    transition: all 0.2s ease;
+}
+
+.workflow-box.success a.parent-run-link:hover,
+.workflow-box.failure a.parent-run-link:hover,
+.workflow-box.progress a.parent-run-link:hover,
+.workflow-box.queued a.parent-run-link:hover,
+.workflow-box.warning a.parent-run-link:hover,
+.workflow-box.api-error a.parent-run-link:hover,
+.workflow-box.no-runs a.parent-run-link:hover,
+.workflow-box.success a.parent-run-unavailable:hover,
+.workflow-box.failure a.parent-run-unavailable:hover,
+.workflow-box.progress a.parent-run-unavailable:hover,
+.workflow-box.queued a.parent-run-unavailable:hover,
+.workflow-box.warning a.parent-run-unavailable:hover,
+.workflow-box.api-error a.parent-run-unavailable:hover,
+.workflow-box.no-runs a.parent-run-unavailable:hover,
+.parent-run-link:hover,
+.parent-run-unavailable:hover {
+    color: var(--text-muted) !important;
+    text-decoration: underline;
 }
