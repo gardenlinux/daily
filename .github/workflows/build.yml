@@ -25,7 +25,9 @@ jobs:
               run: npm ci
 
             - name: Build dashboard
-              run: npm run build
+              run: |
+                  npm run packages
+                  npm run build
               env:
                   NODE_ENV: production
 
