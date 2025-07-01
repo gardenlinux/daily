@@ -6,10 +6,17 @@ on:
     pull_request:
         branches: [gh-pages]
     workflow_dispatch:
+    workflow_run:
+        workflows: ["aggregate_package_states.yml"]
+        types: [completed]
 
 jobs:
     build:
         runs-on: ubuntu-latest
+        # Only run if it's not a workflow_run trigger, or if it is a workflow_run trigger and the previous workflow succeeded
+        if: >
+            github.event_name != 'workflow_run' ||
+            (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
 
         steps:
             - name: Checkout repository
