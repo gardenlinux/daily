@@ -47,17 +47,14 @@ jobs:
                   retention-days: 30
 
             - name: Setup Pages (if deploying to GitHub Pages)
-              if: github.ref == 'refs/heads/gh-pages' && github.event_name == 'push'
               uses: actions/configure-pages@v4
 
             - name: Upload to GitHub Pages
-              if: github.ref == 'refs/heads/gh-pages' && github.event_name == 'push'
               uses: actions/upload-pages-artifact@v3
               with:
                   path: "."
 
     deploy:
-        if: github.ref == 'refs/heads/gh-pages' && github.event_name == 'push'
         needs: build
         runs-on: ubuntu-latest
 
