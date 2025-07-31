@@ -30,9 +30,9 @@
     --color-progress-light: #ebf8ff; /* SAP Blue/1 */
     --color-progress-dark: #0040b0; /* SAP Blue/9 */
 
-    --color-warning: #e76500; /* SAP Mango/6 */
-    --color-warning-light: #fff8d6; /* SAP Mango/1 */
-    --color-warning-dark: #8d2a00; /* SAP Mango/9 */
+    --color-warning: #ffe066; /* Soft yellow with a hint of lime */
+    --color-warning-light: #fffbe0; /* Very light yellow */
+    --color-warning-dark: #bfa600; /* Muted golden yellow */
 
     --color-info: #470ced; /* SAP Indigo/8 */
     --color-info-light: #f1ecff; /* SAP Indigo/1 */
