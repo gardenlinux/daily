@@ -230,6 +230,12 @@ async function processWorkflow(
     if (isCloudCleanup) {
         apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50${workflow.repo === "repo" ? getRepoBranchParameter() : getBranchParameter()}`;
     }
+    // Special handling for Debian Snapshot - get runs for daily analysis with pagination
+    else if (isSnapshot) {
+        const workflowIdentifier = workflow.workflowFile || workflow.id;
+        // Base URL for initial fetch (100 runs per page, pagination handles up to 500 total)
+        apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflowIdentifier}/runs?per_page=100${workflow.repo === "repo" ? getRepoBranchParameter() : getBranchParameter()}`;
+    }
     // Only filter by daily tag for the repo build workflow
     else if (workflow.id === WORKFLOW_IDS.REPO_BUILD) {
         try {
@@ -306,7 +312,152 @@ async function processWorkflow(
     }
 
     const runs = await response.json();
-    const workflowRuns = runs.workflow_runs;
+    let workflowRuns = runs.workflow_runs;
+
+    // Special handling for Debian Snapshot - analyze all runs for the day
+    if (isSnapshot && workflowRuns) {
+        let runsToCheck = workflowRuns;
+
+        // Check if we're on current date site (no gl parameter) or historic site
+        const urlParams = new URLSearchParams(window.location.search);
+        const isCurrentDateSite = !urlParams.get("gl");
+        const monitoringDate = isCurrentDateSite ? new Date() : targetDate;
+
+        // Filter runs to only those from the target date (historic) or today's date (current)
+        const targetDateStr = monitoringDate.toISOString().split("T")[0]; // YYYY-MM-DD
+
+        // Pagination to collect all runs for the target date (up to 5 pages)
+        async function fetchAllSnapshotRunsForDate() {
+            const collected = [];
+            for (let page = 1; page <= 5; page++) {
+                try {
+                    const url = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.workflowFile || workflow.id}/runs?per_page=100&page=${page}${workflow.repo === "repo" ? getRepoBranchParameter() : getBranchParameter()}`;
+                    const resp = await fetch(url, {
+                        headers: getAuthHeaders(),
+                    });
+                    if (!resp.ok) break;
+                    const data = await resp.json();
+                    const pageRuns = data.workflow_runs || [];
+                    if (pageRuns.length === 0) break;
+
+                    const pageDateRuns = pageRuns.filter(
+                        (run) => run.created_at.split("T")[0] === targetDateStr
+                    );
+                    collected.push(...pageDateRuns);
+
+                    // Stop if last run is older than target date
+                    const lastRun = pageRuns[pageRuns.length - 1];
+                    if (
+                        lastRun &&
+                        lastRun.created_at.split("T")[0] < targetDateStr
+                    )
+                        break;
+                } catch (_e) {
+                    break;
+                }
+            }
+            return collected;
+        }
+
+        // Filter current page and paginate if needed for complete coverage
+        runsToCheck = workflowRuns.filter(
+            (run) => run.created_at.split("T")[0] === targetDateStr
+        );
+
+        // Paginate for historic dates or if fewer than 24 runs (hourly schedule)
+        if (!isCurrentDateSite || runsToCheck.length < 24) {
+            const allDateRuns = await fetchAllSnapshotRunsForDate();
+            if (allDateRuns.length > runsToCheck.length) {
+                runsToCheck = allDateRuns;
+            }
+        }
+
+        const now = new Date();
+        const twentyFourHoursAgo = new Date(
+            now.getTime() - 24 * 60 * 60 * 1000
+        );
+
+        // Analyze all runs: count failures and check recency
+        let allWithin24h = true;
+        let failedRuns = 0;
+        let totalRuns = runsToCheck.length;
+        let oldestRun = null;
+
+        for (const run of runsToCheck) {
+            const runDate = new Date(run.created_at);
+
+            // Check if runs are within 24h (current site only)
+            if (isCurrentDateSite && runDate < twentyFourHoursAgo) {
+                allWithin24h = false;
+                if (!oldestRun || runDate < oldestRun) {
+                    oldestRun = runDate;
+                }
+            }
+
+            // Count failed runs
+            if (run.conclusion !== "success") {
+                failedRuns++;
+            }
+        }
+
+        const allSuccessful = failedRuns === 0;
+
+        // Update header based on conditions
+        const snapshotHeader = document.getElementById("snapshot-header");
+        if (snapshotHeader) {
+            // Color coding: Red > Yellow > Green
+            // Red: no runs OR >50% failures
+            // Yellow: any failures (≤50%) OR runs too old (current site only)
+            // Green: all successful and recent
+            const failurePercentage =
+                totalRuns > 0 ? (failedRuns / totalRuns) * 100 : 0;
+            let headerStatus = "success";
+            let headerText = "Debian Snapshot";
+
+            if (totalRuns === 0) {
+                headerStatus = "failure";
+                headerText = "Debian Snapshot (no runs)";
+            } else if (failedRuns > 0) {
+                if (failurePercentage > 50) {
+                    headerStatus = "failure";
+                } else {
+                    headerStatus = "warning";
+                }
+                headerText = `Debian Snapshot (${failedRuns}/${totalRuns} runs failed)`;
+            } else if (isCurrentDateSite && !allWithin24h) {
+                headerStatus = "warning";
+                const hoursOld = Math.round(
+                    (now - oldestRun) / (1000 * 60 * 60)
+                );
+                headerText = `Debian Snapshot (${hoursOld}h old)`;
+            } else {
+                headerText = !isCurrentDateSite
+                    ? "Debian Snapshot (historic ✓)"
+                    : "Debian Snapshot (24h ✓)";
+            }
+
+            // Update the header text
+            const headerTitle = snapshotHeader.querySelector("h4");
+            if (headerTitle) {
+                headerTitle.textContent = headerText;
+            }
+
+            // Override status logic: applies custom color coding over normal workflow status
+            let overrideStatus = null;
+            if (totalRuns === 0) {
+                overrideStatus = "failure";
+            } else if (failedRuns > 0) {
+                overrideStatus = failurePercentage > 50 ? "failure" : "warning";
+            } else if (isCurrentDateSite && !allWithin24h) {
+                overrideStatus = "warning";
+            }
+
+            // Store override status to be applied later
+            if (overrideStatus) {
+                snapshotHeader.dataset.overrideStatus = overrideStatus;
+            }
+        }
+    }
 
     if (!workflowRuns) {
         console.error(
@@ -662,6 +813,37 @@ async function processWorkflow(
         const snapshotHeader = document.getElementById("snapshot-header");
         let headerStatus = statusClass;
         if (statusClass === "queued") headerStatus = "progress";
+
+        // Check if we have an override status from our custom logic
+        const overrideStatus = snapshotHeader.dataset.overrideStatus;
+        console.log(
+            "Debian Snapshot: Normal workflow processing - statusClass:",
+            statusClass,
+            "headerStatus:",
+            headerStatus
+        );
+        console.log(
+            "Debian Snapshot: Element classes before:",
+            snapshotHeader.className
+        );
+        console.log("Debian Snapshot: Dataset overrideStatus:", overrideStatus);
+
+        if (overrideStatus) {
+            headerStatus = overrideStatus;
+            console.log(
+                "Debian Snapshot: Using override status",
+                overrideStatus,
+                "instead of normal status",
+                statusClass
+            );
+        } else {
+            console.log(
+                "Debian Snapshot: Using normal status",
+                statusClass,
+                "no override found"
+            );
+        }
+
         setElementStatus(snapshotHeader, headerStatus, "status-");
         updateWorkflowMonitoringHeader();
     }
@@ -919,6 +1101,18 @@ export function updatePipelineHierarchy() {
     // Update pipeline container and header colors
     updatePipelineColor(pipelineStatus);
     updateHeaderColor(pipelineStatus);
+
+    // Apply Debian Snapshot override status if set
+    const snapshotHeader = document.getElementById("snapshot-header");
+    if (snapshotHeader && snapshotHeader.dataset.overrideStatus) {
+        const overrideStatus = snapshotHeader.dataset.overrideStatus;
+        console.log(
+            "Applying Debian Snapshot override status:",
+            overrideStatus
+        );
+        setElementStatus(snapshotHeader, overrideStatus, "status-");
+        updateWorkflowMonitoringHeader();
+    }
 
     // Update current release header colors
     updateCurrentReleaseHeaderColors(pipelineStatus);
