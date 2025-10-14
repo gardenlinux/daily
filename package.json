@@ -28,7 +28,7 @@
     "devDependencies": {
         "@eslint/js": "^8.57.0",
         "@rollup/plugin-commonjs": "^28.0.6",
-        "@rollup/plugin-node-resolve": "^15.3.0",
+        "@rollup/plugin-node-resolve": "^16.0.3",
         "@rollup/plugin-terser": "^0.4.0",
         "eslint": "^8.57.0",
         "prettier": "^3.6.2",
