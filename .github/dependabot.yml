@@ -43,7 +43,7 @@ updates:
           - "go"
       # Group minor and patch updates together
       groups:
-          npm-minor-patch:
+          go-minor-patch:
               patterns:
                   - "*"
               update-types:
