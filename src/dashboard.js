@@ -312,7 +312,7 @@ async function processWorkflow(
     }
 
     const runs = await response.json();
-    let workflowRuns = runs.workflow_runs;
+    const workflowRuns = runs.workflow_runs;
 
     // Special handling for Debian Snapshot - analyze all runs for the day
     if (isSnapshot && workflowRuns) {
@@ -352,7 +352,7 @@ async function processWorkflow(
                         lastRun.created_at.split("T")[0] < targetDateStr
                     )
                         break;
-                } catch (_e) {
+                } catch {
                     break;
                 }
             }
@@ -380,7 +380,7 @@ async function processWorkflow(
         // Analyze all runs: count failures and check recency
         let allWithin24h = true;
         let failedRuns = 0;
-        let totalRuns = runsToCheck.length;
+        const totalRuns = runsToCheck.length;
         let oldestRun = null;
 
         for (const run of runsToCheck) {
@@ -400,8 +400,6 @@ async function processWorkflow(
             }
         }
 
-        const allSuccessful = failedRuns === 0;
-
         // Update header based on conditions
         const snapshotHeader = document.getElementById("snapshot-header");
         if (snapshotHeader) {
@@ -411,21 +409,13 @@ async function processWorkflow(
             // Green: all successful and recent
             const failurePercentage =
                 totalRuns > 0 ? (failedRuns / totalRuns) * 100 : 0;
-            let headerStatus = "success";
             let headerText = "Debian Snapshot";
 
             if (totalRuns === 0) {
-                headerStatus = "failure";
                 headerText = "Debian Snapshot (no runs)";
             } else if (failedRuns > 0) {
-                if (failurePercentage > 50) {
-                    headerStatus = "failure";
-                } else {
-                    headerStatus = "warning";
-                }
                 headerText = `Debian Snapshot (${failedRuns}/${totalRuns} runs failed)`;
             } else if (isCurrentDateSite && !allWithin24h) {
-                headerStatus = "warning";
                 const hoursOld = Math.round(
                     (now - oldestRun) / (1000 * 60 * 60)
                 );
