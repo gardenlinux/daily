@@ -1,0 +1,73 @@
+version: 2
+updates:
+    # Enable version updates for npm
+    - package-ecosystem: "npm"
+      directory: "/"
+      schedule:
+          interval: "weekly"
+      open-pull-requests-limit: 10
+      reviewers:
+          - "gardenlinux-team"
+      assignees:
+          - "gardenlinux-team"
+      commit-message:
+          prefix: "deps"
+          include: "scope"
+      labels:
+          - "dependencies"
+          - "npm"
+      # Group minor and patch updates together
+      groups:
+          npm-minor-patch:
+              patterns:
+                  - "*"
+              update-types:
+                  - "minor"
+                  - "patch"
+
+    # Enable version updates for Go modules
+    - package-ecosystem: "gomod"
+      directory: "/package-aggregator"
+      schedule:
+          interval: "weekly"
+      open-pull-requests-limit: 10
+      reviewers:
+          - "gardenlinux-team"
+      assignees:
+          - "gardenlinux-team"
+      commit-message:
+          prefix: "deps"
+          include: "scope"
+      labels:
+          - "dependencies"
+          - "go"
+      # Group minor and patch updates together
+      groups:
+          npm-minor-patch:
+              patterns:
+                  - "*"
+              update-types:
+                  - "minor"
+                  - "patch"
+
+    # GitHub Actions dependencies
+    - package-ecosystem: "github-actions"
+      directory: "/"
+      schedule:
+          interval: "weekly"
+      reviewers:
+          - "gardenlinux/maintainers"
+      commit-message:
+          prefix: "ci"
+          include: "scope"
+      labels:
+          - "dependencies"
+          - "github-actions"
+      # Group minor and patch updates together
+      groups:
+          github-actions-minor-patch:
+              patterns:
+                  - "*"
+              update-types:
+                  - "minor"
+                  - "patch"
