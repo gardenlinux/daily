@@ -60,13 +60,6 @@ export const WORKFLOWS = {
         stage: "stage-4",
         workflowFile: "publish_s3.yml",
     },
-    CLOUD_TEST_CLEANUP: {
-        id: "192338957",
-        repo: "gardenlinux",
-        name: "Cloud Test Cleanup",
-        stage: "cleanup",
-        workflowFile: "cloud_test_cleanup.yml",
-    },
 
     // Repository Workflows
     REPO_UPDATE: {
@@ -83,6 +76,21 @@ export const WORKFLOWS = {
         stage: "stage-2",
         workflowFile: "build.yml",
     },
+    // Monitoring Workflows
+    CLOUD_TEST_CLEANUP: {
+        id: "192338957",
+        repo: "gardenlinux",
+        name: "Cloud Test Cleanup",
+        stage: "cleanup",
+        workflowFile: "cloud_test_cleanup.yml",
+    },
+    SNAPSHOT: {
+        id: "84098050",
+        repo: "repo-debian-snapshot",
+        name: "Debian Snapshot",
+        stage: "monitoring",
+        workflowFile: "snapshot.yml",
+    },
 };
 
 // Workflow IDs for easy access
@@ -94,6 +102,7 @@ export const WORKFLOW_IDS = {
     CLOUD_TEST_CLEANUP: WORKFLOWS.CLOUD_TEST_CLEANUP.id,
     REPO_UPDATE: WORKFLOWS.REPO_UPDATE.id,
     REPO_BUILD: WORKFLOWS.REPO_BUILD.id,
+    SNAPSHOT: WORKFLOWS.SNAPSHOT.id,
 };
 
 // ========================================

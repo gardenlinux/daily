@@ -234,6 +234,11 @@ function toggleWorkflowMonitoring() {
     );
 }
 
+// Toggle Debian Snapshot sub-section
+function toggleSnapshot() {
+    toggleSection("snapshot-content", "snapshot-toggle-icon", getRun);
+}
+
 // Toggle cloud test cleanup section
 function toggleCloudCleanup() {
     toggleSection("cloud-cleanup-content", "cloud-cleanup-toggle-icon", getRun);
@@ -277,6 +282,28 @@ function generateWorkflowHTML() {
             API_CONFIG,
             WORKFLOWS
         );
+    }
+
+    // Workflow Monitoring: render additional monitoring workflows
+    const monitoringContent = document.querySelector(
+        "#workflow-monitoring-content"
+    );
+    if (monitoringContent && WORKFLOWS.SNAPSHOT) {
+        // Create a sub-section container similar to Cloud Test Cleanup
+        const snapshotSection = document.createElement("div");
+        snapshotSection.className = "cloud-cleanup-container";
+        snapshotSection.innerHTML = `
+            <div class="cloud-cleanup-header" id="snapshot-header" onclick="toggleSnapshot()">
+                <h2>🗂️ Debian Snapshot</h2>
+                <span id="snapshot-toggle-icon" class="toggle-icon">▼</span>
+            </div>
+            <div id="snapshot-content" class="cloud-cleanup-content" style="display: none">
+                <div class="cloud-cleanup-workflow">
+                    ${uiGenerateWorkflowBoxHTML(WORKFLOWS.SNAPSHOT, API_CONFIG, WORKFLOWS)}
+                </div>
+            </div>
+        `;
+        monitoringContent.appendChild(snapshotSection);
     }
 
     // Stage 2: Repository (special handling for sequential workflows)
@@ -422,3 +449,4 @@ window.toggleCurrentDetails = toggleCurrentDetails;
 window.toggleHistoricReleases = toggleHistoricReleases;
 window.toggleCloudCleanup = toggleCloudCleanup;
 window.toggleWorkflowMonitoring = toggleWorkflowMonitoring;
+window.toggleSnapshot = toggleSnapshot;

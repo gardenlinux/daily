@@ -222,6 +222,7 @@ async function processWorkflow(
 ) {
     let apiUrl;
     const isCloudCleanup = workflow.id === WORKFLOW_IDS.CLOUD_TEST_CLEANUP;
+    const isSnapshot = workflow.id === WORKFLOW_IDS.SNAPSHOT;
 
     // Special handling for Cloud Test Cleanup - get more runs for date filtering
     if (isCloudCleanup) {
@@ -243,7 +244,9 @@ async function processWorkflow(
             apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50${workflow.repo === "repo" ? getRepoBranchParameter() : getBranchParameter()}`;
         }
     } else {
-        apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50${workflow.repo === "repo" ? getRepoBranchParameter() : getBranchParameter()}`;
+        // Default: query by workflow file if available (works across repos), otherwise by ID
+        const workflowIdentifier = workflow.workflowFile || workflow.id;
+        apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflowIdentifier}/runs?per_page=50${workflow.repo === "repo" ? getRepoBranchParameter() : getBranchParameter()}`;
     }
 
     const response = await fetch(apiUrl, {
@@ -276,6 +279,11 @@ async function processWorkflow(
             setElementStatus(headerElement, "failure", "status-");
             updateWorkflowMonitoringHeader();
         }
+        if (isSnapshot) {
+            const snapshotHeader = document.getElementById("snapshot-header");
+            setElementStatus(snapshotHeader, "failure", "status-");
+            updateWorkflowMonitoringHeader();
+        }
         return;
     }
 
@@ -306,6 +314,11 @@ async function processWorkflow(
                 "cloud-cleanup-header"
             );
             setElementStatus(headerElement, "failure", "status-");
+            updateWorkflowMonitoringHeader();
+        }
+        if (isSnapshot) {
+            const snapshotHeader = document.getElementById("snapshot-header");
+            setElementStatus(snapshotHeader, "failure", "status-");
             updateWorkflowMonitoringHeader();
         }
         return;
@@ -474,10 +487,15 @@ async function processWorkflow(
     // Reset all status classes
     setElementStatus(workflowDomElement, null); // Clear all status classes
 
-    // Reset Cloud Test Cleanup header classes
+    // Reset header classes for subsections
     if (isCloudCleanup) {
         const headerElement = document.getElementById("cloud-cleanup-header");
         setElementStatus(headerElement, null, "status-");
+        updateWorkflowMonitoringHeader();
+    }
+    if (isSnapshot) {
+        const snapshotHeader = document.getElementById("snapshot-header");
+        setElementStatus(snapshotHeader, null, "status-");
         updateWorkflowMonitoringHeader();
     }
 
@@ -495,12 +513,17 @@ async function processWorkflow(
         // Track status for color coding
         workflowStatuses[workflow.id] = "no-runs";
 
-        // Update Cloud Test Cleanup header
+        // Update subsection headers
         if (isCloudCleanup) {
             const headerElement = document.getElementById(
                 "cloud-cleanup-header"
             );
             setElementStatus(headerElement, "unknown", "status-");
+            updateWorkflowMonitoringHeader();
+        }
+        if (isSnapshot) {
+            const snapshotHeader = document.getElementById("snapshot-header");
+            setElementStatus(snapshotHeader, "unknown", "status-");
             updateWorkflowMonitoringHeader();
         }
         return;
@@ -524,12 +547,17 @@ async function processWorkflow(
         // Track status for color coding
         workflowStatuses[workflow.id] = "no-runs";
 
-        // Update Cloud Test Cleanup header
+        // Update subsection headers
         if (isCloudCleanup) {
             const headerElement = document.getElementById(
                 "cloud-cleanup-header"
             );
             setElementStatus(headerElement, "unknown", "status-");
+        }
+        if (isSnapshot) {
+            const snapshotHeader = document.getElementById("snapshot-header");
+            setElementStatus(snapshotHeader, "unknown", "status-");
+            updateWorkflowMonitoringHeader();
         }
         return;
     }
@@ -540,12 +568,19 @@ async function processWorkflow(
 
     setElementStatus(workflowDomElement, statusClass);
 
-    // Update Cloud Test Cleanup header color
+    // Update subsection header colors
     if (isCloudCleanup) {
         const headerElement = document.getElementById("cloud-cleanup-header");
         let headerStatus = statusClass;
         if (statusClass === "queued") headerStatus = "progress";
         setElementStatus(headerElement, headerStatus, "status-");
+        updateWorkflowMonitoringHeader();
+    }
+    if (isSnapshot) {
+        const snapshotHeader = document.getElementById("snapshot-header");
+        let headerStatus = statusClass;
+        if (statusClass === "queued") headerStatus = "progress";
+        setElementStatus(snapshotHeader, headerStatus, "status-");
         updateWorkflowMonitoringHeader();
     }
 
