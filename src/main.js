@@ -226,6 +226,14 @@ function toggleHistoricReleases() {
     );
 }
 
+// Toggle workflow monitoring wrapper section
+function toggleWorkflowMonitoring() {
+    toggleSection(
+        "workflow-monitoring-content",
+        "workflow-monitoring-toggle-icon"
+    );
+}
+
 // Toggle cloud test cleanup section
 function toggleCloudCleanup() {
     toggleSection("cloud-cleanup-content", "cloud-cleanup-toggle-icon", getRun);
@@ -413,3 +421,4 @@ if (document.readyState === "loading") {
 window.toggleCurrentDetails = toggleCurrentDetails;
 window.toggleHistoricReleases = toggleHistoricReleases;
 window.toggleCloudCleanup = toggleCloudCleanup;
+window.toggleWorkflowMonitoring = toggleWorkflowMonitoring;

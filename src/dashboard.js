@@ -69,6 +69,60 @@ let workflowRunData = {};
 let packageStatus = "unknown";
 
 // ========================================
+// WORKFLOW MONITORING WRAPPER STATUS
+// ========================================
+function updateWorkflowMonitoringHeader() {
+    const wrapperHeader = document.getElementById("workflow-monitoring-header");
+    const wrapperContainer = document.getElementById(
+        "workflow-monitoring-content"
+    );
+    if (!wrapperHeader || !wrapperContainer) return;
+
+    // Find all subsection headers inside the wrapper
+    const subsectionHeaders =
+        wrapperContainer.querySelectorAll('[id$="-header"]');
+    if (subsectionHeaders.length === 0) {
+        // Default to unknown if nothing found
+        setElementStatus(wrapperHeader, "unknown", "status-");
+        return;
+    }
+
+    // Determine aggregate status with priority: failure > warning > progress > success > unknown
+    let hasFailure = false;
+    let hasWarning = false;
+    let hasProgress = false;
+    let allSuccess = true;
+
+    subsectionHeaders.forEach((el) => {
+        const classes = el.classList;
+        const isFailure =
+            classes.contains("status-failure") ||
+            classes.contains("status-api-error");
+        const isWarning = classes.contains("status-warning");
+        const isProgress = classes.contains("status-progress");
+        const isSuccess = classes.contains("status-success");
+
+        if (isFailure) hasFailure = true;
+        else if (isWarning) hasWarning = true;
+        else if (isProgress) hasProgress = true;
+
+        if (!isSuccess) allSuccess = false;
+    });
+
+    if (hasFailure) {
+        setElementStatus(wrapperHeader, "failure", "status-");
+    } else if (hasWarning) {
+        setElementStatus(wrapperHeader, "warning", "status-");
+    } else if (hasProgress) {
+        setElementStatus(wrapperHeader, "progress", "status-");
+    } else if (allSuccess) {
+        setElementStatus(wrapperHeader, "success", "status-");
+    } else {
+        setElementStatus(wrapperHeader, "unknown", "status-");
+    }
+}
+
+// ========================================
 // WORKFLOW STATUS MANAGEMENT
 // ========================================
 export async function getRun() {
@@ -220,6 +274,7 @@ async function processWorkflow(
                 "cloud-cleanup-header"
             );
             setElementStatus(headerElement, "failure", "status-");
+            updateWorkflowMonitoringHeader();
         }
         return;
     }
@@ -251,6 +306,7 @@ async function processWorkflow(
                 "cloud-cleanup-header"
             );
             setElementStatus(headerElement, "failure", "status-");
+            updateWorkflowMonitoringHeader();
         }
         return;
     }
@@ -422,6 +478,7 @@ async function processWorkflow(
     if (isCloudCleanup) {
         const headerElement = document.getElementById("cloud-cleanup-header");
         setElementStatus(headerElement, null, "status-");
+        updateWorkflowMonitoringHeader();
     }
 
     if (targetRuns.length === 0) {
@@ -444,6 +501,7 @@ async function processWorkflow(
                 "cloud-cleanup-header"
             );
             setElementStatus(headerElement, "unknown", "status-");
+            updateWorkflowMonitoringHeader();
         }
         return;
     }
@@ -488,6 +546,7 @@ async function processWorkflow(
         let headerStatus = statusClass;
         if (statusClass === "queued") headerStatus = "progress";
         setElementStatus(headerElement, headerStatus, "status-");
+        updateWorkflowMonitoringHeader();
     }
 
     // Track status for color coding
