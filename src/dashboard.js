@@ -223,6 +223,8 @@ async function processWorkflow(
     let apiUrl;
     const isCloudCleanup = workflow.id === WORKFLOW_IDS.CLOUD_TEST_CLEANUP;
     const isSnapshot = workflow.id === WORKFLOW_IDS.SNAPSHOT;
+    const isRepoBuild = workflow.id === WORKFLOW_IDS.REPO_BUILD;
+    const isRepoUpdate = workflow.id === WORKFLOW_IDS.REPO_UPDATE;
 
     // Special handling for Cloud Test Cleanup - get more runs for date filtering
     if (isCloudCleanup) {
@@ -284,6 +286,22 @@ async function processWorkflow(
             setElementStatus(snapshotHeader, "failure", "status-");
             updateWorkflowMonitoringHeader();
         }
+        if (isRepoBuild) {
+            const repoBuildHeader = document.querySelector(
+                "#sub-stage-repo-build .sub-stage-header"
+            );
+            if (repoBuildHeader) {
+                setElementStatus(repoBuildHeader, "failure", "status-");
+            }
+        }
+        if (isRepoUpdate) {
+            const repoUpdateHeader = document.querySelector(
+                "#sub-stage-repo-update .sub-stage-header"
+            );
+            if (repoUpdateHeader) {
+                setElementStatus(repoUpdateHeader, "failure", "status-");
+            }
+        }
         return;
     }
 
@@ -320,6 +338,22 @@ async function processWorkflow(
             const snapshotHeader = document.getElementById("snapshot-header");
             setElementStatus(snapshotHeader, "failure", "status-");
             updateWorkflowMonitoringHeader();
+        }
+        if (isRepoBuild) {
+            const repoBuildHeader = document.querySelector(
+                "#sub-stage-repo-build .sub-stage-header"
+            );
+            if (repoBuildHeader) {
+                setElementStatus(repoBuildHeader, "failure", "status-");
+            }
+        }
+        if (isRepoUpdate) {
+            const repoUpdateHeader = document.querySelector(
+                "#sub-stage-repo-update .sub-stage-header"
+            );
+            if (repoUpdateHeader) {
+                setElementStatus(repoUpdateHeader, "failure", "status-");
+            }
         }
         return;
     }
@@ -498,6 +532,22 @@ async function processWorkflow(
         setElementStatus(snapshotHeader, null, "status-");
         updateWorkflowMonitoringHeader();
     }
+    if (isRepoBuild) {
+        const repoBuildHeader = document.querySelector(
+            "#sub-stage-repo-build .sub-stage-header"
+        );
+        if (repoBuildHeader) {
+            setElementStatus(repoBuildHeader, null, "status-");
+        }
+    }
+    if (isRepoUpdate) {
+        const repoUpdateHeader = document.querySelector(
+            "#sub-stage-repo-update .sub-stage-header"
+        );
+        if (repoUpdateHeader) {
+            setElementStatus(repoUpdateHeader, null, "status-");
+        }
+    }
 
     if (targetRuns.length === 0) {
         // Handles the case where targetRuns might be empty after filtering
@@ -525,6 +575,22 @@ async function processWorkflow(
             const snapshotHeader = document.getElementById("snapshot-header");
             setElementStatus(snapshotHeader, "unknown", "status-");
             updateWorkflowMonitoringHeader();
+        }
+        if (isRepoBuild) {
+            const repoBuildHeader = document.querySelector(
+                "#sub-stage-repo-build .sub-stage-header"
+            );
+            if (repoBuildHeader) {
+                setElementStatus(repoBuildHeader, "unknown", "status-");
+            }
+        }
+        if (isRepoUpdate) {
+            const repoUpdateHeader = document.querySelector(
+                "#sub-stage-repo-update .sub-stage-header"
+            );
+            if (repoUpdateHeader) {
+                setElementStatus(repoUpdateHeader, "unknown", "status-");
+            }
         }
         return;
     }
@@ -559,6 +625,22 @@ async function processWorkflow(
             setElementStatus(snapshotHeader, "unknown", "status-");
             updateWorkflowMonitoringHeader();
         }
+        if (isRepoBuild) {
+            const repoBuildHeader = document.querySelector(
+                "#sub-stage-repo-build .sub-stage-header"
+            );
+            if (repoBuildHeader) {
+                setElementStatus(repoBuildHeader, "unknown", "status-");
+            }
+        }
+        if (isRepoUpdate) {
+            const repoUpdateHeader = document.querySelector(
+                "#sub-stage-repo-update .sub-stage-header"
+            );
+            if (repoUpdateHeader) {
+                setElementStatus(repoUpdateHeader, "unknown", "status-");
+            }
+        }
         return;
     }
 
@@ -582,6 +664,26 @@ async function processWorkflow(
         if (statusClass === "queued") headerStatus = "progress";
         setElementStatus(snapshotHeader, headerStatus, "status-");
         updateWorkflowMonitoringHeader();
+    }
+    if (isRepoBuild) {
+        const repoBuildHeader = document.querySelector(
+            "#sub-stage-repo-build .sub-stage-header"
+        );
+        if (repoBuildHeader) {
+            let headerStatus = statusClass;
+            if (statusClass === "queued") headerStatus = "progress";
+            setElementStatus(repoBuildHeader, headerStatus, "status-");
+        }
+    }
+    if (isRepoUpdate) {
+        const repoUpdateHeader = document.querySelector(
+            "#sub-stage-repo-update .sub-stage-header"
+        );
+        if (repoUpdateHeader) {
+            let headerStatus = statusClass;
+            if (statusClass === "queued") headerStatus = "progress";
+            setElementStatus(repoUpdateHeader, headerStatus, "status-");
+        }
     }
 
     // Track status for color coding

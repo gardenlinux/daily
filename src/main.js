@@ -272,7 +272,7 @@ function generateWorkflowHTML() {
             .join("");
     }
 
-    // Cloud Test Cleanup: render from constants
+    // Cloud Test Cleanup: render from constants into monitoring sub-stage
     const cloudCleanupContainer = document.querySelector(
         "#cloud-cleanup-content .cloud-cleanup-workflow"
     );
@@ -284,17 +284,18 @@ function generateWorkflowHTML() {
         );
     }
 
-    // Workflow Monitoring: render additional monitoring workflows
-    const monitoringContent = document.querySelector(
-        "#workflow-monitoring-content"
+    // Workflow Monitoring: render additional monitoring workflows as sub-stages
+    const monitoringSubsections = document.getElementById(
+        "monitoring-subsections"
     );
-    if (monitoringContent && WORKFLOWS.SNAPSHOT) {
-        // Create a sub-section container similar to Cloud Test Cleanup
+    if (monitoringSubsections && WORKFLOWS.SNAPSHOT) {
         const snapshotSection = document.createElement("div");
-        snapshotSection.className = "cloud-cleanup-container";
+        snapshotSection.className = "sub-stage";
+        snapshotSection.id = "sub-stage-snapshot";
         snapshotSection.innerHTML = `
-            <div class="cloud-cleanup-header" id="snapshot-header" onclick="toggleSnapshot()">
-                <h2>🗂️ Debian Snapshot</h2>
+            <div class="sub-stage-header" id="snapshot-header" onclick="toggleSnapshot()">
+                <span class="sub-stage-icon">📸</span>
+                <h4>Debian Snapshot</h4>
                 <span id="snapshot-toggle-icon" class="toggle-icon">▼</span>
             </div>
             <div id="snapshot-content" class="cloud-cleanup-content" style="display: none">
@@ -303,7 +304,17 @@ function generateWorkflowHTML() {
                 </div>
             </div>
         `;
-        monitoringContent.appendChild(snapshotSection);
+        monitoringSubsections.appendChild(snapshotSection);
+
+        // Expand Debian Snapshot by default
+        const snapContent = document.getElementById("snapshot-content");
+        const snapIcon = document.getElementById("snapshot-toggle-icon");
+        if (snapContent && snapIcon) {
+            snapContent.style.display = "block";
+            snapContent.classList.add("expanded");
+            snapIcon.classList.add("expanded");
+            snapIcon.textContent = "▲";
+        }
     }
 
     // Stage 2: Repository (special handling for sequential workflows)
@@ -427,6 +438,16 @@ function initDashboard() {
     );
     if (!shouldLoadHistoricReleases()) {
         historicContainer.style.display = "none";
+    }
+
+    // Expand monitoring subsections by default
+    const cloudContent = document.getElementById("cloud-cleanup-content");
+    const cloudIcon = document.getElementById("cloud-cleanup-toggle-icon");
+    if (cloudContent && cloudIcon) {
+        cloudContent.style.display = "block";
+        cloudContent.classList.add("expanded");
+        cloudIcon.classList.add("expanded");
+        cloudIcon.textContent = "▲";
     }
 
     // Load data
