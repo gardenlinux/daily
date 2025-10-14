@@ -77,7 +77,7 @@ export async function downloadAndExtractArtifact(owner, repo, artifact) {
                             parentRunId = jsonData.id;
                         }
                     }
-                } catch (parseError) {
+                } catch {
                     // Ignore parse errors
                 }
             }

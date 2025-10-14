@@ -167,11 +167,10 @@ async function processWorkflow(
     _isStage3Phase
 ) {
     let apiUrl;
-    const isPlatformCleanup =
-        workflow.id === WORKFLOW_IDS.PLATFORM_TEST_CLEANUP;
+    const isCloudCleanup = workflow.id === WORKFLOW_IDS.CLOUD_TEST_CLEANUP;
 
-    // Special handling for Platform Test Cleanup - get more runs for date filtering
-    if (isPlatformCleanup) {
+    // Special handling for Cloud Test Cleanup - get more runs for date filtering
+    if (isCloudCleanup) {
         apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50${workflow.repo === "repo" ? getRepoBranchParameter() : getBranchParameter()}`;
     }
     // Only filter by daily tag for the repo build workflow
@@ -186,7 +185,7 @@ async function processWorkflow(
             const tagData = await tagResponse.json();
             const commitSha = tagData.object.sha;
             apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50&head_sha=${commitSha}`;
-        } catch (error) {
+        } catch {
             apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50${workflow.repo === "repo" ? getRepoBranchParameter() : getBranchParameter()}`;
         }
     } else {
@@ -215,10 +214,10 @@ async function processWorkflow(
         // Track status for color coding
         workflowStatuses[workflow.id] = "api-error";
 
-        // Update Platform Test Cleanup header if it's that workflow
-        if (isPlatformCleanup) {
+        // Update Cloud Test Cleanup header if it's that workflow
+        if (isCloudCleanup) {
             const headerElement = document.getElementById(
-                "platform-cleanup-header"
+                "cloud-cleanup-header"
             );
             setElementStatus(headerElement, "failure", "status-");
         }
@@ -246,10 +245,10 @@ async function processWorkflow(
         // Track status for color coding
         workflowStatuses[workflow.id] = "api-error";
 
-        // Update Platform Test Cleanup header if it's that workflow
-        if (isPlatformCleanup) {
+        // Update Cloud Test Cleanup header if it's that workflow
+        if (isCloudCleanup) {
             const headerElement = document.getElementById(
-                "platform-cleanup-header"
+                "cloud-cleanup-header"
             );
             setElementStatus(headerElement, "failure", "status-");
         }
@@ -419,11 +418,9 @@ async function processWorkflow(
     // Reset all status classes
     setElementStatus(workflowDomElement, null); // Clear all status classes
 
-    // Reset Platform Test Cleanup header classes
-    if (isPlatformCleanup) {
-        const headerElement = document.getElementById(
-            "platform-cleanup-header"
-        );
+    // Reset Cloud Test Cleanup header classes
+    if (isCloudCleanup) {
+        const headerElement = document.getElementById("cloud-cleanup-header");
         setElementStatus(headerElement, null, "status-");
     }
 
@@ -441,10 +438,10 @@ async function processWorkflow(
         // Track status for color coding
         workflowStatuses[workflow.id] = "no-runs";
 
-        // Update Platform Test Cleanup header
-        if (isPlatformCleanup) {
+        // Update Cloud Test Cleanup header
+        if (isCloudCleanup) {
             const headerElement = document.getElementById(
-                "platform-cleanup-header"
+                "cloud-cleanup-header"
             );
             setElementStatus(headerElement, "unknown", "status-");
         }
@@ -469,10 +466,10 @@ async function processWorkflow(
         // Track status for color coding
         workflowStatuses[workflow.id] = "no-runs";
 
-        // Update Platform Test Cleanup header
-        if (isPlatformCleanup) {
+        // Update Cloud Test Cleanup header
+        if (isCloudCleanup) {
             const headerElement = document.getElementById(
-                "platform-cleanup-header"
+                "cloud-cleanup-header"
             );
             setElementStatus(headerElement, "unknown", "status-");
         }
@@ -485,11 +482,9 @@ async function processWorkflow(
 
     setElementStatus(workflowDomElement, statusClass);
 
-    // Update Platform Test Cleanup header color
-    if (isPlatformCleanup) {
-        const headerElement = document.getElementById(
-            "platform-cleanup-header"
-        );
+    // Update Cloud Test Cleanup header color
+    if (isCloudCleanup) {
+        const headerElement = document.getElementById("cloud-cleanup-header");
         let headerStatus = statusClass;
         if (statusClass === "queued") headerStatus = "progress";
         setElementStatus(headerElement, headerStatus, "status-");
@@ -510,11 +505,11 @@ async function processWorkflow(
         const runDiv = document.createElement("div");
         runDiv.className = "run-item";
 
-        // Use full date for Platform Test Cleanup, time only for others
+        // Use full date for Cloud Test Cleanup, time only for others
         runDiv.innerHTML = await createRunItemHTML(
             run,
             workflow,
-            isPlatformCleanup
+            isCloudCleanup
         );
         detailsDiv.appendChild(runDiv);
     }
@@ -888,7 +883,7 @@ async function getHistoricPackageStatus(glDays) {
             issueCount,
             totalCount: packages.length,
         };
-    } catch (error) {
+    } catch {
         return { status: "error", issueCount: 0 };
     }
 }
@@ -1015,7 +1010,7 @@ async function getHistoricWorkflowStatuses(glDays) {
                     status: result.status,
                     runData: result.runData,
                 };
-            } catch (error) {
+            } catch {
                 return {
                     workflow,
                     status: "unknown",
