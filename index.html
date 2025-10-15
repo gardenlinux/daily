@@ -338,25 +338,58 @@
                 </div>
             </div>
 
-            <!-- Cloud Test Cleanup Section -->
-            <div id="cloud-cleanup-container" class="cloud-cleanup-container">
+            <!-- Workflow Monitoring Section -->
+            <div
+                id="workflow-monitoring-container"
+                class="workflow-monitoring-container"
+            >
                 <div
-                    class="cloud-cleanup-header"
-                    id="cloud-cleanup-header"
-                    onclick="toggleCloudCleanup()"
+                    class="workflow-monitoring-header"
+                    id="workflow-monitoring-header"
+                    onclick="toggleWorkflowMonitoring()"
                 >
-                    <h2>🧹 Cloud Test Cleanup</h2>
-                    <span id="cloud-cleanup-toggle-icon" class="toggle-icon"
+                    <h2>🧭 Workflow Monitoring</h2>
+                    <span
+                        id="workflow-monitoring-toggle-icon"
+                        class="toggle-icon"
                         >▼</span
                     >
                 </div>
                 <div
-                    id="cloud-cleanup-content"
-                    class="cloud-cleanup-content"
+                    id="workflow-monitoring-content"
+                    class="workflow-monitoring-content"
                     style="display: none"
                 >
-                    <div class="cloud-cleanup-workflow">
-                        <!-- Workflow box will be generated dynamically from constants -->
+                    <!-- Monitoring subsections styled like Stage 2 sub-stages -->
+                    <div
+                        class="sequential-workflows"
+                        id="monitoring-subsections"
+                    >
+                        <div class="sub-stage" id="sub-stage-cloud-cleanup">
+                            <div
+                                class="sub-stage-header"
+                                id="cloud-cleanup-header"
+                                onclick="toggleCloudCleanup()"
+                            >
+                                <span class="sub-stage-icon">🧹</span>
+                                <h4>Cloud Test Cleanup</h4>
+                                <span
+                                    id="cloud-cleanup-toggle-icon"
+                                    class="toggle-icon"
+                                    >▼</span
+                                >
+                            </div>
+                            <div
+                                id="cloud-cleanup-content"
+                                class="cloud-cleanup-content"
+                                style="display: none"
+                            >
+                                <div class="cloud-cleanup-workflow">
+                                    <!-- Filled dynamically -->
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Snapshot sub-stage injected at runtime -->
                     </div>
                 </div>
             </div>

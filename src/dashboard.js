@@ -69,6 +69,60 @@ let workflowRunData = {};
 let packageStatus = "unknown";
 
 // ========================================
+// WORKFLOW MONITORING WRAPPER STATUS
+// ========================================
+function updateWorkflowMonitoringHeader() {
+    const wrapperHeader = document.getElementById("workflow-monitoring-header");
+    const wrapperContainer = document.getElementById(
+        "workflow-monitoring-content"
+    );
+    if (!wrapperHeader || !wrapperContainer) return;
+
+    // Find all subsection headers inside the wrapper
+    const subsectionHeaders =
+        wrapperContainer.querySelectorAll('[id$="-header"]');
+    if (subsectionHeaders.length === 0) {
+        // Default to unknown if nothing found
+        setElementStatus(wrapperHeader, "unknown", "status-");
+        return;
+    }
+
+    // Determine aggregate status with priority: failure > warning > progress > success > unknown
+    let hasFailure = false;
+    let hasWarning = false;
+    let hasProgress = false;
+    let allSuccess = true;
+
+    subsectionHeaders.forEach((el) => {
+        const classes = el.classList;
+        const isFailure =
+            classes.contains("status-failure") ||
+            classes.contains("status-api-error");
+        const isWarning = classes.contains("status-warning");
+        const isProgress = classes.contains("status-progress");
+        const isSuccess = classes.contains("status-success");
+
+        if (isFailure) hasFailure = true;
+        else if (isWarning) hasWarning = true;
+        else if (isProgress) hasProgress = true;
+
+        if (!isSuccess) allSuccess = false;
+    });
+
+    if (hasFailure) {
+        setElementStatus(wrapperHeader, "failure", "status-");
+    } else if (hasWarning) {
+        setElementStatus(wrapperHeader, "warning", "status-");
+    } else if (hasProgress) {
+        setElementStatus(wrapperHeader, "progress", "status-");
+    } else if (allSuccess) {
+        setElementStatus(wrapperHeader, "success", "status-");
+    } else {
+        setElementStatus(wrapperHeader, "unknown", "status-");
+    }
+}
+
+// ========================================
 // WORKFLOW STATUS MANAGEMENT
 // ========================================
 export async function getRun() {
@@ -168,10 +222,19 @@ async function processWorkflow(
 ) {
     let apiUrl;
     const isCloudCleanup = workflow.id === WORKFLOW_IDS.CLOUD_TEST_CLEANUP;
+    const isSnapshot = workflow.id === WORKFLOW_IDS.SNAPSHOT;
+    const isRepoBuild = workflow.id === WORKFLOW_IDS.REPO_BUILD;
+    const isRepoUpdate = workflow.id === WORKFLOW_IDS.REPO_UPDATE;
 
     // Special handling for Cloud Test Cleanup - get more runs for date filtering
     if (isCloudCleanup) {
         apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50${workflow.repo === "repo" ? getRepoBranchParameter() : getBranchParameter()}`;
+    }
+    // Special handling for Debian Snapshot - get runs for daily analysis with pagination
+    else if (isSnapshot) {
+        const workflowIdentifier = workflow.workflowFile || workflow.id;
+        // Base URL for initial fetch (100 runs per page, pagination handles up to 500 total)
+        apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflowIdentifier}/runs?per_page=100${workflow.repo === "repo" ? getRepoBranchParameter() : getBranchParameter()}`;
     }
     // Only filter by daily tag for the repo build workflow
     else if (workflow.id === WORKFLOW_IDS.REPO_BUILD) {
@@ -189,7 +252,9 @@ async function processWorkflow(
             apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50${workflow.repo === "repo" ? getRepoBranchParameter() : getBranchParameter()}`;
         }
     } else {
-        apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=50${workflow.repo === "repo" ? getRepoBranchParameter() : getBranchParameter()}`;
+        // Default: query by workflow file if available (works across repos), otherwise by ID
+        const workflowIdentifier = workflow.workflowFile || workflow.id;
+        apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflowIdentifier}/runs?per_page=50${workflow.repo === "repo" ? getRepoBranchParameter() : getBranchParameter()}`;
     }
 
     const response = await fetch(apiUrl, {
@@ -198,9 +263,15 @@ async function processWorkflow(
 
     if (!response.ok) {
         console.error(
-            `API Error for workflow ${workflow.id}:`,
-            response.status,
-            response.statusText
+            `[Dashboard] API Error for workflow ${workflow.id} (${workflow.name}):`,
+            {
+                status: response.status,
+                statusText: response.statusText,
+                url: response.url,
+                workflowId: workflow.id,
+                workflowName: workflow.name,
+                repo: workflow.repo,
+            }
         );
         const workflowDomElement = document.getElementById(
             `daily-info-${workflow.id}`
@@ -220,6 +291,28 @@ async function processWorkflow(
                 "cloud-cleanup-header"
             );
             setElementStatus(headerElement, "failure", "status-");
+            updateWorkflowMonitoringHeader();
+        }
+        if (isSnapshot) {
+            const snapshotHeader = document.getElementById("snapshot-header");
+            setElementStatus(snapshotHeader, "failure", "status-");
+            updateWorkflowMonitoringHeader();
+        }
+        if (isRepoBuild) {
+            const repoBuildHeader = document.querySelector(
+                "#sub-stage-repo-build .sub-stage-header"
+            );
+            if (repoBuildHeader) {
+                setElementStatus(repoBuildHeader, "failure", "status-");
+            }
+        }
+        if (isRepoUpdate) {
+            const repoUpdateHeader = document.querySelector(
+                "#sub-stage-repo-update .sub-stage-header"
+            );
+            if (repoUpdateHeader) {
+                setElementStatus(repoUpdateHeader, "failure", "status-");
+            }
         }
         return;
     }
@@ -227,10 +320,151 @@ async function processWorkflow(
     const runs = await response.json();
     const workflowRuns = runs.workflow_runs;
 
+    // Special handling for Debian Snapshot - analyze all runs for the day
+    if (isSnapshot && workflowRuns) {
+        let runsToCheck = workflowRuns;
+
+        // Check if we're on current date site (no gl parameter) or historic site
+        const urlParams = new URLSearchParams(window.location.search);
+        const isCurrentDateSite = !urlParams.get("gl");
+        const monitoringDate = isCurrentDateSite ? new Date() : targetDate;
+
+        // Filter runs to only those from the target date (historic) or today's date (current)
+        const targetDateStr = monitoringDate.toISOString().split("T")[0]; // YYYY-MM-DD
+
+        // Pagination to collect all runs for the target date (up to 5 pages)
+        async function fetchAllSnapshotRunsForDate() {
+            const collected = [];
+            for (let page = 1; page <= 5; page++) {
+                try {
+                    const url = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.workflowFile || workflow.id}/runs?per_page=100&page=${page}${workflow.repo === "repo" ? getRepoBranchParameter() : getBranchParameter()}`;
+                    const resp = await fetch(url, {
+                        headers: getAuthHeaders(),
+                    });
+                    if (!resp.ok) break;
+                    const data = await resp.json();
+                    const pageRuns = data.workflow_runs || [];
+                    if (pageRuns.length === 0) break;
+
+                    const pageDateRuns = pageRuns.filter(
+                        (run) => run.created_at.split("T")[0] === targetDateStr
+                    );
+                    collected.push(...pageDateRuns);
+
+                    // Stop if last run is older than target date
+                    const lastRun = pageRuns[pageRuns.length - 1];
+                    if (
+                        lastRun &&
+                        lastRun.created_at.split("T")[0] < targetDateStr
+                    )
+                        break;
+                } catch {
+                    break;
+                }
+            }
+            return collected;
+        }
+
+        // Filter current page and paginate if needed for complete coverage
+        runsToCheck = workflowRuns.filter(
+            (run) => run.created_at.split("T")[0] === targetDateStr
+        );
+
+        // Paginate for historic dates or if fewer than 24 runs (hourly schedule)
+        if (!isCurrentDateSite || runsToCheck.length < 24) {
+            const allDateRuns = await fetchAllSnapshotRunsForDate();
+            if (allDateRuns.length > runsToCheck.length) {
+                runsToCheck = allDateRuns;
+            }
+        }
+
+        const now = new Date();
+        const twentyFourHoursAgo = new Date(
+            now.getTime() - 24 * 60 * 60 * 1000
+        );
+
+        // Analyze all runs: count failures and check recency
+        let allWithin24h = true;
+        let failedRuns = 0;
+        const totalRuns = runsToCheck.length;
+        let oldestRun = null;
+
+        for (const run of runsToCheck) {
+            const runDate = new Date(run.created_at);
+
+            // Check if runs are within 24h (current site only)
+            if (isCurrentDateSite && runDate < twentyFourHoursAgo) {
+                allWithin24h = false;
+                if (!oldestRun || runDate < oldestRun) {
+                    oldestRun = runDate;
+                }
+            }
+
+            // Count failed runs
+            if (run.conclusion !== "success") {
+                failedRuns++;
+            }
+        }
+
+        // Update header based on conditions
+        const snapshotHeader = document.getElementById("snapshot-header");
+        if (snapshotHeader) {
+            // Color coding: Red > Yellow > Green
+            // Red: no runs OR >50% failures
+            // Yellow: any failures (≤50%) OR runs too old (current site only)
+            // Green: all successful and recent
+            const failurePercentage =
+                totalRuns > 0 ? (failedRuns / totalRuns) * 100 : 0;
+            let headerText = "Debian Snapshot";
+
+            if (totalRuns === 0) {
+                headerText = "Debian Snapshot (no runs)";
+            } else if (failedRuns > 0) {
+                headerText = `Debian Snapshot (${failedRuns}/${totalRuns} runs failed)`;
+            } else if (isCurrentDateSite && !allWithin24h) {
+                const hoursOld = Math.round(
+                    (now - oldestRun) / (1000 * 60 * 60)
+                );
+                headerText = `Debian Snapshot (${hoursOld}h old)`;
+            } else {
+                headerText = !isCurrentDateSite
+                    ? "Debian Snapshot (historic ✓)"
+                    : "Debian Snapshot (24h ✓)";
+            }
+
+            // Update the header text
+            const headerTitle = snapshotHeader.querySelector("h4");
+            if (headerTitle) {
+                headerTitle.textContent = headerText;
+            }
+
+            // Override status logic: applies custom color coding over normal workflow status
+            let overrideStatus = null;
+            if (totalRuns === 0) {
+                overrideStatus = "failure";
+            } else if (failedRuns > 0) {
+                overrideStatus = failurePercentage > 50 ? "failure" : "warning";
+            } else if (isCurrentDateSite && !allWithin24h) {
+                overrideStatus = "warning";
+            }
+
+            // Store override status to be applied later
+            if (overrideStatus) {
+                snapshotHeader.dataset.overrideStatus = overrideStatus;
+            }
+        }
+    }
+
     if (!workflowRuns) {
         console.error(
-            `No workflow_runs in response for workflow ${workflow.id}:`,
-            runs
+            `[Dashboard] No workflow_runs in response for workflow ${workflow.id} (${workflow.name}):`,
+            {
+                workflowId: workflow.id,
+                workflowName: workflow.name,
+                repo: workflow.repo,
+                responseData: runs,
+                apiUrl,
+            }
         );
         const workflowDomElement = document.getElementById(
             `daily-info-${workflow.id}`
@@ -251,6 +485,28 @@ async function processWorkflow(
                 "cloud-cleanup-header"
             );
             setElementStatus(headerElement, "failure", "status-");
+            updateWorkflowMonitoringHeader();
+        }
+        if (isSnapshot) {
+            const snapshotHeader = document.getElementById("snapshot-header");
+            setElementStatus(snapshotHeader, "failure", "status-");
+            updateWorkflowMonitoringHeader();
+        }
+        if (isRepoBuild) {
+            const repoBuildHeader = document.querySelector(
+                "#sub-stage-repo-build .sub-stage-header"
+            );
+            if (repoBuildHeader) {
+                setElementStatus(repoBuildHeader, "failure", "status-");
+            }
+        }
+        if (isRepoUpdate) {
+            const repoUpdateHeader = document.querySelector(
+                "#sub-stage-repo-update .sub-stage-header"
+            );
+            if (repoUpdateHeader) {
+                setElementStatus(repoUpdateHeader, "failure", "status-");
+            }
         }
         return;
     }
@@ -359,9 +615,17 @@ async function processWorkflow(
                     `🔍 [Stage 4] Run ${run.id}: Skipped (doesn't match criteria)`
                 );
             } catch (error) {
-                console.log(
-                    `🔍 [Stage 4] Failed to get parent info for run ${run.id}:`,
-                    error.message
+                console.error(
+                    `[Dashboard] Failed to get parent info for Stage 4 run ${run.id} (${workflow.name}):`,
+                    {
+                        error: error.message,
+                        stack: error.stack,
+                        runId: run.id,
+                        workflowId: workflow.id,
+                        workflowName: workflow.name,
+                        repo: workflow.repo,
+                        created_at: run.created_at,
+                    }
                 );
             }
         }
@@ -418,10 +682,32 @@ async function processWorkflow(
     // Reset all status classes
     setElementStatus(workflowDomElement, null); // Clear all status classes
 
-    // Reset Cloud Test Cleanup header classes
+    // Reset header classes for subsections
     if (isCloudCleanup) {
         const headerElement = document.getElementById("cloud-cleanup-header");
         setElementStatus(headerElement, null, "status-");
+        updateWorkflowMonitoringHeader();
+    }
+    if (isSnapshot) {
+        const snapshotHeader = document.getElementById("snapshot-header");
+        setElementStatus(snapshotHeader, null, "status-");
+        updateWorkflowMonitoringHeader();
+    }
+    if (isRepoBuild) {
+        const repoBuildHeader = document.querySelector(
+            "#sub-stage-repo-build .sub-stage-header"
+        );
+        if (repoBuildHeader) {
+            setElementStatus(repoBuildHeader, null, "status-");
+        }
+    }
+    if (isRepoUpdate) {
+        const repoUpdateHeader = document.querySelector(
+            "#sub-stage-repo-update .sub-stage-header"
+        );
+        if (repoUpdateHeader) {
+            setElementStatus(repoUpdateHeader, null, "status-");
+        }
     }
 
     if (targetRuns.length === 0) {
@@ -438,12 +724,34 @@ async function processWorkflow(
         // Track status for color coding
         workflowStatuses[workflow.id] = "no-runs";
 
-        // Update Cloud Test Cleanup header
+        // Update subsection headers
         if (isCloudCleanup) {
             const headerElement = document.getElementById(
                 "cloud-cleanup-header"
             );
             setElementStatus(headerElement, "unknown", "status-");
+            updateWorkflowMonitoringHeader();
+        }
+        if (isSnapshot) {
+            const snapshotHeader = document.getElementById("snapshot-header");
+            setElementStatus(snapshotHeader, "unknown", "status-");
+            updateWorkflowMonitoringHeader();
+        }
+        if (isRepoBuild) {
+            const repoBuildHeader = document.querySelector(
+                "#sub-stage-repo-build .sub-stage-header"
+            );
+            if (repoBuildHeader) {
+                setElementStatus(repoBuildHeader, "unknown", "status-");
+            }
+        }
+        if (isRepoUpdate) {
+            const repoUpdateHeader = document.querySelector(
+                "#sub-stage-repo-update .sub-stage-header"
+            );
+            if (repoUpdateHeader) {
+                setElementStatus(repoUpdateHeader, "unknown", "status-");
+            }
         }
         return;
     }
@@ -466,12 +774,33 @@ async function processWorkflow(
         // Track status for color coding
         workflowStatuses[workflow.id] = "no-runs";
 
-        // Update Cloud Test Cleanup header
+        // Update subsection headers
         if (isCloudCleanup) {
             const headerElement = document.getElementById(
                 "cloud-cleanup-header"
             );
             setElementStatus(headerElement, "unknown", "status-");
+        }
+        if (isSnapshot) {
+            const snapshotHeader = document.getElementById("snapshot-header");
+            setElementStatus(snapshotHeader, "unknown", "status-");
+            updateWorkflowMonitoringHeader();
+        }
+        if (isRepoBuild) {
+            const repoBuildHeader = document.querySelector(
+                "#sub-stage-repo-build .sub-stage-header"
+            );
+            if (repoBuildHeader) {
+                setElementStatus(repoBuildHeader, "unknown", "status-");
+            }
+        }
+        if (isRepoUpdate) {
+            const repoUpdateHeader = document.querySelector(
+                "#sub-stage-repo-update .sub-stage-header"
+            );
+            if (repoUpdateHeader) {
+                setElementStatus(repoUpdateHeader, "unknown", "status-");
+            }
         }
         return;
     }
@@ -482,12 +811,71 @@ async function processWorkflow(
 
     setElementStatus(workflowDomElement, statusClass);
 
-    // Update Cloud Test Cleanup header color
+    // Update subsection header colors
     if (isCloudCleanup) {
         const headerElement = document.getElementById("cloud-cleanup-header");
         let headerStatus = statusClass;
         if (statusClass === "queued") headerStatus = "progress";
         setElementStatus(headerElement, headerStatus, "status-");
+        updateWorkflowMonitoringHeader();
+    }
+    if (isSnapshot) {
+        const snapshotHeader = document.getElementById("snapshot-header");
+        let headerStatus = statusClass;
+        if (statusClass === "queued") headerStatus = "progress";
+
+        // Check if we have an override status from our custom logic
+        const overrideStatus = snapshotHeader.dataset.overrideStatus;
+        console.log(
+            "Debian Snapshot: Normal workflow processing - statusClass:",
+            statusClass,
+            "headerStatus:",
+            headerStatus
+        );
+        console.log(
+            "Debian Snapshot: Element classes before:",
+            snapshotHeader.className
+        );
+        console.log("Debian Snapshot: Dataset overrideStatus:", overrideStatus);
+
+        if (overrideStatus) {
+            headerStatus = overrideStatus;
+            console.log(
+                "Debian Snapshot: Using override status",
+                overrideStatus,
+                "instead of normal status",
+                statusClass
+            );
+        } else {
+            console.log(
+                "Debian Snapshot: Using normal status",
+                statusClass,
+                "no override found"
+            );
+        }
+
+        setElementStatus(snapshotHeader, headerStatus, "status-");
+        updateWorkflowMonitoringHeader();
+    }
+    if (isRepoBuild) {
+        const repoBuildHeader = document.querySelector(
+            "#sub-stage-repo-build .sub-stage-header"
+        );
+        if (repoBuildHeader) {
+            let headerStatus = statusClass;
+            if (statusClass === "queued") headerStatus = "progress";
+            setElementStatus(repoBuildHeader, headerStatus, "status-");
+        }
+    }
+    if (isRepoUpdate) {
+        const repoUpdateHeader = document.querySelector(
+            "#sub-stage-repo-update .sub-stage-header"
+        );
+        if (repoUpdateHeader) {
+            let headerStatus = statusClass;
+            if (statusClass === "queued") headerStatus = "progress";
+            setElementStatus(repoUpdateHeader, headerStatus, "status-");
+        }
     }
 
     // Track status for color coding
@@ -624,7 +1012,16 @@ export async function fillPackageTable() {
             packageIssuesSection.style.display = "none";
         }
     } catch (error) {
-        console.error("Failed to load package data:", error);
+        console.error(
+            `[Dashboard] Failed to load package data for GL ${glDays}:`,
+            {
+                error: error.message,
+                stack: error.stack,
+                glDays,
+                file,
+                is404: error.message.includes("404"),
+            }
+        );
 
         // Enhanced error handling with more details
         const is404 = error.message.includes("404");
@@ -724,6 +1121,18 @@ export function updatePipelineHierarchy() {
     updatePipelineColor(pipelineStatus);
     updateHeaderColor(pipelineStatus);
 
+    // Apply Debian Snapshot override status if set
+    const snapshotHeader = document.getElementById("snapshot-header");
+    if (snapshotHeader && snapshotHeader.dataset.overrideStatus) {
+        const overrideStatus = snapshotHeader.dataset.overrideStatus;
+        console.log(
+            "Applying Debian Snapshot override status:",
+            overrideStatus
+        );
+        setElementStatus(snapshotHeader, overrideStatus, "status-");
+        updateWorkflowMonitoringHeader();
+    }
+
     // Update current release header colors
     updateCurrentReleaseHeaderColors(pipelineStatus);
 
@@ -806,7 +1215,15 @@ export async function loadHistoricReleases() {
         loadingDiv.style.display = "none";
         renderHistoricReleases(historicData.filter((data) => data !== null));
     } catch (error) {
-        console.error("Failed to load historic releases:", error);
+        console.error(
+            `[Dashboard] Failed to load historic releases for GL ${baseGL}:`,
+            {
+                error: error.message,
+                stack: error.stack,
+                baseGL,
+                historicCount: UI_CONFIG.HISTORIC_RELEASES_COUNT,
+            }
+        );
         loadingDiv.innerHTML =
             "❌ Failed to load historic data. Please try again later.";
     }
@@ -849,7 +1266,14 @@ async function loadHistoricDay(glDays) {
             pipelineStatus, // for main dot and row coloring
         };
     } catch (error) {
-        console.warn(`Failed to load data for GL ${glDays}:`, error);
+        console.warn(
+            `[Dashboard] Failed to load data for historic GL ${glDays}:`,
+            {
+                error: error.message,
+                stack: error.stack,
+                glDays,
+            }
+        );
         return null;
     }
 }
@@ -883,7 +1307,14 @@ async function getHistoricPackageStatus(glDays) {
             issueCount,
             totalCount: packages.length,
         };
-    } catch {
+    } catch (error) {
+        console.warn(
+            `[Dashboard] Failed to load historic package status for GL ${glDays}:`,
+            {
+                error: error.message,
+                glDays,
+            }
+        );
         return { status: "error", issueCount: 0 };
     }
 }
@@ -982,7 +1413,15 @@ async function getHistoricWorkflowStatuses(glDays) {
 
                 if (!response.ok) {
                     console.warn(
-                        `Historic API error for ${workflow.name} (${workflow.id}): ${response.status}`
+                        `[Dashboard] Historic API error for ${workflow.name} (${workflow.id}):`,
+                        {
+                            status: response.status,
+                            statusText: response.statusText,
+                            workflowId: workflow.id,
+                            workflowName: workflow.name,
+                            repo: workflow.repo,
+                            glDays,
+                        }
                     );
                     return {
                         workflow,
@@ -1010,7 +1449,18 @@ async function getHistoricWorkflowStatuses(glDays) {
                     status: result.status,
                     runData: result.runData,
                 };
-            } catch {
+            } catch (error) {
+                console.warn(
+                    `[Dashboard] Historic workflow processing error for ${workflow.name} (${workflow.id}):`,
+                    {
+                        error: error.message,
+                        stack: error.stack,
+                        workflowId: workflow.id,
+                        workflowName: workflow.name,
+                        repo: workflow.repo,
+                        glDays,
+                    }
+                );
                 return {
                     workflow,
                     status: "unknown",
@@ -1046,9 +1496,13 @@ async function getHistoricWorkflowStatuses(glDays) {
             workflowRunData,
         };
     } catch (error) {
-        console.warn(
-            `Failed to load historic workflow status for GL ${glDays}:`,
-            error
+        console.error(
+            `[Dashboard] Failed to load historic workflow status for GL ${glDays}:`,
+            {
+                error: error.message,
+                stack: error.stack,
+                glDays,
+            }
         );
         // On error, return empty statuses
         return {

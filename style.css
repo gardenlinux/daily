@@ -402,8 +402,9 @@
 .current-release-header,
 .current-details-header,
 .cloud-cleanup-header,
+.workflow-monitoring-header,
+.sub-stage-header,
 .historic-releases-header {
-    background: var(--color-progress); /* SAP Blue/7 */
     color: var(--text-white);
     padding: 15px 20px;
     border-radius: 8px;
@@ -412,12 +413,37 @@
     border: none;
     font-weight: 600;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+/* Set default background only for non-sub-stage headers */
+.days,
+.current-release-header,
+.current-details-header,
+.cloud-cleanup-header,
+.workflow-monitoring-header,
+.historic-releases-header {
+    background: var(--color-progress); /* SAP Blue/7 */
+}
+
+.sub-stage-header {
+    margin-bottom: 10px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
+    background: var(--color-progress); /* Default blue background */
 }
 
 .days h2,
 .current-release-header h2,
 .current-details-header h2,
 .cloud-cleanup-header h2,
+.workflow-monitoring-header h2,
+.sub-stage-header h4,
 .historic-releases-header h2 {
     margin: 0;
     font-size: 1.2em;
@@ -430,7 +456,13 @@
 .days.header-success,
 .current-release-header.status-success,
 .current-details-header.status-success,
-.cloud-cleanup-header.status-success {
+.cloud-cleanup-header.status-success,
+.workflow-monitoring-header.status-success {
+    background: var(--color-success);
+    border: none;
+}
+
+.sub-stage-header.status-success {
     background: var(--color-success);
     border: none;
 }
@@ -439,7 +471,13 @@
 .days.error,
 .current-release-header.status-failure,
 .current-details-header.status-failure,
-.cloud-cleanup-header.status-failure {
+.cloud-cleanup-header.status-failure,
+.workflow-monitoring-header.status-failure {
+    background: var(--color-failure-gradient);
+    border-color: var(--color-failure);
+}
+
+.sub-stage-header.status-failure {
     background: var(--color-failure-gradient);
     border-color: var(--color-failure);
 }
@@ -447,7 +485,13 @@
 .days.header-progress,
 .current-release-header.status-progress,
 .current-details-header.status-progress,
-.cloud-cleanup-header.status-progress {
+.cloud-cleanup-header.status-progress,
+.workflow-monitoring-header.status-progress {
+    background: var(--color-progress-gradient);
+    border-color: var(--color-progress);
+}
+
+.sub-stage-header.status-progress {
     background: var(--color-progress-gradient);
     border-color: var(--color-progress);
 }
@@ -455,7 +499,13 @@
 .days.header-warning,
 .current-release-header.status-warning,
 .current-details-header.status-warning,
-.cloud-cleanup-header.status-warning {
+.cloud-cleanup-header.status-warning,
+.workflow-monitoring-header.status-warning {
+    background: var(--color-warning-gradient);
+    border-color: var(--color-warning);
+}
+
+.sub-stage-header.status-warning {
     background: var(--color-warning-gradient);
     border-color: var(--color-warning);
 }
@@ -465,9 +515,17 @@
 .current-release-header.status-unknown,
 .current-details-header.status-unknown,
 .cloud-cleanup-header.status-unknown,
+.workflow-monitoring-header.status-unknown,
 .current-release-header:not([class*="status-"]),
 .current-details-header:not([class*="status-"]),
-.cloud-cleanup-header:not([class*="status-"]) {
+.cloud-cleanup-header:not([class*="status-"]),
+.workflow-monitoring-header:not([class*="status-"]) {
+    background: var(--color-unknown-gradient);
+    border-color: var(--color-unknown);
+}
+
+.sub-stage-header.status-unknown,
+.sub-stage-header:not([class*="status-"]) {
     background: var(--color-unknown-gradient);
     border-color: var(--color-unknown);
 }
@@ -797,7 +855,8 @@ table {
 /* CURRENT DAILY RELEASE SECTION */
 .current-release-container,
 .current-details-container,
-.cloud-cleanup-container {
+.cloud-cleanup-container,
+.workflow-monitoring-container {
     margin: 25px auto;
     max-width: 1200px;
     background: var(--bg-primary);
@@ -810,7 +869,8 @@ table {
 
 .current-release-header,
 .current-details-header,
-.cloud-cleanup-header {
+.cloud-cleanup-header,
+.workflow-monitoring-header {
     padding: 15px 20px;
     border-bottom: 2px solid var(--border-light);
     display: flex;
@@ -820,7 +880,8 @@ table {
 }
 
 .current-details-header:hover,
-.cloud-cleanup-header:hover {
+.cloud-cleanup-header:hover,
+.workflow-monitoring-header:hover {
     opacity: 0.9;
 }
 
@@ -836,7 +897,8 @@ table {
 
 .current-release-content,
 .current-details-content,
-.cloud-cleanup-content {
+.cloud-cleanup-content,
+.workflow-monitoring-content {
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.4s ease;
@@ -849,7 +911,8 @@ table {
 }
 
 .current-details-content.expanded,
-.cloud-cleanup-content.expanded {
+.cloud-cleanup-content.expanded,
+.workflow-monitoring-content.expanded {
     max-height: none;
     overflow: hidden;
 }
@@ -1685,30 +1748,12 @@ table {
     flex-direction: column;
 }
 
-.sub-stage-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border-light);
-    flex-shrink: 0;
-}
-
 .sub-stage-icon {
     font-size: 1.3em;
-    color: var(--text-unknown);
+    color: var(--text-white);
     width: 24px;
     text-align: center;
     flex-shrink: 0;
-}
-
-.sub-stage-header h4 {
-    margin: 0;
-    font-size: 1.1em;
-    color: var(--text-primary);
-    font-weight: 600;
-    flex-grow: 1;
 }
 
 .sub-stage .workflow-box {
