@@ -40,6 +40,15 @@ export async function downloadAndExtractArtifact(owner, repo, artifact) {
         );
         if (!downloadResponse.ok) {
             const status = downloadResponse.status;
+            console.error(
+                `[ParentWorkflow] Failed to download artifact ${artifact.name} (ID: ${artifact.id}):`,
+                {
+                    status,
+                    statusText: downloadResponse.statusText,
+                    url: downloadResponse.url,
+                }
+            );
+
             if (status === 401 || status === 403) {
                 return {
                     success: false,
@@ -77,8 +86,12 @@ export async function downloadAndExtractArtifact(owner, repo, artifact) {
                             parentRunId = jsonData.id;
                         }
                     }
-                } catch {
-                    // Ignore parse errors
+                } catch (parseError) {
+                    // Log JSON parse errors for debugging
+                    console.warn(
+                        `[ParentWorkflow] Failed to parse JSON file ${filename}:`,
+                        parseError.message
+                    );
                 }
             }
         }
@@ -91,6 +104,17 @@ export async function downloadAndExtractArtifact(owner, repo, artifact) {
             message: `Successfully extracted ${Object.keys(extractedData).length} files`,
         };
     } catch (error) {
+        console.error(
+            `[ParentWorkflow] Error in downloadAndExtractArtifact for artifact ${artifact.name} (ID: ${artifact.id}):`,
+            {
+                error: error.message,
+                stack: error.stack,
+                artifactName: artifact.name,
+                artifactId: artifact.id,
+                owner,
+                repo,
+            }
+        );
         return {
             success: false,
             reason: "extraction_error",
@@ -112,6 +136,17 @@ export async function getParentWorkflowInfo(owner, repo, runId) {
             }
         );
         if (!artifactsResponse.ok) {
+            console.error(
+                `[ParentWorkflow] Failed to fetch artifacts for run ${runId}:`,
+                {
+                    status: artifactsResponse.status,
+                    statusText: artifactsResponse.statusText,
+                    url: artifactsResponse.url,
+                    runId,
+                    owner,
+                    repo,
+                }
+            );
             return {
                 found: false,
                 message: `Failed to fetch artifacts: ${artifactsResponse.status} ${artifactsResponse.statusText}`,
@@ -189,6 +224,16 @@ export async function getParentWorkflowInfo(owner, repo, runId) {
             };
         }
     } catch (error) {
+        console.error(
+            `[ParentWorkflow] Error in getParentWorkflowInfo for run ${runId}:`,
+            {
+                error: error.message,
+                stack: error.stack,
+                runId,
+                owner,
+                repo,
+            }
+        );
         return {
             found: false,
             message: "Error fetching artifact information",

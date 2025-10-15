@@ -49,38 +49,61 @@ window.toggleSettings = function () {
 };
 
 window.saveToken = function () {
-    const tokenInput = document.getElementById("token-input");
-    const token = tokenInput.value.trim();
+    try {
+        const tokenInput = document.getElementById("token-input");
+        const token = tokenInput.value.trim();
 
-    if (!token) {
-        alert("Please enter a token");
-        return;
-    }
-
-    // Validate token format
-    if (!token.startsWith("ghp_") && !token.startsWith("github_pat_")) {
-        const confirmSave = confirm(
-            "Warning: This doesn't look like a valid GitHub token.\n" +
-                'GitHub tokens start with "ghp_" (classic) or "github_pat_" (fine-grained).\n\n' +
-                "Do you want to save it anyway?"
-        );
-        if (!confirmSave) {
+        if (!token) {
+            console.warn("[Main] Token save attempted with empty token");
+            alert("Please enter a token");
             return;
         }
-    }
 
-    localStorage.setItem("github_token", token);
-    tokenInput.value = "";
-    updateAuthStatus();
-    alert("Token saved successfully! Refreshing data...");
-    location.reload(); // Refresh to use new token
+        // Validate token format
+        if (!token.startsWith("ghp_") && !token.startsWith("github_pat_")) {
+            console.warn("[Main] Token save attempted with invalid format:", {
+                tokenPrefix: token.substring(0, 10) + "...",
+                tokenLength: token.length,
+            });
+            const confirmSave = confirm(
+                "Warning: This doesn't look like a valid GitHub token.\n" +
+                    'GitHub tokens start with "ghp_" (classic) or "github_pat_" (fine-grained).\n\n' +
+                    "Do you want to save it anyway?"
+            );
+            if (!confirmSave) {
+                return;
+            }
+        }
+
+        localStorage.setItem("github_token", token);
+        tokenInput.value = "";
+        updateAuthStatus();
+        console.log("[Main] Token saved successfully");
+        alert("Token saved successfully! Refreshing data...");
+        location.reload(); // Refresh to use new token
+    } catch (error) {
+        console.error("[Main] Error saving token:", {
+            error: error.message,
+            stack: error.stack,
+        });
+        alert("Failed to save token. Please try again.");
+    }
 };
 
 window.clearToken = function () {
-    localStorage.removeItem("github_token");
-    updateAuthStatus();
-    alert("Token cleared! Page will reload...");
-    location.reload();
+    try {
+        localStorage.removeItem("github_token");
+        updateAuthStatus();
+        console.log("[Main] Token cleared successfully");
+        alert("Token cleared! Page will reload...");
+        location.reload();
+    } catch (error) {
+        console.error("[Main] Error clearing token:", {
+            error: error.message,
+            stack: error.stack,
+        });
+        alert("Failed to clear token. Please try again.");
+    }
 };
 
 // ========================================
@@ -88,32 +111,61 @@ window.clearToken = function () {
 // ========================================
 // Branch search toggle functions
 window.toggleBranchSearch = function () {
-    const checkbox = document.getElementById("search-all-branches");
-    const isEnabled = checkbox.checked;
+    try {
+        const checkbox = document.getElementById("search-all-branches");
+        const isEnabled = checkbox.checked;
 
-    // Update URL parameter only
-    const url = new URL(window.location);
-    if (isEnabled) {
-        url.searchParams.set("all_branches", "true");
-    } else {
-        url.searchParams.delete("all_branches");
+        // Update URL parameter only
+        const url = new URL(window.location);
+        if (isEnabled) {
+            url.searchParams.set("all_branches", "true");
+        } else {
+            url.searchParams.delete("all_branches");
+        }
+
+        // Navigate to the new URL
+        const message = isEnabled
+            ? "Branch search enabled: Now searching all branches. Page will reload..."
+            : "Branch search disabled: Now searching default branches only. Page will reload...";
+
+        console.log("[Main] Branch search setting changed:", {
+            enabled: isEnabled,
+            newUrl: url.toString(),
+        });
+
+        alert(message);
+        window.location.href = url.toString();
+    } catch (error) {
+        console.error("[Main] Error toggling branch search:", {
+            error: error.message,
+            stack: error.stack,
+        });
+        alert("Failed to update branch search setting. Please try again.");
     }
-
-    // Navigate to the new URL
-    const message = isEnabled
-        ? "Branch search enabled: Now searching all branches. Page will reload..."
-        : "Branch search disabled: Now searching default branches only. Page will reload...";
-    alert(message);
-    window.location.href = url.toString();
 };
 
 // On page load, set checkbox state based on URL parameter
 function setBranchCheckboxFromUrl() {
-    const checkbox = document.getElementById("search-all-branches");
-    if (!checkbox) return;
-    const urlParams = new URLSearchParams(window.location.search);
-    const branchParam = urlParams.get("all_branches");
-    checkbox.checked = branchParam === "true" || branchParam === "1";
+    try {
+        const checkbox = document.getElementById("search-all-branches");
+        if (!checkbox) {
+            console.warn("[Main] Branch search checkbox not found in DOM");
+            return;
+        }
+        const urlParams = new URLSearchParams(window.location.search);
+        const branchParam = urlParams.get("all_branches");
+        checkbox.checked = branchParam === "true" || branchParam === "1";
+
+        console.log("[Main] Branch search checkbox initialized:", {
+            checked: checkbox.checked,
+            urlParam: branchParam,
+        });
+    } catch (error) {
+        console.error("[Main] Error setting branch checkbox from URL:", {
+            error: error.message,
+            stack: error.stack,
+        });
+    }
 }
 
 // Call this on DOMContentLoaded or after settings panel is rendered
@@ -124,15 +176,29 @@ if (document.readyState === "loading") {
 }
 
 function updateAuthStatus() {
-    const token = localStorage.getItem("github_token");
-    const statusElement = document.getElementById("auth-status");
+    try {
+        const token = localStorage.getItem("github_token");
+        const statusElement = document.getElementById("auth-status");
 
-    if (token) {
-        statusElement.textContent = "Authenticated ✅";
-        statusElement.style.color = "#5cb85c";
-    } else {
-        statusElement.textContent = "Not authenticated ❌";
-        statusElement.style.color = "#d9534f";
+        if (!statusElement) {
+            console.warn("[Main] Auth status element not found in DOM");
+            return;
+        }
+
+        if (token) {
+            statusElement.textContent = "Authenticated ✅";
+            statusElement.style.color = "#5cb85c";
+            console.log("[Main] Auth status updated: Authenticated");
+        } else {
+            statusElement.textContent = "Not authenticated ❌";
+            statusElement.style.color = "#d9534f";
+            console.log("[Main] Auth status updated: Not authenticated");
+        }
+    } catch (error) {
+        console.error("[Main] Error updating auth status:", {
+            error: error.message,
+            stack: error.stack,
+        });
     }
 }
 
@@ -187,26 +253,58 @@ window.handleGLInput = function () {
 };
 
 window.goToGL = function () {
-    const glInput = document.getElementById("gl-input");
-    const glValue = parseInt(glInput.value);
+    try {
+        const glInput = document.getElementById("gl-input");
+        const glValue = parseInt(glInput.value);
 
-    if (isNaN(glValue) || glValue < 1) {
-        alert("Please enter a valid GL version (positive number)");
-        glInput.value = getCurrentGlDays();
-        return;
+        if (isNaN(glValue) || glValue < 1) {
+            console.warn("[Main] Invalid GL value entered:", {
+                value: glInput.value,
+                parsed: glValue,
+            });
+            alert("Please enter a valid GL version (positive number)");
+            glInput.value = getCurrentGlDays();
+            return;
+        }
+
+        // Navigate to the URL with the GL parameter
+        const url = new URL(window.location.href);
+        url.searchParams.set("gl", glValue);
+
+        console.log("[Main] Navigating to GL version:", {
+            glValue,
+            newUrl: url.toString(),
+        });
+
+        window.location.href = url.toString();
+    } catch (error) {
+        console.error("[Main] Error navigating to GL version:", {
+            error: error.message,
+            stack: error.stack,
+            inputValue: document.getElementById("gl-input")?.value,
+        });
+        alert("Failed to navigate to GL version. Please try again.");
     }
-
-    // Navigate to the URL with the GL parameter
-    const url = new URL(window.location.href);
-    url.searchParams.set("gl", glValue);
-    window.location.href = url.toString();
 };
 
 window.goToToday = function () {
-    // Navigate to today's version (remove GL parameter)
-    const url = new URL(window.location.href);
-    url.searchParams.delete("gl");
-    window.location.href = url.toString();
+    try {
+        // Navigate to today's version (remove GL parameter)
+        const url = new URL(window.location.href);
+        url.searchParams.delete("gl");
+
+        console.log("[Main] Navigating to today's GL version:", {
+            newUrl: url.toString(),
+        });
+
+        window.location.href = url.toString();
+    } catch (error) {
+        console.error("[Main] Error navigating to today's GL version:", {
+            error: error.message,
+            stack: error.stack,
+        });
+        alert("Failed to navigate to today's version. Please try again.");
+    }
 };
 
 // ========================================
@@ -363,99 +461,126 @@ function generateWorkflowHTML() {
 // ========================================
 // Main initialization
 function initDashboard() {
-    // Update the display text
-    const glDays = getGlDays();
-    const glDaysElement = document.getElementById("gl-days");
+    try {
+        // Update the display text
+        const glDays = getGlDays();
+        const glDaysElement = document.getElementById("gl-days");
 
-    // Calculate the date for the GL version using the new detailed format
-    const glDate = new Date(GL_INITIAL_DATE);
-    glDate.setDate(glDate.getDate() + glDays);
-    const formattedDate = formatDetailedDateFromDate(glDate);
-
-    // Apply appropriate styling classes
-    glDaysElement.classList.remove("historic", "error");
-
-    if (isHistoricView()) {
-        glDaysElement.classList.add("historic");
-        glDaysElement.innerText = `Historic - GL ${glDays} \n ${formattedDate}`;
-
-        // Update section headings for historic view
-        const currentReleaseHeader = document.querySelector(
-            "#current-release-header h2"
-        );
-        const currentDetailsHeader = document.querySelector(
-            "#current-details-header h2"
-        );
-
-        if (currentReleaseHeader) {
-            currentReleaseHeader.textContent = "🚀 Historic Daily Release";
-        }
-        if (currentDetailsHeader) {
-            currentDetailsHeader.textContent =
-                "🔧 Historic Daily Release Details";
+        if (!glDaysElement) {
+            console.error("[Main] GL days element not found in DOM");
+            return;
         }
 
-        // Update historic releases header for historic view
-        const historicReleaseHeader = document.querySelector(
-            ".historic-releases-header h2"
-        );
-        if (historicReleaseHeader) {
-            historicReleaseHeader.textContent = `📅 Historic Daily Releases (14 Days Before GL ${glDays})`;
-        }
-    } else {
-        glDaysElement.innerText = `GL ${glDays} \n ${formattedDate}`;
+        // Calculate the date for the GL version using the new detailed format
+        const glDate = new Date(GL_INITIAL_DATE);
+        glDate.setDate(glDate.getDate() + glDays);
+        const formattedDate = formatDetailedDateFromDate(glDate);
 
-        // Ensure headings are set to "Current" for non-historic view
-        const currentReleaseHeader = document.querySelector(
-            "#current-release-header h2"
-        );
-        const currentDetailsHeader = document.querySelector(
-            "#current-details-header h2"
-        );
+        // Apply appropriate styling classes
+        glDaysElement.classList.remove("historic", "error");
 
-        if (currentReleaseHeader) {
-            currentReleaseHeader.textContent = "🚀 Current Daily Release";
-        }
-        if (currentDetailsHeader) {
-            currentDetailsHeader.textContent =
-                "🔧 Current Daily Release Details";
+        if (isHistoricView()) {
+            glDaysElement.classList.add("historic");
+            glDaysElement.innerText = `Historic - GL ${glDays} \n ${formattedDate}`;
+
+            // Update section headings for historic view
+            const currentReleaseHeader = document.querySelector(
+                "#current-release-header h2"
+            );
+            const currentDetailsHeader = document.querySelector(
+                "#current-details-header h2"
+            );
+
+            if (currentReleaseHeader) {
+                currentReleaseHeader.textContent = "🚀 Historic Daily Release";
+            }
+            if (currentDetailsHeader) {
+                currentDetailsHeader.textContent =
+                    "🔧 Historic Daily Release Details";
+            }
+
+            // Update historic releases header for historic view
+            const historicReleaseHeader = document.querySelector(
+                ".historic-releases-header h2"
+            );
+            if (historicReleaseHeader) {
+                historicReleaseHeader.textContent = `📅 Historic Daily Releases (14 Days Before GL ${glDays})`;
+            }
+        } else {
+            glDaysElement.innerText = `GL ${glDays} \n ${formattedDate}`;
+
+            // Ensure headings are set to "Current" for non-historic view
+            const currentReleaseHeader = document.querySelector(
+                "#current-release-header h2"
+            );
+            const currentDetailsHeader = document.querySelector(
+                "#current-details-header h2"
+            );
+
+            if (currentReleaseHeader) {
+                currentReleaseHeader.textContent = "🚀 Current Daily Release";
+            }
+            if (currentDetailsHeader) {
+                currentDetailsHeader.textContent =
+                    "🔧 Current Daily Release Details";
+            }
+
+            // Update historic releases header for current view
+            const historicReleaseHeader = document.querySelector(
+                ".historic-releases-header h2"
+            );
+            if (historicReleaseHeader) {
+                historicReleaseHeader.textContent = `📅 Historic Daily Releases (14 Days Before Today)`;
+            }
         }
 
-        // Update historic releases header for current view
-        const historicReleaseHeader = document.querySelector(
-            ".historic-releases-header h2"
+        // Current release section is always visible now (no initialization needed)
+
+        // Hide historic releases section if disabled
+        const historicContainer = document.getElementById(
+            "historic-releases-container"
         );
-        if (historicReleaseHeader) {
-            historicReleaseHeader.textContent = `📅 Historic Daily Releases (14 Days Before Today)`;
+        if (!shouldLoadHistoricReleases()) {
+            historicContainer.style.display = "none";
+        }
+
+        // Expand monitoring subsections by default
+        const cloudContent = document.getElementById("cloud-cleanup-content");
+        const cloudIcon = document.getElementById("cloud-cleanup-toggle-icon");
+        if (cloudContent && cloudIcon) {
+            cloudContent.style.display = "block";
+            cloudContent.classList.add("expanded");
+            cloudIcon.classList.add("expanded");
+            cloudIcon.textContent = "▲";
+        }
+
+        console.log("[Main] Dashboard initialization started:", {
+            glDays,
+            formattedDate,
+            isHistoric: isHistoricView(),
+            shouldLoadHistoric: shouldLoadHistoricReleases(),
+        });
+
+        // Load data
+        getRun();
+        fillPackageTable();
+        updateAuthStatus(); // Initialize auth status display
+        initializeGLSelector(); // Initialize GL version selector
+        generateWorkflowHTML(); // Generate workflow HTML
+
+        console.log("[Main] Dashboard initialization completed successfully");
+    } catch (error) {
+        console.error("[Main] Error during dashboard initialization:", {
+            error: error.message,
+            stack: error.stack,
+        });
+        // Show user-friendly error message
+        const glDaysElement = document.getElementById("gl-days");
+        if (glDaysElement) {
+            glDaysElement.textContent = "Error initializing dashboard";
+            glDaysElement.classList.add("error");
         }
     }
-
-    // Current release section is always visible now (no initialization needed)
-
-    // Hide historic releases section if disabled
-    const historicContainer = document.getElementById(
-        "historic-releases-container"
-    );
-    if (!shouldLoadHistoricReleases()) {
-        historicContainer.style.display = "none";
-    }
-
-    // Expand monitoring subsections by default
-    const cloudContent = document.getElementById("cloud-cleanup-content");
-    const cloudIcon = document.getElementById("cloud-cleanup-toggle-icon");
-    if (cloudContent && cloudIcon) {
-        cloudContent.style.display = "block";
-        cloudContent.classList.add("expanded");
-        cloudIcon.classList.add("expanded");
-        cloudIcon.textContent = "▲";
-    }
-
-    // Load data
-    getRun();
-    fillPackageTable();
-    updateAuthStatus(); // Initialize auth status display
-    initializeGLSelector(); // Initialize GL version selector
-    generateWorkflowHTML(); // Generate workflow HTML
 }
 
 // Start the application when DOM is ready

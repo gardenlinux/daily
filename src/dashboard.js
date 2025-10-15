@@ -263,9 +263,15 @@ async function processWorkflow(
 
     if (!response.ok) {
         console.error(
-            `API Error for workflow ${workflow.id}:`,
-            response.status,
-            response.statusText
+            `[Dashboard] API Error for workflow ${workflow.id} (${workflow.name}):`,
+            {
+                status: response.status,
+                statusText: response.statusText,
+                url: response.url,
+                workflowId: workflow.id,
+                workflowName: workflow.name,
+                repo: workflow.repo,
+            }
         );
         const workflowDomElement = document.getElementById(
             `daily-info-${workflow.id}`
@@ -451,8 +457,14 @@ async function processWorkflow(
 
     if (!workflowRuns) {
         console.error(
-            `No workflow_runs in response for workflow ${workflow.id}:`,
-            runs
+            `[Dashboard] No workflow_runs in response for workflow ${workflow.id} (${workflow.name}):`,
+            {
+                workflowId: workflow.id,
+                workflowName: workflow.name,
+                repo: workflow.repo,
+                responseData: runs,
+                apiUrl,
+            }
         );
         const workflowDomElement = document.getElementById(
             `daily-info-${workflow.id}`
@@ -603,9 +615,17 @@ async function processWorkflow(
                     `🔍 [Stage 4] Run ${run.id}: Skipped (doesn't match criteria)`
                 );
             } catch (error) {
-                console.log(
-                    `🔍 [Stage 4] Failed to get parent info for run ${run.id}:`,
-                    error.message
+                console.error(
+                    `[Dashboard] Failed to get parent info for Stage 4 run ${run.id} (${workflow.name}):`,
+                    {
+                        error: error.message,
+                        stack: error.stack,
+                        runId: run.id,
+                        workflowId: workflow.id,
+                        workflowName: workflow.name,
+                        repo: workflow.repo,
+                        created_at: run.created_at,
+                    }
                 );
             }
         }
@@ -992,7 +1012,16 @@ export async function fillPackageTable() {
             packageIssuesSection.style.display = "none";
         }
     } catch (error) {
-        console.error("Failed to load package data:", error);
+        console.error(
+            `[Dashboard] Failed to load package data for GL ${glDays}:`,
+            {
+                error: error.message,
+                stack: error.stack,
+                glDays,
+                file,
+                is404: error.message.includes("404"),
+            }
+        );
 
         // Enhanced error handling with more details
         const is404 = error.message.includes("404");
@@ -1186,7 +1215,15 @@ export async function loadHistoricReleases() {
         loadingDiv.style.display = "none";
         renderHistoricReleases(historicData.filter((data) => data !== null));
     } catch (error) {
-        console.error("Failed to load historic releases:", error);
+        console.error(
+            `[Dashboard] Failed to load historic releases for GL ${baseGL}:`,
+            {
+                error: error.message,
+                stack: error.stack,
+                baseGL,
+                historicCount: UI_CONFIG.HISTORIC_RELEASES_COUNT,
+            }
+        );
         loadingDiv.innerHTML =
             "❌ Failed to load historic data. Please try again later.";
     }
@@ -1229,7 +1266,14 @@ async function loadHistoricDay(glDays) {
             pipelineStatus, // for main dot and row coloring
         };
     } catch (error) {
-        console.warn(`Failed to load data for GL ${glDays}:`, error);
+        console.warn(
+            `[Dashboard] Failed to load data for historic GL ${glDays}:`,
+            {
+                error: error.message,
+                stack: error.stack,
+                glDays,
+            }
+        );
         return null;
     }
 }
@@ -1263,7 +1307,14 @@ async function getHistoricPackageStatus(glDays) {
             issueCount,
             totalCount: packages.length,
         };
-    } catch {
+    } catch (error) {
+        console.warn(
+            `[Dashboard] Failed to load historic package status for GL ${glDays}:`,
+            {
+                error: error.message,
+                glDays,
+            }
+        );
         return { status: "error", issueCount: 0 };
     }
 }
@@ -1362,7 +1413,15 @@ async function getHistoricWorkflowStatuses(glDays) {
 
                 if (!response.ok) {
                     console.warn(
-                        `Historic API error for ${workflow.name} (${workflow.id}): ${response.status}`
+                        `[Dashboard] Historic API error for ${workflow.name} (${workflow.id}):`,
+                        {
+                            status: response.status,
+                            statusText: response.statusText,
+                            workflowId: workflow.id,
+                            workflowName: workflow.name,
+                            repo: workflow.repo,
+                            glDays,
+                        }
                     );
                     return {
                         workflow,
@@ -1390,7 +1449,18 @@ async function getHistoricWorkflowStatuses(glDays) {
                     status: result.status,
                     runData: result.runData,
                 };
-            } catch {
+            } catch (error) {
+                console.warn(
+                    `[Dashboard] Historic workflow processing error for ${workflow.name} (${workflow.id}):`,
+                    {
+                        error: error.message,
+                        stack: error.stack,
+                        workflowId: workflow.id,
+                        workflowName: workflow.name,
+                        repo: workflow.repo,
+                        glDays,
+                    }
+                );
                 return {
                     workflow,
                     status: "unknown",
@@ -1426,9 +1496,13 @@ async function getHistoricWorkflowStatuses(glDays) {
             workflowRunData,
         };
     } catch (error) {
-        console.warn(
-            `Failed to load historic workflow status for GL ${glDays}:`,
-            error
+        console.error(
+            `[Dashboard] Failed to load historic workflow status for GL ${glDays}:`,
+            {
+                error: error.message,
+                stack: error.stack,
+                glDays,
+            }
         );
         // On error, return empty statuses
         return {

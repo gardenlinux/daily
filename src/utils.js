@@ -247,7 +247,13 @@ export async function getTriggerInfo(owner, repo, runData) {
                 return event;
         }
     } catch (error) {
-        console.error("Failed to get trigger info:", error);
+        console.error("[Utils] Failed to get trigger info:", {
+            error: error.message,
+            stack: error.stack,
+            owner,
+            repo,
+            runData: runData ? { id: runData.id, event: runData.event } : null,
+        });
         return "unknown";
     }
 }
@@ -263,28 +269,44 @@ export async function getTriggerInfo(owner, repo, runData) {
  * @param {string} prefix - Optional prefix (e.g. 'status-', 'stage-', etc.)
  */
 export function setElementStatus(element, status, prefix = "") {
-    if (!element) return;
+    try {
+        if (!element) {
+            console.warn(
+                "[Utils] setElementStatus called with null/undefined element"
+            );
+            return;
+        }
 
-    const statusClasses = [
-        "success",
-        "failure",
-        "progress",
-        "warning",
-        "unknown",
-        "error",
-        "api-error",
-        "no-runs",
-        "queued",
-    ];
+        const statusClasses = [
+            "success",
+            "failure",
+            "progress",
+            "warning",
+            "unknown",
+            "error",
+            "api-error",
+            "no-runs",
+            "queued",
+        ];
 
-    // Remove all existing status classes with prefix
-    statusClasses.forEach((cls) => {
-        element.classList.remove(`${prefix}${cls}`);
-    });
+        // Remove all existing status classes with prefix
+        statusClasses.forEach((cls) => {
+            element.classList.remove(`${prefix}${cls}`);
+        });
 
-    // Add new status class
-    if (status) {
-        element.classList.add(`${prefix}${status}`);
+        // Add new status class
+        if (status) {
+            element.classList.add(`${prefix}${status}`);
+        }
+    } catch (error) {
+        console.error("[Utils] Error setting element status:", {
+            error: error.message,
+            stack: error.stack,
+            elementId: element?.id,
+            elementTagName: element?.tagName,
+            status,
+            prefix,
+        });
     }
 }
 
@@ -295,36 +317,68 @@ export function setElementStatus(element, status, prefix = "") {
  * @param {Function} onExpand - Optional callback when section expands
  */
 export function toggleSection(contentId, iconId, onExpand = null) {
-    const content = document.getElementById(contentId);
-    const icon = document.getElementById(iconId);
+    try {
+        const content = document.getElementById(contentId);
+        const icon = document.getElementById(iconId);
 
-    if (!content || !icon) return;
-
-    if (
-        content.style.display === "none" ||
-        !content.classList.contains("expanded")
-    ) {
-        // Expand section
-        content.style.display = "block";
-        content.classList.add("expanded");
-        icon.classList.add("expanded");
-        icon.textContent = "▲";
-
-        // Execute callback if provided
-        if (onExpand && !content.dataset.loaded) {
-            onExpand();
-            content.dataset.loaded = "true";
+        if (!content || !icon) {
+            console.warn(
+                "[Utils] toggleSection called with missing elements:",
+                {
+                    contentId,
+                    iconId,
+                    contentFound: !!content,
+                    iconFound: !!icon,
+                }
+            );
+            return;
         }
-    } else {
-        // Collapse section
-        content.classList.remove("expanded");
-        icon.classList.remove("expanded");
-        icon.textContent = "▼";
-        setTimeout(() => {
-            if (!content.classList.contains("expanded")) {
-                content.style.display = "none";
+
+        if (
+            content.style.display === "none" ||
+            !content.classList.contains("expanded")
+        ) {
+            // Expand section
+            content.style.display = "block";
+            content.classList.add("expanded");
+            icon.classList.add("expanded");
+            icon.textContent = "▲";
+
+            // Execute callback if provided
+            if (onExpand && !content.dataset.loaded) {
+                try {
+                    onExpand();
+                    content.dataset.loaded = "true";
+                } catch (callbackError) {
+                    console.error(
+                        "[Utils] Error executing toggleSection callback:",
+                        {
+                            error: callbackError.message,
+                            stack: callbackError.stack,
+                            contentId,
+                            iconId,
+                        }
+                    );
+                }
             }
-        }, 400);
+        } else {
+            // Collapse section
+            content.classList.remove("expanded");
+            icon.classList.remove("expanded");
+            icon.textContent = "▼";
+            setTimeout(() => {
+                if (!content.classList.contains("expanded")) {
+                    content.style.display = "none";
+                }
+            }, 400);
+        }
+    } catch (error) {
+        console.error("[Utils] Error in toggleSection:", {
+            error: error.message,
+            stack: error.stack,
+            contentId,
+            iconId,
+        });
     }
 }
 
@@ -333,9 +387,41 @@ export function toggleSection(contentId, iconId, onExpand = null) {
  * @param {Array} updates - Array of {element, status, prefix} objects
  */
 export function bulkSetElementStatus(updates) {
-    updates.forEach(({ element, status, prefix = "" }) => {
-        setElementStatus(element, status, prefix);
-    });
+    try {
+        if (!Array.isArray(updates)) {
+            console.warn(
+                "[Utils] bulkSetElementStatus called with non-array:",
+                {
+                    updates,
+                    type: typeof updates,
+                }
+            );
+            return;
+        }
+
+        updates.forEach(({ element, status, prefix = "" }, index) => {
+            try {
+                setElementStatus(element, status, prefix);
+            } catch (itemError) {
+                console.error(
+                    `[Utils] Error in bulkSetElementStatus item ${index}:`,
+                    {
+                        error: itemError.message,
+                        stack: itemError.stack,
+                        elementId: element?.id,
+                        status,
+                        prefix,
+                    }
+                );
+            }
+        });
+    } catch (error) {
+        console.error("[Utils] Error in bulkSetElementStatus:", {
+            error: error.message,
+            stack: error.stack,
+            updatesLength: updates?.length,
+        });
+    }
 }
 
 // Helper function to calculate overall pipeline duration
@@ -624,47 +710,87 @@ export async function collectStage3RunIds(
     nextDay,
     glDays
 ) {
-    const { getAuthHeaders, getBranchParameter, getRepoBranchParameter } =
-        await import("./utils.js");
-    const { API_CONFIG } = await import("./constants.js");
+    try {
+        const { getAuthHeaders, getBranchParameter, getRepoBranchParameter } =
+            await import("./utils.js");
+        const { API_CONFIG } = await import("./constants.js");
 
-    const stage3RunIds = new Set();
+        const stage3RunIds = new Set();
 
-    for (const workflow of stage3Workflows) {
-        const response = await fetch(
-            `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=${API_CONFIG.HISTORIC_RUNS_PER_PAGE}${workflow.repo === "repo" ? getRepoBranchParameter() : getBranchParameter()}`,
-            { headers: getAuthHeaders() }
-        );
+        for (const workflow of stage3Workflows) {
+            try {
+                const response = await fetch(
+                    `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=${API_CONFIG.HISTORIC_RUNS_PER_PAGE}${workflow.repo === "repo" ? getRepoBranchParameter() : getBranchParameter()}`,
+                    { headers: getAuthHeaders() }
+                );
 
-        if (!response.ok) continue;
+                if (!response.ok) {
+                    console.warn(
+                        `[Utils] Failed to fetch Stage 3 runs for ${workflow.name} (${workflow.id}):`,
+                        {
+                            status: response.status,
+                            statusText: response.statusText,
+                            workflowId: workflow.id,
+                            workflowName: workflow.name,
+                            repo: workflow.repo,
+                            glDays,
+                        }
+                    );
+                    continue;
+                }
 
-        const data = await response.json();
-        const runs = data.workflow_runs || [];
+                const data = await response.json();
+                const runs = data.workflow_runs || [];
 
-        // Use base date range for Stage 3 run collection (GL date only, not extended)
-        const dayRuns = runs.filter((run) => {
-            const runDate = new Date(run.created_at);
-            return runDate >= targetDate && runDate < nextDay;
-        });
+                // Use base date range for Stage 3 run collection (GL date only, not extended)
+                const dayRuns = runs.filter((run) => {
+                    const runDate = new Date(run.created_at);
+                    return runDate >= targetDate && runDate < nextDay;
+                });
+
+                console.log(
+                    `🔍 [Historic Stage 3] GL${glDays} - ${workflow.name}: Found ${dayRuns.length} runs in date range ${targetDate.toISOString().split("T")[0]} (GL date only)`
+                );
+
+                for (const run of dayRuns) {
+                    stage3RunIds.add(String(run.id));
+                    console.log(
+                        `🔍 [Historic Stage 3] GL${glDays} - ${workflow.name}: Collected run ID ${run.id} (created: ${run.created_at})`
+                    );
+                }
+            } catch (workflowError) {
+                console.error(
+                    `[Utils] Error collecting Stage 3 runs for ${workflow.name} (${workflow.id}):`,
+                    {
+                        error: workflowError.message,
+                        stack: workflowError.stack,
+                        workflowId: workflow.id,
+                        workflowName: workflow.name,
+                        repo: workflow.repo,
+                        glDays,
+                    }
+                );
+            }
+        }
 
         console.log(
-            `🔍 [Historic Stage 3] GL${glDays} - ${workflow.name}: Found ${dayRuns.length} runs in date range ${targetDate.toISOString().split("T")[0]} (GL date only)`
+            `[DEBUG] GL${glDays} - Stage 3 run IDs collected:`,
+            Array.from(stage3RunIds)
         );
 
-        for (const run of dayRuns) {
-            stage3RunIds.add(String(run.id));
-            console.log(
-                `🔍 [Historic Stage 3] GL${glDays} - ${workflow.name}: Collected run ID ${run.id} (created: ${run.created_at})`
-            );
-        }
+        return stage3RunIds;
+    } catch (error) {
+        console.error(
+            `[Utils] Error in collectStage3RunIds for GL ${glDays}:`,
+            {
+                error: error.message,
+                stack: error.stack,
+                glDays,
+                workflowsCount: stage3Workflows?.length,
+            }
+        );
+        return new Set();
     }
-
-    console.log(
-        `[DEBUG] GL${glDays} - Stage 3 run IDs collected:`,
-        Array.from(stage3RunIds)
-    );
-
-    return stage3RunIds;
 }
 
 // ========================================
