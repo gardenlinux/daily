@@ -401,7 +401,7 @@
 .days,
 .current-release-header,
 .current-details-header,
-.platform-cleanup-header,
+.cloud-cleanup-header,
 .historic-releases-header {
     background: var(--color-progress); /* SAP Blue/7 */
     color: var(--text-white);
@@ -417,7 +417,7 @@
 .days h2,
 .current-release-header h2,
 .current-details-header h2,
-.platform-cleanup-header h2,
+.cloud-cleanup-header h2,
 .historic-releases-header h2 {
     margin: 0;
     font-size: 1.2em;
@@ -430,7 +430,7 @@
 .days.header-success,
 .current-release-header.status-success,
 .current-details-header.status-success,
-.platform-cleanup-header.status-success {
+.cloud-cleanup-header.status-success {
     background: var(--color-success);
     border: none;
 }
@@ -439,7 +439,7 @@
 .days.error,
 .current-release-header.status-failure,
 .current-details-header.status-failure,
-.platform-cleanup-header.status-failure {
+.cloud-cleanup-header.status-failure {
     background: var(--color-failure-gradient);
     border-color: var(--color-failure);
 }
@@ -447,7 +447,7 @@
 .days.header-progress,
 .current-release-header.status-progress,
 .current-details-header.status-progress,
-.platform-cleanup-header.status-progress {
+.cloud-cleanup-header.status-progress {
     background: var(--color-progress-gradient);
     border-color: var(--color-progress);
 }
@@ -455,7 +455,7 @@
 .days.header-warning,
 .current-release-header.status-warning,
 .current-details-header.status-warning,
-.platform-cleanup-header.status-warning {
+.cloud-cleanup-header.status-warning {
     background: var(--color-warning-gradient);
     border-color: var(--color-warning);
 }
@@ -464,10 +464,10 @@
 .days.historic,
 .current-release-header.status-unknown,
 .current-details-header.status-unknown,
-.platform-cleanup-header.status-unknown,
+.cloud-cleanup-header.status-unknown,
 .current-release-header:not([class*="status-"]),
 .current-details-header:not([class*="status-"]),
-.platform-cleanup-header:not([class*="status-"]) {
+.cloud-cleanup-header:not([class*="status-"]) {
     background: var(--color-unknown-gradient);
     border-color: var(--color-unknown);
 }
@@ -797,7 +797,7 @@ table {
 /* CURRENT DAILY RELEASE SECTION */
 .current-release-container,
 .current-details-container,
-.platform-cleanup-container {
+.cloud-cleanup-container {
     margin: 25px auto;
     max-width: 1200px;
     background: var(--bg-primary);
@@ -810,7 +810,7 @@ table {
 
 .current-release-header,
 .current-details-header,
-.platform-cleanup-header {
+.cloud-cleanup-header {
     padding: 15px 20px;
     border-bottom: 2px solid var(--border-light);
     display: flex;
@@ -820,13 +820,13 @@ table {
 }
 
 .current-details-header:hover,
-.platform-cleanup-header:hover {
+.cloud-cleanup-header:hover {
     opacity: 0.9;
 }
 
 .current-release-header h2,
 .current-details-header h2,
-.platform-cleanup-header h2 {
+.cloud-cleanup-header h2 {
     margin: 0;
     font-size: 1.2em;
     display: flex;
@@ -836,7 +836,7 @@ table {
 
 .current-release-content,
 .current-details-content,
-.platform-cleanup-content {
+.cloud-cleanup-content {
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.4s ease;
@@ -849,12 +849,12 @@ table {
 }
 
 .current-details-content.expanded,
-.platform-cleanup-content.expanded {
+.cloud-cleanup-content.expanded {
     max-height: none;
     overflow: hidden;
 }
 
-.platform-cleanup-workflow {
+.cloud-cleanup-workflow {
     padding: 20px;
     background: var(--bg-primary);
 }

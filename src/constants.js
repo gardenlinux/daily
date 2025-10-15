@@ -60,12 +60,12 @@ export const WORKFLOWS = {
         stage: "stage-4",
         workflowFile: "publish_s3.yml",
     },
-    PLATFORM_TEST_CLEANUP: {
-        id: "152444845",
+    CLOUD_TEST_CLEANUP: {
+        id: "192338957",
         repo: "gardenlinux",
-        name: "Platform Test Cleanup",
+        name: "Cloud Test Cleanup",
         stage: "cleanup",
-        workflowFile: "platform_test_cleanup.yml",
+        workflowFile: "cloud_test_cleanup.yml",
     },
 
     // Repository Workflows
@@ -91,7 +91,7 @@ export const WORKFLOW_IDS = {
     MANUAL_RELEASE: WORKFLOWS.MANUAL_RELEASE.id,
     PUBLISH_GHCR: WORKFLOWS.PUBLISH_GHCR.id,
     PUBLISH_S3: WORKFLOWS.PUBLISH_S3.id,
-    PLATFORM_TEST_CLEANUP: WORKFLOWS.PLATFORM_TEST_CLEANUP.id,
+    CLOUD_TEST_CLEANUP: WORKFLOWS.CLOUD_TEST_CLEANUP.id,
     REPO_UPDATE: WORKFLOWS.REPO_UPDATE.id,
     REPO_BUILD: WORKFLOWS.REPO_BUILD.id,
 };

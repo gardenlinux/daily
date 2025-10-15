@@ -226,13 +226,9 @@ function toggleHistoricReleases() {
     );
 }
 
-// Toggle platform test cleanup section
-function togglePlatformCleanup() {
-    toggleSection(
-        "platform-cleanup-content",
-        "platform-cleanup-toggle-icon",
-        getRun
-    );
+// Toggle cloud test cleanup section
+function toggleCloudCleanup() {
+    toggleSection("cloud-cleanup-content", "cloud-cleanup-toggle-icon", getRun);
 }
 
 // ========================================
@@ -261,6 +257,18 @@ function generateWorkflowHTML() {
                 uiGenerateWorkflowBoxHTML(workflow, API_CONFIG, WORKFLOWS)
             )
             .join("");
+    }
+
+    // Cloud Test Cleanup: render from constants
+    const cloudCleanupContainer = document.querySelector(
+        "#cloud-cleanup-content .cloud-cleanup-workflow"
+    );
+    if (cloudCleanupContainer && WORKFLOWS.CLOUD_TEST_CLEANUP) {
+        cloudCleanupContainer.innerHTML = uiGenerateWorkflowBoxHTML(
+            WORKFLOWS.CLOUD_TEST_CLEANUP,
+            API_CONFIG,
+            WORKFLOWS
+        );
     }
 
     // Stage 2: Repository (special handling for sequential workflows)
@@ -404,4 +412,4 @@ if (document.readyState === "loading") {
 // Make functions globally available
 window.toggleCurrentDetails = toggleCurrentDetails;
 window.toggleHistoricReleases = toggleHistoricReleases;
-window.togglePlatformCleanup = togglePlatformCleanup;
+window.toggleCloudCleanup = toggleCloudCleanup;

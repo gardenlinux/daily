@@ -244,13 +244,13 @@ export function updatePipelineColor(status) {
 export async function createRunItemHTML(run, workflow, _useFullDate = false) {
     const { statusClass, statusText } = getRunStatus(run);
 
-    // Check if this is a Stage 4 workflow or platform cleanup
+    // Check if this is a Stage 4 workflow or cloud cleanup
     const isStage4Workflow = [
         WORKFLOW_IDS.PUBLISH_GHCR,
         WORKFLOW_IDS.PUBLISH_S3,
     ].includes(workflow.id);
 
-    // Use detailed date/time format for all stages and platform cleanup
+    // Use detailed date/time format for all stages and cloud cleanup
     const useDetailedDateTime = true; // Always use detailed format now
 
     const createdTime = useDetailedDateTime
