@@ -31,8 +31,8 @@
         "@rollup/plugin-node-resolve": "^16.0.3",
         "@rollup/plugin-terser": "^0.4.0",
         "eslint": "^9.39.1",
-        "prettier": "^3.6.2",
-        "rollup": "^4.53.2"
+        "prettier": "^3.7.3",
+        "rollup": "^4.53.3"
     },
     "engines": {
         "node": ">=16.0.0"
