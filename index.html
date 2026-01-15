@@ -163,26 +163,64 @@
                                 class="current-stages"
                                 title="Stages: Package | Repo | Build | Publish"
                             >
-                                <span
-                                    class="current-stage-dot unknown"
-                                    id="current-stage-1"
+                                <div
+                                    class="current-stage-dot-container"
                                     title="Package Builds"
-                                ></span>
-                                <span
-                                    class="current-stage-dot unknown"
-                                    id="current-stage-2"
+                                >
+                                    <span
+                                        class="current-stage-dot unknown"
+                                        id="current-stage-1"
+                                        title="Package Builds"
+                                    ></span>
+                                </div>
+                                <div
+                                    class="current-stage-dots-stacked"
+                                    id="current-stage-2-container"
                                     title="Repository"
-                                ></span>
-                                <span
-                                    class="current-stage-dot unknown"
-                                    id="current-stage-3"
+                                >
+                                    <span
+                                        class="current-stage-dot unknown"
+                                        id="current-stage-2-top"
+                                        title="Repo Update"
+                                    ></span>
+                                    <span
+                                        class="current-stage-dot unknown"
+                                        id="current-stage-2-bottom"
+                                        title="Repo Build"
+                                    ></span>
+                                </div>
+                                <div
+                                    class="current-stage-dots-stacked"
+                                    id="current-stage-3-container"
                                     title="Build & Release"
-                                ></span>
-                                <span
-                                    class="current-stage-dot unknown"
-                                    id="current-stage-4"
+                                >
+                                    <span
+                                        class="current-stage-dot unknown"
+                                        id="current-stage-3-top"
+                                        title="Garden Linux Nightly - Schedule"
+                                    ></span>
+                                    <span
+                                        class="current-stage-dot unknown"
+                                        id="current-stage-3-bottom"
+                                        title="Build and publish a release - Manual"
+                                    ></span>
+                                </div>
+                                <div
+                                    class="current-stage-dots-stacked"
+                                    id="current-stage-4-container"
                                     title="Publish"
-                                ></span>
+                                >
+                                    <span
+                                        class="current-stage-dot unknown"
+                                        id="current-stage-4-top"
+                                        title="Publish to ghcr.io"
+                                    ></span>
+                                    <span
+                                        class="current-stage-dot unknown"
+                                        id="current-stage-4-bottom"
+                                        title="Publish to S3"
+                                    ></span>
+                                </div>
                             </div>
 
                             <div

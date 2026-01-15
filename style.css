@@ -112,6 +112,9 @@
     --shadow-md: 0 0.5rem 1rem var(--shadow-color-black-medium);
     --shadow-lg: 0 1rem 3rem var(--shadow-color-black-large);
 
+    /* Stage Dots Spacing */
+    --stage-dots-gap: 4px;
+
     /* Text Shadow */
     --text-shadow-header: 0 2px 4px var(--shadow-color-black-medium);
 }
@@ -123,9 +126,7 @@
 /* Status indicator dots - unified base class (remove current-overall-status to avoid conflicts) */
 .status-indicator,
 .current-status-indicator,
-.current-stage-dot,
-.stage-dot,
-.historic-stage-dot {
+.stage-dot {
     display: inline-block;
     width: 14px;
     height: 14px;
@@ -135,6 +136,21 @@
     box-shadow: 0 1px 3px var(--shadow-color-black);
     transition: all 0.3s ease;
     margin: 0 auto;
+    flex-shrink: 0;
+}
+
+/* Stage dots (both single and within stacked containers) */
+.current-stage-dot,
+.historic-stage-dot {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background-color: var(--color-unknown);
+    border: 2px solid var(--border-white-transparent);
+    box-shadow: 0 1px 3px var(--shadow-color-black);
+    transition: all 0.3s ease;
+    margin: 0;
     flex-shrink: 0;
 }
 
@@ -1060,9 +1076,27 @@ table {
 .current-stages,
 .historic-stages {
     display: flex;
-    gap: 4px;
+    gap: var(--stage-dots-gap);
     width: 70px;
     flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Single dot container for stage 1 */
+.current-stage-dot-container,
+.historic-stage-dot-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Stacked dots container for stages 2, 3, and 4 */
+.current-stage-dots-stacked,
+.historic-stage-dots-stacked {
+    display: flex;
+    flex-direction: column;
+    gap: var(--stage-dots-gap);
     align-items: center;
     justify-content: center;
 }
