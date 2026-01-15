@@ -34,6 +34,7 @@ import {
     calculatePipelineStatus,
     processWorkflowRuns,
     getRepoBranchParameter,
+    getHistoricReleasesCount,
 } from "./utils.js";
 
 import {
@@ -1182,9 +1183,10 @@ export async function loadHistoricReleases() {
     loadingDiv.style.display = "block";
 
     try {
-        // Load data for the last 14 days (excluding current day)
+        // Load data for the specified number of days (excluding current day)
+        const historicCount = getHistoricReleasesCount();
         const historicPromises = [];
-        for (let i = 1; i <= UI_CONFIG.HISTORIC_RELEASES_COUNT; i++) {
+        for (let i = 1; i <= historicCount; i++) {
             const historicGL = baseGL - i;
             if (historicGL > 0) {
                 historicPromises.push(loadHistoricDay(historicGL));

@@ -34,6 +34,7 @@ import {
     formatDetailedDateFromDate,
     isHistoricView,
     getWorkflowsByStage,
+    getHistoricReleasesCount,
 } from "./utils.js";
 
 import { generateWorkflowBoxHTML as uiGenerateWorkflowBoxHTML } from "./ui.js";
@@ -62,7 +63,7 @@ window.saveToken = function () {
         // Validate token format
         if (!token.startsWith("ghp_") && !token.startsWith("github_pat_")) {
             console.warn("[Main] Token save attempted with invalid format:", {
-                tokenPrefix: token.substring(0, 10) + "...",
+                tokenPrefix: `${token.substring(0, 10)}...`,
                 tokenLength: token.length,
             });
             const confirmSave = confirm(
@@ -105,6 +106,56 @@ window.clearToken = function () {
         alert("Failed to clear token. Please try again.");
     }
 };
+
+// ========================================
+// HISTORIC RELEASES COUNT SETTINGS
+// ========================================
+window.updateHistoricCount = function () {
+    const input = document.getElementById("historic-count-input");
+    if (!input) return;
+
+    const count = parseInt(input.value, 10);
+    if (isNaN(count) || count < 1 || count > 100) {
+        alert("Please enter a valid number between 1 and 100");
+        input.value = getHistoricReleasesCount();
+        return;
+    }
+
+    // Update URL parameter
+    const url = new URL(window.location);
+    if (count === 14) {
+        // Remove parameter if default value
+        url.searchParams.delete("historic_count");
+    } else {
+        url.searchParams.set("historic_count", count.toString());
+    }
+
+    // Navigate to the new URL
+    window.location.href = url.toString();
+};
+
+window.handleHistoricCountKeypress = function (event) {
+    if (event.key === "Enter") {
+        window.updateHistoricCount();
+    }
+};
+
+// Set historic count input from URL parameter
+function setHistoricCountFromUrl() {
+    const input = document.getElementById("historic-count-input");
+    if (!input) return;
+    const count = getHistoricReleasesCount();
+    input.value = count;
+    updateHistoricCountInfo();
+}
+
+// Update historic count info text
+function updateHistoricCountInfo() {
+    const infoElement = document.getElementById("historic-count-info");
+    if (!infoElement) return;
+    const count = getHistoricReleasesCount();
+    infoElement.textContent = `Currently showing: ${count} ${count === 1 ? "day" : "days"}`;
+}
 
 // ========================================
 // BRANCH SEARCH SETTINGS
@@ -170,9 +221,13 @@ function setBranchCheckboxFromUrl() {
 
 // Call this on DOMContentLoaded or after settings panel is rendered
 if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", setBranchCheckboxFromUrl);
+    document.addEventListener("DOMContentLoaded", () => {
+        setBranchCheckboxFromUrl();
+        setHistoricCountFromUrl();
+    });
 } else {
     setBranchCheckboxFromUrl();
+    setHistoricCountFromUrl();
 }
 
 function updateAuthStatus() {
@@ -233,7 +288,7 @@ window.handleGLKeypress = function (event) {
     if (event.key === "Enter") {
         goToGL();
     }
-    // Update date info as user types
+    // Update date info as user types (no navigation on input)
     setTimeout(() => {
         const glInput = document.getElementById("gl-input");
         const value = parseInt(glInput.value);
@@ -504,7 +559,8 @@ function initDashboard() {
                 ".historic-releases-header h2"
             );
             if (historicReleaseHeader) {
-                historicReleaseHeader.textContent = `📅 Historic Daily Releases (14 Days Before GL ${glDays})`;
+                const historicCount = getHistoricReleasesCount();
+                historicReleaseHeader.textContent = `📅 Historic Daily Releases (${historicCount} ${historicCount === 1 ? "Day" : "Days"} Before GL ${glDays})`;
             }
         } else {
             glDaysElement.innerText = `GL ${glDays} \n ${formattedDate}`;
@@ -530,7 +586,8 @@ function initDashboard() {
                 ".historic-releases-header h2"
             );
             if (historicReleaseHeader) {
-                historicReleaseHeader.textContent = `📅 Historic Daily Releases (14 Days Before Today)`;
+                const historicCount = getHistoricReleasesCount();
+                historicReleaseHeader.textContent = `📅 Historic Daily Releases (${historicCount} ${historicCount === 1 ? "Day" : "Days"} Before Today)`;
             }
         }
 
@@ -567,6 +624,7 @@ function initDashboard() {
         updateAuthStatus(); // Initialize auth status display
         initializeGLSelector(); // Initialize GL version selector
         generateWorkflowHTML(); // Generate workflow HTML
+        updateHistoricCountInfo(); // Update historic count info display
 
         console.log("[Main] Dashboard initialization completed successfully");
     } catch (error) {
