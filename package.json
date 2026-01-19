@@ -32,7 +32,7 @@
         "@rollup/plugin-terser": "^0.4.0",
         "eslint": "^9.39.2",
         "prettier": "^3.8.0",
-        "rollup": "^4.55.1"
+        "rollup": "^4.55.2"
     },
     "engines": {
         "node": ">=16.0.0"
