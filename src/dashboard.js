@@ -19,15 +19,16 @@
 
 import {
     githubFetch,
+    getAuthHeaders,
     isHistoricView,
     getGlDays,
+    getCurrentGlDays,
     formatGLDate,
     formatDetailedDate,
     shouldLoadHistoricReleases,
     setElementStatus,
     getBranchParameter,
     shouldSearchAllBranches,
-    calculateTargetDate,
     calculateHistoricPipelineDuration,
     collectStage3RunIds,
     getAllWorkflowConfigs,
@@ -37,13 +38,16 @@ import {
     getRepoBranchParameter,
     getHistoricReleasesCount,
     getStage3CommitSha,
+    loadHistoricFromCache,
+    fetchWorkflowRunsPaginated,
+    calculateDateRanges,
 } from "./utils.js";
 
 import {
     GL_INITIAL_DATE,
+    MIN_GL_VERSION,
     WORKFLOWS,
     WORKFLOW_IDS,
-    STAGE_WORKFLOWS,
     EXPECTED_WORKFLOW_IDS,
     API_CONFIG,
     PACKAGE_STATUSES,
@@ -138,19 +142,109 @@ export async function getRun() {
 
     // Calculate the target date based on GL version
     const glDays = getGlDays();
-    const initialDay = new Date(GL_INITIAL_DATE);
-    const targetDate = new Date(initialDay);
-    targetDate.setDate(targetDate.getDate() + glDays);
-    targetDate.setHours(0, 0, 0, 0);
+    const currentGlDays = getCurrentGlDays();
 
-    const nextDay = new Date(targetDate);
-    nextDay.setDate(nextDay.getDate() + 1);
+    // Check if GL version is too old (workflow structure changed before MIN_GL_VERSION)
+    if (glDays < MIN_GL_VERSION) {
+        console.warn(
+            `[Dashboard] GL${glDays} is older than minimum supported version GL${MIN_GL_VERSION}. Workflow structure changed before this version.`
+        );
+        // Show error state in UI
+        workflowStatuses = {};
+        workflowRunData = {};
+        updatePipelineHierarchy();
+        return;
+    }
 
-    // For Stage 4, extend date range to GL + 7 days
-    const extendedDate = new Date(targetDate);
-    extendedDate.setDate(extendedDate.getDate() + 7);
-    const extendedNextDay = new Date(extendedDate);
-    extendedNextDay.setDate(extendedNextDay.getDate() + 1);
+    // Check if we're viewing a historic GL version (not today's GL)
+    const isHistoricGl = glDays !== currentGlDays;
+
+    // Try to load from cache first if viewing historic GL
+    if (isHistoricGl) {
+        const cachedData = await loadHistoricFromCache(glDays);
+        if (cachedData) {
+            console.log(
+                `[Dashboard] Using cached data for current release view GL${glDays}`
+            );
+
+            // Transform cached data to populate workflowStatuses and workflowRunData
+            // workflowStatuses is already in the right format
+            workflowStatuses = cachedData.workflowStatuses
+                ? { ...cachedData.workflowStatuses }
+                : {};
+
+            // Transform workflowRuns to workflowRunData
+            // workflowRuns structure: { [workflowId]: { runs: [...], ... } }
+            // workflowRunData expects: { [workflowId]: mostRecentRun }
+            if (cachedData.workflowRuns) {
+                for (const [workflowId, workflowRunInfo] of Object.entries(
+                    cachedData.workflowRuns
+                )) {
+                    if (
+                        workflowRunInfo.runs &&
+                        workflowRunInfo.runs.length > 0
+                    ) {
+                        // Runs are already sorted (newest first), so take the first one
+                        workflowRunData[workflowId] = workflowRunInfo.runs[0];
+                    }
+                }
+            }
+
+            // Get package status for summary
+            const packageStatus = cachedData.packageStatus || {
+                status: "unknown",
+                issueCount: 0,
+                totalCount: 0,
+            };
+
+            // Calculate stage statuses from workflow statuses
+            // Use version-aware stage workflows (excludes stage-4 for schema v2)
+            const stageStatuses = calculateStageStatuses(
+                workflowStatuses,
+                packageStatus.status,
+                getStageWorkflows(glDays)
+            );
+
+            // Update UI with cached data
+            updatePipelineHierarchy();
+            updateCurrentReleaseSummary(
+                stageStatuses,
+                cachedData.pipelineStatus,
+                packageStatus,
+                workflowRunData,
+                WORKFLOW_IDS,
+                () => glDays,
+                workflowStatuses
+            );
+
+            // Render workflow details from cached runs
+            console.log(
+                `[Dashboard] Rendering workflow details from cache for GL${glDays}`,
+                {
+                    workflowRunsKeys: cachedData.workflowRuns
+                        ? Object.keys(cachedData.workflowRuns)
+                        : [],
+                    workflowMetadataKeys: cachedData.workflowMetadata
+                        ? Object.keys(cachedData.workflowMetadata)
+                        : [],
+                }
+            );
+            await renderWorkflowDetailsFromCache(
+                cachedData.workflowRuns,
+                cachedData.workflowMetadata
+            );
+
+            return; // Exit early, don't make API calls
+        } else {
+            console.log(
+                `[Dashboard] Cache miss for current release view GL${glDays}, fetching from API`
+            );
+        }
+    }
+
+    // Fall back to API-based approach (for current GL or cache miss)
+    const { targetDate, nextDay, extendedDate, extendedNextDay } =
+        calculateDateRanges(glDays, GL_INITIAL_DATE);
 
     // Collect Stage 3 run IDs for parent matching in Stage 4
     const stage3RunIds = new Set();
@@ -958,6 +1052,181 @@ async function processWorkflow(
     workflowDomElement.appendChild(detailsDiv);
 }
 
+/**
+ * Renders workflow details from cached data
+ * @param {Object} workflowRuns - Cached workflow runs data
+ * @param {Object} workflowMetadata - Cached workflow metadata
+ */
+async function renderWorkflowDetailsFromCache(workflowRuns, workflowMetadata) {
+    console.log(`[Cache Render] Starting renderWorkflowDetailsFromCache`, {
+        hasWorkflowRuns: !!workflowRuns,
+        hasWorkflowMetadata: !!workflowMetadata,
+        workflowRunsKeys: workflowRuns ? Object.keys(workflowRuns) : [],
+    });
+
+    const allWorkflows = getAllWorkflowConfigs();
+
+    for (const workflow of allWorkflows) {
+        const workflowId = workflow.id;
+        const workflowRunInfo = workflowRuns?.[workflowId];
+        const metadata = workflowMetadata?.[workflowId];
+
+        console.log(
+            `[Cache Render] Processing workflow ${workflowId} (${workflow.name})`,
+            {
+                hasRunInfo: !!workflowRunInfo,
+                hasRuns: !!workflowRunInfo?.runs,
+                runsCount: workflowRunInfo?.runs?.length || 0,
+            }
+        );
+
+        if (
+            !workflowRunInfo ||
+            !workflowRunInfo.runs ||
+            workflowRunInfo.runs.length === 0
+        ) {
+            // No runs for this workflow, mark as unknown
+            const workflowDomElement = document.getElementById(
+                `daily-info-${workflowId}`
+            );
+            if (workflowDomElement) {
+                setElementStatus(workflowDomElement, "unknown");
+                console.log(
+                    `[Cache Render] No runs for ${workflowId}, marked as unknown`
+                );
+            } else {
+                console.warn(
+                    `[Cache Render] DOM element not found for workflow ${workflowId}`
+                );
+            }
+            continue;
+        }
+
+        // Get the workflow DOM element (same ID format as processWorkflow uses)
+        const workflowDomElement = document.getElementById(
+            `daily-info-${workflowId}`
+        );
+        if (!workflowDomElement) {
+            console.warn(
+                `[Cache] Workflow DOM element not found: daily-info-${workflowId}`
+            );
+            continue;
+        }
+
+        // Clear existing content (same as processWorkflow does)
+        const existingDetails =
+            workflowDomElement.querySelector(".workflow-details");
+        if (existingDetails) {
+            existingDetails.remove();
+        }
+
+        // Reset all status classes
+        setElementStatus(workflowDomElement, null); // Clear all status classes
+
+        // Get the most recent run (first in sorted array)
+        const mostRecentRun = workflowRunInfo.runs[0];
+        const allRuns = workflowRunInfo.runs;
+
+        // Determine workflow status class from most recent run (same logic as processWorkflow)
+        const { statusClass } = getRunStatus(mostRecentRun);
+        const workflowStatusClass = statusClass;
+
+        // Also determine workflow status string for tracking
+        let workflowStatus = "unknown";
+        if (
+            mostRecentRun.status === "in_progress" ||
+            mostRecentRun.status === "queued"
+        ) {
+            workflowStatus = "progress";
+        } else if (mostRecentRun.status === "completed") {
+            workflowStatus =
+                mostRecentRun.conclusion === "success" ? "success" : "failure";
+        }
+
+        // Track status for color coding (same as processWorkflow)
+        workflowRunData[workflowId] = mostRecentRun;
+        workflowStatuses[workflowId] = workflowStatus;
+
+        // Update workflow element status
+        setElementStatus(workflowDomElement, workflowStatusClass);
+
+        // Handle special cases for subsection headers (same as processWorkflow)
+        const isCloudCleanup = workflowId === WORKFLOW_IDS.CLOUD_TEST_CLEANUP;
+        const isSnapshot = workflowId === WORKFLOW_IDS.SNAPSHOT;
+        const isRepoBuild = workflowId === WORKFLOW_IDS.REPO_BUILD;
+        const isRepoUpdate = workflowId === WORKFLOW_IDS.REPO_UPDATE;
+
+        if (isCloudCleanup) {
+            const headerElement = document.getElementById(
+                "cloud-cleanup-header"
+            );
+            if (headerElement) {
+                let headerStatus = statusClass;
+                if (statusClass === "queued") headerStatus = "progress";
+                setElementStatus(headerElement, headerStatus, "status-");
+                updateWorkflowMonitoringHeader();
+            }
+        }
+        if (isSnapshot) {
+            const snapshotHeader = document.getElementById("snapshot-header");
+            if (snapshotHeader) {
+                let headerStatus = statusClass;
+                if (statusClass === "queued") headerStatus = "progress";
+                // Check for override status
+                const overrideStatus = snapshotHeader.dataset.overrideStatus;
+                if (overrideStatus) {
+                    headerStatus = overrideStatus;
+                }
+                setElementStatus(snapshotHeader, headerStatus, "status-");
+                updateWorkflowMonitoringHeader();
+            }
+        }
+        if (isRepoBuild) {
+            const repoBuildHeader = document.querySelector(
+                "#sub-stage-repo-build .sub-stage-header"
+            );
+            if (repoBuildHeader) {
+                let headerStatus = statusClass;
+                if (statusClass === "queued") headerStatus = "progress";
+                setElementStatus(repoBuildHeader, headerStatus, "status-");
+            }
+        }
+        if (isRepoUpdate) {
+            const repoUpdateHeader = document.querySelector(
+                "#sub-stage-repo-update .sub-stage-header"
+            );
+            if (repoUpdateHeader) {
+                let headerStatus = statusClass;
+                if (statusClass === "queued") headerStatus = "progress";
+                setElementStatus(repoUpdateHeader, headerStatus, "status-");
+            }
+        }
+
+        // Create details section for all runs
+        const detailsDiv = document.createElement("div");
+        detailsDiv.className = "workflow-details";
+
+        // Render each run
+        for (const run of allRuns) {
+            const runDiv = document.createElement("div");
+            runDiv.className = "run-item";
+
+            // Use metadata if available, otherwise use workflow config
+            const workflowForRender = metadata || workflow;
+
+            // Use full date for Cloud Test Cleanup, time only for others
+            runDiv.innerHTML = await createRunItemHTML(
+                run,
+                workflowForRender,
+                isCloudCleanup
+            );
+            detailsDiv.appendChild(runDiv);
+        }
+
+        workflowDomElement.appendChild(detailsDiv);
+    }
+}
+
 // ========================================
 // PACKAGE MANAGEMENT FUNCTIONALITY
 // ========================================
@@ -1291,6 +1560,43 @@ export async function loadHistoricReleases() {
 
 async function loadHistoricDay(glDays) {
     try {
+        // Skip GL versions older than minimum supported version
+        if (glDays < MIN_GL_VERSION) {
+            console.warn(
+                `[Dashboard] GL${glDays} is older than minimum supported version GL${MIN_GL_VERSION}. Skipping.`
+            );
+            return null;
+        }
+
+        // Always try to load from cache first
+        const cachedData = await loadHistoricFromCache(glDays);
+
+        if (cachedData) {
+            // Use cached data
+            console.log(`[Dashboard] Using cached data for GL${glDays}`);
+
+            // Transform cached data to match expected format
+            return {
+                glDays: cachedData.glDays,
+                date: cachedData.date,
+                packageStatus: cachedData.packageStatus,
+                workflowStatus: cachedData.workflowStatus, // stage statuses
+                duration: cachedData.duration,
+                pipelineStatus: cachedData.pipelineStatus,
+                commitSha: cachedData.commitSha,
+                cached: true,
+                // Store full cached data for later use
+                workflowStatuses: cachedData.workflowStatuses,
+                workflowRunData: cachedData.workflowRuns,
+                workflowMetadata: cachedData.workflowMetadata,
+            };
+        }
+
+        // Cache miss - fall back to API calls
+        console.log(
+            `[Dashboard] Cache miss for GL${glDays}, fetching from API`
+        );
+
         // Get basic info
         const glDate = formatDetailedDate(glDays);
 
@@ -1328,6 +1634,8 @@ async function loadHistoricDay(glDays) {
             duration,
             pipelineStatus, // for main dot and row coloring
             commitSha: getStage3CommitSha(workflowRunData, WORKFLOW_IDS),
+            cached: false,
+            workflowRunData,
         };
     } catch (error) {
         console.warn(
@@ -1388,15 +1696,10 @@ async function getHistoricWorkflowStatuses(glDays) {
     const workflowStatuses = {};
     const workflowRunData = {};
 
-    const targetDate = calculateTargetDate(glDays, GL_INITIAL_DATE);
-    const nextDay = new Date(targetDate);
-    nextDay.setDate(nextDay.getDate() + 1);
-
-    // For Stage 4 extended date range: GL day + 7
-    const extendedDate = new Date(targetDate);
-    extendedDate.setDate(extendedDate.getDate() + 7);
-    const extendedNextDay = new Date(extendedDate);
-    extendedNextDay.setDate(extendedNextDay.getDate() + 1);
+    const { targetDate, nextDay, extendedNextDay } = calculateDateRanges(
+        glDays,
+        GL_INITIAL_DATE
+    );
 
     try {
         // Use version-aware workflow list (excludes stage-4 for schema v2)
@@ -1424,43 +1727,15 @@ async function getHistoricWorkflowStatuses(glDays) {
         // Process workflows with timeout and better error handling
         const promises = workflowChecks.map(async (workflow) => {
             try {
-                // eslint-disable-next-line no-undef
-                const controller = new AbortController();
-                const timeoutId = setTimeout(
-                    () => controller.abort(),
-                    API_CONFIG.TIMEOUT
+                // Use pagination to fetch all runs
+                const runs = await fetchWorkflowRunsPaginated(
+                    workflow,
+                    targetDate,
+                    nextDay,
+                    getAuthHeaders,
+                    getBranchParameter,
+                    getRepoBranchParameter
                 );
-
-                const response = await githubFetch(
-                    `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=${API_CONFIG.HISTORIC_RUNS_PER_PAGE}${workflow.repo === "repo" ? getRepoBranchParameter() : getBranchParameter()}`,
-                    {
-                        signal: controller.signal,
-                    }
-                );
-
-                clearTimeout(timeoutId);
-
-                if (!response.ok) {
-                    console.warn(
-                        `[Dashboard] Historic API error for ${workflow.name} (${workflow.id}):`,
-                        {
-                            status: response.status,
-                            statusText: response.statusText,
-                            workflowId: workflow.id,
-                            workflowName: workflow.name,
-                            repo: workflow.repo,
-                            glDays,
-                        }
-                    );
-                    return {
-                        workflow,
-                        status: "unknown",
-                        runData: null,
-                    };
-                }
-
-                const data = await response.json();
-                const runs = data.workflow_runs || [];
 
                 // Use shared workflow processing logic (same as current view)
                 const result = await processWorkflowRuns(

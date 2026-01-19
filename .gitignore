@@ -1,4 +1,5 @@
 _site
+.cache
 .venv
 shell.nix
 vendor
@@ -15,3 +16,6 @@ dist/
 
 # packages are in packages branch
 packages/
+
+# historic releases are in historic-releases branch
+historic/
