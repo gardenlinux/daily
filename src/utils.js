@@ -18,7 +18,7 @@
  * Core support library used across all dashboard components.
  */
 
-import { GL_INITIAL_DATE, WORKFLOWS } from "./constants.js";
+import { API_CONFIG, GL_INITIAL_DATE, WORKFLOWS } from "./constants.js";
 
 // ========================================
 // DATE AND GL VERSION CALCULATIONS
@@ -1043,4 +1043,30 @@ export async function processWorkflowRuns(
     }
 
     return { status, runData: mostRecentRun };
+}
+
+export async function triggerPackageAggregatorWorkflow() {
+    const response = await fetch(
+        `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/daily/actions/workflows/aggregate_package_states.yml/dispatches`,
+        { "method": "POST", headers: getAuthHeaders(), body: JSON.stringify({ "ref": "gh-pages" }) },
+    );
+    if (!response.ok) {
+        const responseData = await response.text();
+        throw new Error(
+            `Retriggering package aggregation workflow failed with HTTP code ${response.status}: ${responseData}`,
+        );
+    }
+}
+
+export async function unstalePackageRepository(repoName) {
+    const response = await fetch(
+        `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${repoName}/actions/workflows/build.yml/enable`,
+        { "method": "PUT", headers: getAuthHeaders() },
+    );
+    if (response.status !== 204) {
+        const responseData = await response.text();
+        throw new Error(
+            `Expected HTTP 204 while trying to enable package build workflow for ${repoName}, got HTTP ${response.status} (${responseData})`,
+        );
+    }
 }

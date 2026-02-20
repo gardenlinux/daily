@@ -596,3 +596,5 @@ window.toggleHistoricReleases = toggleHistoricReleases;
 window.toggleCloudCleanup = toggleCloudCleanup;
 window.toggleWorkflowMonitoring = toggleWorkflowMonitoring;
 window.toggleSnapshot = toggleSnapshot;
+
+window.packageAggregatorRefreshNeeded = false;

@@ -34,6 +34,8 @@ import {
     calculatePipelineStatus,
     processWorkflowRuns,
     getRepoBranchParameter,
+    triggerPackageAggregatorWorkflow,
+    unstalePackageRepository,
 } from "./utils.js";
 
 import {
@@ -956,10 +958,25 @@ export async function fillPackageTable() {
                 console.log(
                     `- Found ${packageByStatus[status].length} packages with status: ${status}`
                 );
-                hasIssues = true;
                 issueCount += packageByStatus[status].length;
 
                 for (const pkg of packageByStatus[status]) {
+                    if (status == "stale" && localStorage.getItem("github_token")) {
+                      try {
+                        await unstalePackageRepository(pkg.Name);
+                        console.log(`- Unstalled build workflow for ${pkg.Name}`);
+
+                        issueCount--;
+                        window.packageAggregatorRefreshNeeded = true;
+
+                        continue;
+                      } catch (err) {
+                        console.error(`x Could not unstale build workflow for ${pkg.Name}: ${err}`);
+                      }
+                    }
+
+                    hasIssues = true;
+
                     console.log(
                         `- Adding package to table: ${pkg.Name} (${pkg.Status})`
                     );
@@ -1071,6 +1088,18 @@ export async function fillPackageTable() {
 
     // Update pipeline hierarchy and colors after package status is loaded
     updatePipelineHierarchy();
+
+    // Refresh package repositories status data
+    if (window.packageAggregatorRefreshNeeded) {
+        try {
+            await triggerPackageAggregatorWorkflow();
+            console.log("- Successfully triggered package aggregator workflow");
+
+            window.packageAggregatorRefreshNeeded = false;
+        } catch (err) {
+            console.error(`x Could not trigger package aggregator workflow: ${err}`);
+        }
+    }
 }
 
 // ========================================
