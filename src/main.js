@@ -190,6 +190,22 @@ function updateAuthStatus() {
             statusElement.style.color = "#5cb85c";
             console.log("[Main] Auth status updated: Authenticated");
         } else {
+            if (!window.addYourTokenToastShown) {
+                Toastify({
+                    text: "Please add your github PTA by clicking on the 'gear' button",
+                    duration: 5000,
+                    newWindow: true,
+                    close: true,
+                    gravity: "top",
+                    position: "right",
+                    stopOnFocus: true,
+                    style: {
+                        background: "linear-gradient(to right, #00b09b, #96c93d)",
+                      },
+                }).showToast();
+                window.addYourTokenToastShown = true;
+            }
+
             statusElement.textContent = "Not authenticated ❌";
             statusElement.style.color = "#d9534f";
             console.log("[Main] Auth status updated: Not authenticated");
@@ -598,3 +614,4 @@ window.toggleWorkflowMonitoring = toggleWorkflowMonitoring;
 window.toggleSnapshot = toggleSnapshot;
 
 window.packageAggregatorRefreshNeeded = false;
+window.addYourTokenToastShown = false;
