@@ -192,16 +192,15 @@ function updateAuthStatus() {
         } else {
             if (!window.addYourTokenToastShown) {
                 Toastify({
-                    text: "Please add your github PTA by clicking on the 'gear' button",
+                    text: "Please add your Github PAT by clicking on the 'gear' button",
                     duration: 5000,
-                    newWindow: true,
                     close: true,
                     gravity: "top",
                     position: "right",
                     stopOnFocus: true,
                     style: {
                         background: "linear-gradient(to right, #00b09b, #96c93d)",
-                      },
+                    },
                 }).showToast();
                 window.addYourTokenToastShown = true;
             }
