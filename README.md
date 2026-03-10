@@ -72,3 +72,7 @@ To avoid GitHub API rate limits, configure a personal access token:
 4. Enter your token and save
 
 The dashboard supports both Classic (`ghp_`) and Fine-grained (`github_pat_`) tokens.
+
+<p align="center">
+  <img alt="Bundesministerium für Wirtschaft und Energie (BMWE)-EU funding logo" src="https://apeirora.eu/assets/img/BMWK-EU.png" width="400"/>
+</p>
