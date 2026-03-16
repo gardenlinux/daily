@@ -584,6 +584,21 @@ export function calculateHistoricPipelineDuration(
 // ========================================
 
 /**
+ * Returns true if a stage 3 run contains stage 4 publishing
+ * @param {Object} run - Workflow run
+ * @returns {boolean} True if embedded
+ */
+export function isStage3WithEmbeddedStage4Run(run) {
+    for (const referencedWorkflow of run.referenced_workflows) {
+        if (referencedWorkflow['path'].includes("/publish.yml@") || referencedWorkflow['path'].includes("/publish_s3.yml@")) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
  * Validates Stage 4 runs based on date and parent criteria
  * @param {Array} runs - Array of Stage 4 runs to validate
  * @param {Date} targetDate - GL target date
@@ -949,7 +964,11 @@ export async function processWorkflowRuns(
     glDays
 ) {
     // Check if this is a Stage 4 workflow
-    const isStage4Workflow = workflow.stage === "stage-4";
+    let isStage4Workflow = workflow.stage === "stage-4";
+
+    if (workflow.stage === "stage-3" && !isStage4Workflow && runs.length > 0) {
+        isStage4Workflow = isStage3WithEmbeddedStage4Run(runs[0]);
+    }
 
     let targetRuns = [];
 

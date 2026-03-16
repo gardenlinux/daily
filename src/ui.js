@@ -21,6 +21,7 @@ import {
     calculatePipelineDuration,
     formatDateTimeDetailed,
     getTriggerInfo,
+    isStage3WithEmbeddedStage4Run,
 } from "./utils.js";
 import { WORKFLOW_IDS, API_CONFIG } from "./constants.js";
 import { getParentWorkflowInfo } from "./parentWorkflow.js";
@@ -244,11 +245,21 @@ export function updatePipelineColor(status) {
 export async function createRunItemHTML(run, workflow, _useFullDate = false) {
     const { statusClass, statusText } = getRunStatus(run);
 
+    // Check if this is a Stage 3 workflow
+    const isStage3Workflow = [
+        WORKFLOW_IDS.NIGHTLY,
+        WORKFLOW_IDS.MANUAL_RELEASE,
+    ].includes(workflow.id);
+
     // Check if this is a Stage 4 workflow or cloud cleanup
-    const isStage4Workflow = [
+    let isStage4Workflow = [
         WORKFLOW_IDS.PUBLISH_GHCR,
         WORKFLOW_IDS.PUBLISH_S3,
     ].includes(workflow.id);
+
+    if (!isStage4Workflow && isStage3Workflow) {
+        isStage4Workflow = isStage3WithEmbeddedStage4Run(run);
+    }
 
     // Use detailed date/time format for all stages and cloud cleanup
     const useDetailedDateTime = true; // Always use detailed format now

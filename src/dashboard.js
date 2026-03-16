@@ -34,6 +34,7 @@ import {
     calculatePipelineStatus,
     processWorkflowRuns,
     getRepoBranchParameter,
+    isStage3WithEmbeddedStage4Run,
 } from "./utils.js";
 
 import {
@@ -511,18 +512,22 @@ async function processWorkflow(
         return;
     }
 
-    // Filter runs for the target date (current day or historic day) - applies to all workflows
-    // Check if this is a Stage 4 workflow
-    const isStage4Workflow = [
-        WORKFLOW_IDS.PUBLISH_GHCR,
-        WORKFLOW_IDS.PUBLISH_S3,
-    ].includes(workflow.id);
-
     // Check if this is a Stage 3 workflow to collect run IDs
     const isStage3Workflow = [
         WORKFLOW_IDS.NIGHTLY,
         WORKFLOW_IDS.MANUAL_RELEASE,
     ].includes(workflow.id);
+
+    // Filter runs for the target date (current day or historic day) - applies to all workflows
+    // Check if this is a Stage 4 workflow
+    let isStage4Workflow = [
+        WORKFLOW_IDS.PUBLISH_GHCR,
+        WORKFLOW_IDS.PUBLISH_S3,
+    ].includes(workflow.id);
+
+    if (isStage3Workflow && !isStage4Workflow && workflowRuns.length > 0) {
+        isStage4Workflow = isStage3WithEmbeddedStage4Run(workflowRuns[0]);
+    }
 
     let targetRunsUnsorted;
 
@@ -553,6 +558,15 @@ async function processWorkflow(
         const validRuns = [];
 
         for (const run of extendedRuns) {
+            // Stage 3 with embedded stage 4
+            if (isStage3Workflow) {
+                validRuns.push(run);
+                console.log(
+                    `🔍 [Stage 4] Run ${run.id}: Stage 3 with embedded stage 4`
+                );
+                continue;
+            }
+
             console.log(
                 `[DEBUG] [Stage 4] Pre-filter Run ${run.id}: created_at=${run.created_at}`
             );
