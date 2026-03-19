@@ -40,6 +40,17 @@ export function getGlDaysFromUrl() {
     return null;
 }
 
+export function getHistoricReleasesCount() {
+    const countParam = getUrlParameter("historic_count");
+    if (countParam) {
+        const count = parseInt(countParam, 10);
+        if (!isNaN(count) && count > 0 && count <= 100) {
+            return count;
+        }
+    }
+    return 14; // Default value
+}
+
 export function getCurrentGlDays() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);

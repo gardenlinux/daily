@@ -55,6 +55,12 @@
 
                 <h3>Historic Daily Releases</h3>
                 <div class="gl-selector">
+                    <small class="gl-description">
+                        Navigate to a specific Garden Linux version to view its
+                        daily release status, workflow runs, and package build
+                        information. Enter a version number below and click "Go
+                        to Version" to view that release.
+                    </small>
                     <label for="gl-input">Garden Linux Version:</label>
                     <div class="gl-input-group">
                         <button class="gl-btn" onclick="decrementGL()">
@@ -65,7 +71,6 @@
                             id="gl-input"
                             min="1"
                             step="1"
-                            onchange="goToGL()"
                             onkeypress="handleGLKeypress(event)"
                             oninput="handleGLInput()"
                         />
@@ -77,10 +82,58 @@
                         <small id="gl-date-info">Loading...</small>
                     </div>
                     <div class="gl-actions">
-                        <button onclick="goToToday()" class="today-btn">
+                        <button onclick="goToGL()" class="today-btn">
+                            Go to Version
+                        </button>
+                        <button
+                            onclick="goToToday()"
+                            class="today-btn"
+                            style="margin-top: 8px"
+                        >
                             Go to Today
                         </button>
                     </div>
+                </div>
+
+                <hr class="settings-separator" />
+
+                <h3>Historic Releases Settings</h3>
+                <div class="historic-count-settings">
+                    <div class="historic-count-group">
+                        <label for="historic-count-input"
+                            >Number of historic releases to show:</label
+                        >
+                        <div class="historic-count-input-group">
+                            <input
+                                type="number"
+                                id="historic-count-input"
+                                min="1"
+                                max="100"
+                                step="1"
+                                value="14"
+                                onchange="updateHistoricCount()"
+                                onkeypress="handleHistoricCountKeypress(event)"
+                            />
+                            <button
+                                onclick="updateHistoricCount()"
+                                class="gl-btn"
+                            >
+                                Apply
+                            </button>
+                        </div>
+                        <div class="historic-count-info">
+                            <small id="historic-count-info"
+                                >Default: 14 days</small
+                            >
+                        </div>
+                    </div>
+                    <small class="historic-count-help">
+                        Set how many historic daily releases to display in the
+                        historic releases section.
+                        <br />
+                        The value will be saved as a URL parameter and can be
+                        shared.
+                    </small>
                 </div>
 
                 <hr class="settings-separator" />
