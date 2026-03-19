@@ -23,6 +23,7 @@ import {
     WORKFLOWS,
     hasStage4,
     SCHEMA_V2_CUTOFF,
+    formatVersionBranch,
 } from "./constants.js";
 
 // ========================================
@@ -1035,6 +1036,66 @@ export async function processWorkflowRuns(
             const runDate = new Date(run.created_at);
             return runDate >= targetDate && runDate < nextDay;
         });
+    }
+
+    // Filter by branch based on workflow type
+    // - Repo workflows: match version branch (e.g., "2179.0" for GL 2179)
+    // - Other workflows: only "main" branch
+    // - Skip filtering if "search all branches" is enabled
+    const isRepoWorkflow =
+        workflow.id === WORKFLOW_IDS.REPO_BUILD ||
+        workflow.id === WORKFLOW_IDS.REPO_UPDATE;
+
+    if (!shouldSearchAllBranches() && targetRuns.length > 0) {
+        const beforeFilter = targetRuns.length;
+
+        const isRepoBuild = workflow.id === WORKFLOW_IDS.REPO_BUILD;
+        const isRepoUpdate = workflow.id === WORKFLOW_IDS.REPO_UPDATE;
+
+        if (isRepoBuild) {
+            // Repo Build workflow runs on version branches
+            // Version format v1 (GL < 2017): "1592.0"
+            // Version format v2 (GL >= 2017): "2179.0.0"
+            const expectedBranch = formatVersionBranch(glDays);
+            targetRuns = targetRuns.filter((run) => {
+                const isCorrectBranch = run.head_branch === expectedBranch;
+                if (!isCorrectBranch) {
+                    console.log(
+                        `🔍 [Branch Filter] GL${glDays} ${workflow.name}: Filtered out run #${run.run_number} from branch "${run.head_branch}" (expected "${expectedBranch}")`
+                    );
+                }
+                return isCorrectBranch;
+            });
+        } else if (isRepoUpdate) {
+            // Repo Update workflow always runs on main branch
+            targetRuns = targetRuns.filter((run) => {
+                const isMainBranch = run.head_branch === "main";
+                if (!isMainBranch) {
+                    console.log(
+                        `🔍 [Branch Filter] GL${glDays} ${workflow.name}: Filtered out run #${run.run_number} from branch "${run.head_branch}" (expected "main")`
+                    );
+                }
+                return isMainBranch;
+            });
+        } else {
+            // Non-repo workflows run on main branch
+            targetRuns = targetRuns.filter((run) => {
+                const isMainBranch = run.head_branch === "main";
+                if (!isMainBranch) {
+                    console.log(
+                        `🔍 [Branch Filter] GL${glDays} ${workflow.name}: Filtered out run #${run.run_number} from branch "${run.head_branch}" (expected "main")`
+                    );
+                }
+                return isMainBranch;
+            });
+        }
+
+        const afterFilter = targetRuns.length;
+        if (beforeFilter !== afterFilter) {
+            console.log(
+                `🔍 [Branch Filter] GL${glDays} ${workflow.name}: Filtered ${beforeFilter - afterFilter} runs from incorrect branches (${afterFilter} remaining)`
+            );
+        }
     }
 
     // Debug repo build workflow specifically (current AND historic)
