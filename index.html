@@ -262,6 +262,7 @@
                                     class="current-stage-dots-stacked"
                                     id="current-stage-4-container"
                                     title="Publish"
+                                    data-stage-version="v1"
                                 >
                                     <span
                                         class="current-stage-dot unknown"
@@ -321,8 +322,12 @@
                         id="pipeline-stages-container"
                     >
                         <div class="pipeline-container" id="pipeline-container">
-                            <!-- Stage 4: Publish Images -->
-                            <div class="pipeline-stage stage-4" id="stage-4">
+                            <!-- Stage 4: Publish Images (schema v1 only) -->
+                            <div
+                                class="pipeline-stage stage-4"
+                                id="stage-4"
+                                data-stage-version="v1"
+                            >
                                 <div class="stage-header">
                                     <span class="stage-icon">🚀</span>
                                     <h3>Stage 4: Publish Images</h3>

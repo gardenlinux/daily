@@ -23,6 +23,7 @@ import {
     GL_INITIAL_DATE,
     API_CONFIG,
     WORKFLOWS,
+    hasStage4,
 } from "./constants.js";
 
 import {
@@ -403,15 +404,27 @@ function toggleCloudCleanup() {
 function generateWorkflowHTML() {
     console.log("Generating workflow HTML from constants...");
 
-    // Stage 4: Publish Images
-    const stage4Workflows = getWorkflowsByStage("stage-4");
-    const stage4Container = document.querySelector("#stage-4 .stage-workflows");
-    if (stage4Container && stage4Workflows.length > 0) {
-        stage4Container.innerHTML = stage4Workflows
-            .map((workflow) =>
-                uiGenerateWorkflowBoxHTML(workflow, API_CONFIG, WORKFLOWS)
-            )
-            .join("");
+    const glDays = getGlDays();
+
+    // Stage 4: Publish Images (only for schema v1)
+    if (hasStage4(glDays)) {
+        const stage4Workflows = getWorkflowsByStage("stage-4");
+        const stage4Container = document.querySelector(
+            "#stage-4 .stage-workflows"
+        );
+        if (stage4Container && stage4Workflows.length > 0) {
+            stage4Container.innerHTML = stage4Workflows
+                .map((workflow) =>
+                    uiGenerateWorkflowBoxHTML(workflow, API_CONFIG, WORKFLOWS)
+                )
+                .join("");
+        }
+    } else {
+        // Hide stage 4 for schema v2
+        const stage4Element = document.getElementById("stage-4");
+        if (stage4Element) {
+            stage4Element.style.display = "none";
+        }
     }
 
     // Stage 3: Build & Release Images

@@ -18,7 +18,12 @@
  * Core support library used across all dashboard components.
  */
 
-import { GL_INITIAL_DATE, WORKFLOWS } from "./constants.js";
+import {
+    GL_INITIAL_DATE,
+    WORKFLOWS,
+    hasStage4,
+    SCHEMA_V2_CUTOFF,
+} from "./constants.js";
 
 // ========================================
 // DATE AND GL VERSION CALCULATIONS
@@ -440,16 +445,12 @@ export function calculatePipelineDuration(
     stageStatuses,
     pipelineStatus,
     workflowRunData,
-    WORKFLOW_IDS
+    WORKFLOW_IDS,
+    glDays
 ) {
-    // Always try to calculate actual duration from Stage 3 to Stage 4 first
     const stage3Workflows = [WORKFLOW_IDS.NIGHTLY, WORKFLOW_IDS.MANUAL_RELEASE];
-    const stage4Workflows = [
-        WORKFLOW_IDS.PUBLISH_GHCR,
-        WORKFLOW_IDS.PUBLISH_S3,
-    ];
     let earliestStage3Start = null;
-    let latestStage4End = null;
+    let latestEndTime = null;
     let hasInProgressWorkflows = false;
 
     // Find earliest Stage 3 start time and check for in-progress workflows
@@ -479,22 +480,43 @@ export function calculatePipelineDuration(
         }
     }
 
-    // Find latest Stage 4 end time
-    for (const workflowId of stage4Workflows) {
-        if (workflowRunData && workflowRunData[workflowId]) {
-            const runData = workflowRunData[workflowId];
-            if (runData.status === "completed") {
-                const endTime = new Date(runData.updated_at);
-                if (!latestStage4End || endTime > latestStage4End) {
-                    latestStage4End = endTime;
+    // Schema v2 (GL >= 2174): Duration is Stage 3 only
+    // Schema v1 (GL < 2174): Duration is Stage 3 start → Stage 4 end
+    if (hasStage4(glDays)) {
+        // v1: Find latest Stage 4 end time
+        const stage4Workflows = [
+            WORKFLOW_IDS.PUBLISH_GHCR,
+            WORKFLOW_IDS.PUBLISH_S3,
+        ];
+        for (const workflowId of stage4Workflows) {
+            if (workflowRunData && workflowRunData[workflowId]) {
+                const runData = workflowRunData[workflowId];
+                if (runData.status === "completed") {
+                    const endTime = new Date(runData.updated_at);
+                    if (!latestEndTime || endTime > latestEndTime) {
+                        latestEndTime = endTime;
+                    }
+                }
+            }
+        }
+    } else {
+        // v2: Find latest Stage 3 end time
+        for (const workflowId of stage3Workflows) {
+            if (workflowRunData && workflowRunData[workflowId]) {
+                const runData = workflowRunData[workflowId];
+                if (runData.status === "completed") {
+                    const endTime = new Date(runData.updated_at);
+                    if (!latestEndTime || endTime > latestEndTime) {
+                        latestEndTime = endTime;
+                    }
                 }
             }
         }
     }
 
     // Calculate duration if we have both start and end times
-    if (earliestStage3Start && latestStage4End) {
-        const durationMs = latestStage4End - earliestStage3Start;
+    if (earliestStage3Start && latestEndTime) {
+        const durationMs = latestEndTime - earliestStage3Start;
         if (durationMs > 0) {
             const durationHours = Math.floor(durationMs / 3600000);
             const durationMinutes = Math.floor((durationMs % 3600000) / 60000);
@@ -532,15 +554,12 @@ export function calculateTargetDate(glDays, GL_INITIAL_DATE) {
 
 export function calculateHistoricPipelineDuration(
     workflowRunData,
-    WORKFLOW_IDS
+    WORKFLOW_IDS,
+    glDays
 ) {
     const stage3Workflows = [WORKFLOW_IDS.NIGHTLY, WORKFLOW_IDS.MANUAL_RELEASE];
-    const stage4Workflows = [
-        WORKFLOW_IDS.PUBLISH_GHCR,
-        WORKFLOW_IDS.PUBLISH_S3,
-    ];
     let earliestStage3Start = null;
-    let latestStage4End = null;
+    let latestEndTime = null;
 
     // Find earliest Stage 3 start time
     for (const workflowId of stage3Workflows) {
@@ -559,22 +578,43 @@ export function calculateHistoricPipelineDuration(
         }
     }
 
-    // Find latest Stage 4 end time (only from completed workflows for historic data)
-    for (const workflowId of stage4Workflows) {
-        if (workflowRunData && workflowRunData[workflowId]) {
-            const runData = workflowRunData[workflowId];
-            if (runData.status === "completed") {
-                const endTime = new Date(runData.updated_at);
-                if (!latestStage4End || endTime > latestStage4End) {
-                    latestStage4End = endTime;
+    // Schema v2 (GL >= 2174): Duration is Stage 3 only
+    // Schema v1 (GL < 2174): Duration is Stage 3 start → Stage 4 end
+    if (hasStage4(glDays)) {
+        // v1: Find latest Stage 4 end time (only from completed workflows for historic data)
+        const stage4Workflows = [
+            WORKFLOW_IDS.PUBLISH_GHCR,
+            WORKFLOW_IDS.PUBLISH_S3,
+        ];
+        for (const workflowId of stage4Workflows) {
+            if (workflowRunData && workflowRunData[workflowId]) {
+                const runData = workflowRunData[workflowId];
+                if (runData.status === "completed") {
+                    const endTime = new Date(runData.updated_at);
+                    if (!latestEndTime || endTime > latestEndTime) {
+                        latestEndTime = endTime;
+                    }
+                }
+            }
+        }
+    } else {
+        // v2: Find latest Stage 3 end time
+        for (const workflowId of stage3Workflows) {
+            if (workflowRunData && workflowRunData[workflowId]) {
+                const runData = workflowRunData[workflowId];
+                if (runData.status === "completed") {
+                    const endTime = new Date(runData.updated_at);
+                    if (!latestEndTime || endTime > latestEndTime) {
+                        latestEndTime = endTime;
+                    }
                 }
             }
         }
     }
 
     // Calculate duration if we have both start and end times
-    if (earliestStage3Start && latestStage4End) {
-        const durationMs = latestStage4End - earliestStage3Start;
+    if (earliestStage3Start && latestEndTime) {
+        const durationMs = latestEndTime - earliestStage3Start;
         if (durationMs > 0) {
             const durationHours = Math.floor(durationMs / 3600000);
             const durationMinutes = Math.floor((durationMs % 3600000) / 60000);
@@ -807,8 +847,20 @@ export async function collectStage3RunIds(
 // ========================================
 // HELPER FUNCTIONS FOR WORKFLOW ACCESS
 // ========================================
-export function getAllWorkflowConfigs() {
-    return Object.values(WORKFLOWS);
+export function getAllWorkflowConfigs(glDays = null) {
+    const allWorkflows = Object.values(WORKFLOWS);
+
+    // If no GL version specified, return all workflows (backward compatible)
+    if (glDays === null) {
+        return allWorkflows;
+    }
+
+    // Filter out stage-4 workflows for schema v2
+    if (!hasStage4(glDays)) {
+        return allWorkflows.filter((w) => w.stage !== "stage-4");
+    }
+
+    return allWorkflows;
 }
 
 export function getWorkflowsByStage(stageId) {
@@ -825,7 +877,7 @@ export function getWorkflowsByStage(stageId) {
  * Calculates stage statuses from workflow statuses using the same logic as current view
  * @param {Object} workflowStatuses - Object mapping workflow IDs to their statuses
  * @param {string} packageStatus - Package status (success, warning, failure, etc.)
- * @param {Object} STAGE_WORKFLOWS - Stage to workflow ID mappings
+ * @param {Object} STAGE_WORKFLOWS - Stage to workflow ID mappings (version-aware)
  * @returns {Object} Stage statuses object
  */
 export function calculateStageStatuses(
@@ -833,6 +885,8 @@ export function calculateStageStatuses(
     packageStatus,
     STAGE_WORKFLOWS
 ) {
+    // Note: STAGE_WORKFLOWS should already be version-aware from getStageWorkflows(glDays)
+    // This function works with whatever stages are passed in
     const stageStatuses = {};
 
     // Stage 1: Package status (map package status values to stage dot CSS classes)
@@ -964,8 +1018,8 @@ export async function processWorkflowRuns(
 
     let targetRuns = [];
 
-    if (isStage4Workflow) {
-        // For Stage 4: Use the shared validation logic
+    if (isStage4Workflow && hasStage4(glDays)) {
+        // For Stage 4 in schema v1: Use the shared validation logic
         targetRuns = await validateStage4Runs(
             runs,
             targetDate,
