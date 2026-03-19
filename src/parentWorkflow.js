@@ -129,6 +129,30 @@ export async function downloadAndExtractArtifact(owner, repo, artifact) {
  */
 export async function getParentWorkflowInfo(owner, repo, runId) {
     try {
+        // First, try to get parent workflow info from the workflow_run event
+        // This is more reliable and doesn't require downloading artifacts
+        const runResponse = await fetch(
+            `${API_CONFIG.GITHUB_API_BASE}/repos/${owner}/${repo}/actions/runs/${runId}`,
+            {
+                headers: getAuthHeaders(),
+            }
+        );
+
+        if (runResponse.ok) {
+            const run = await runResponse.json();
+
+            // Check for parent workflow run ID in workflow_run event
+            if (run.event === "workflow_run" && run.workflow_run?.id) {
+                return {
+                    found: true,
+                    message: "Parent run ID detected from workflow_run event",
+                    parentRunId: run.workflow_run.id.toString(),
+                    extractionMethod: "workflow_run_event",
+                };
+            }
+        }
+
+        // Fall back to artifact-based detection if workflow_run event doesn't provide parent info
         const artifactsResponse = await fetch(
             `${API_CONFIG.GITHUB_API_BASE}/repos/${owner}/${repo}/actions/runs/${runId}/artifacts`,
             {

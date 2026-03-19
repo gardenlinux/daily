@@ -22,7 +22,7 @@ import {
     formatDateTimeDetailed,
     getTriggerInfo,
 } from "./utils.js";
-import { WORKFLOW_IDS, API_CONFIG } from "./constants.js";
+import { WORKFLOW_IDS, API_CONFIG, hasStage4 } from "./constants.js";
 import { getParentWorkflowInfo } from "./parentWorkflow.js";
 
 // Render the historic releases section
@@ -85,6 +85,12 @@ export function renderHistoricReleases(historicData) {
                     ? day.workflowStatuses[WORKFLOW_IDS.PUBLISH_S3]
                     : "unknown";
 
+            // Determine if this day has stage 4 based on its GL version
+            const dayHasStage4 = hasStage4(day.glDays);
+            const stageTitle = dayHasStage4
+                ? "Stages: Package | Repo | Build | Publish"
+                : "Stages: Package | Repo | Build";
+
             return `
         <a href="?gl=${day.glDays}&no_historic_releases=true" target="_blank" class="historic-release-row ${day.pipelineStatus}" title="View detailed dashboard for GL ${day.glDays}">
             <div class="historic-gl-version ${day.pipelineStatus}">GL ${day.glDays}</div>
@@ -95,7 +101,7 @@ export function renderHistoricReleases(historicData) {
                       title="Overall Status: ${day.pipelineStatus}"></span>
             </div>
 
-            <div class="historic-stages" title="Stages: Package | Repo | Build | Publish">
+            <div class="historic-stages" title="${stageTitle}">
                 <div class="historic-stage-dot-container" title="Package Builds">
                     <span class="historic-stage-dot ${day.workflowStatus && day.workflowStatus["stage-1"] ? day.workflowStatus["stage-1"] : "unknown"}" title="Package Builds"></span>
                 </div>
@@ -107,10 +113,16 @@ export function renderHistoricReleases(historicData) {
                     <span class="historic-stage-dot ${nightlyStatus}" title="Garden Linux Nightly - Schedule"></span>
                     <span class="historic-stage-dot ${manualReleaseStatus}" title="Build and publish a release - Manual"></span>
                 </div>
+                ${
+                    dayHasStage4
+                        ? `
                 <div class="historic-stage-dots-stacked" title="Publish">
                     <span class="historic-stage-dot ${publishGhcrStatus}" title="Publish to ghcr.io"></span>
                     <span class="historic-stage-dot ${publishS3Status}" title="Publish to S3"></span>
                 </div>
+                `
+                        : ""
+                }
             </div>
 
             <div class="historic-package-status">
@@ -130,7 +142,7 @@ export function renderHistoricReleases(historicData) {
                 }
             </div>
 
-            <div class="historic-duration" title="Duration of stages 3 and 4">
+            <div class="historic-duration" title="${dayHasStage4 ? "Duration of stages 3 and 4" : "Duration of stage 3"}">
                 ${day.duration || "No data"}
             </div>
 
@@ -243,18 +255,30 @@ export function updateCurrentReleaseSummary(
         setElementStatus(stage3BottomDot, manualReleaseStatus);
     }
 
-    // Stage 4: stacked dots for individual workflows
-    const stage4TopDot = document.getElementById("current-stage-4-top");
-    const stage4BottomDot = document.getElementById("current-stage-4-bottom");
-    if (stage4TopDot) {
-        const publishGhcrStatus =
-            workflowStatuses[WORKFLOW_IDS.PUBLISH_GHCR] || "unknown";
-        setElementStatus(stage4TopDot, publishGhcrStatus);
-    }
-    if (stage4BottomDot) {
-        const publishS3Status =
-            workflowStatuses[WORKFLOW_IDS.PUBLISH_S3] || "unknown";
-        setElementStatus(stage4BottomDot, publishS3Status);
+    // Stage 4: stacked dots for individual workflows (only for schema v1)
+    if (hasStage4(glDays)) {
+        const stage4TopDot = document.getElementById("current-stage-4-top");
+        const stage4BottomDot = document.getElementById(
+            "current-stage-4-bottom"
+        );
+        if (stage4TopDot) {
+            const publishGhcrStatus =
+                workflowStatuses[WORKFLOW_IDS.PUBLISH_GHCR] || "unknown";
+            setElementStatus(stage4TopDot, publishGhcrStatus);
+        }
+        if (stage4BottomDot) {
+            const publishS3Status =
+                workflowStatuses[WORKFLOW_IDS.PUBLISH_S3] || "unknown";
+            setElementStatus(stage4BottomDot, publishS3Status);
+        }
+    } else {
+        // Hide stage 4 container for schema v2
+        const stage4Container = document.getElementById(
+            "current-stage-4-container"
+        );
+        if (stage4Container) {
+            stage4Container.style.display = "none";
+        }
     }
 
     // Update summary text
@@ -306,10 +330,14 @@ export function updateCurrentReleaseSummary(
             stageStatuses,
             pipelineStatus,
             workflowRunData,
-            WORKFLOW_IDS
+            WORKFLOW_IDS,
+            glDays
         );
         currentDurationElement.textContent = duration;
-        currentDurationElement.title = "Duration of stages 3 and 4";
+        // Update tooltip based on schema version
+        currentDurationElement.title = hasStage4(glDays)
+            ? "Duration of stages 3 and 4"
+            : "Duration of stage 3";
     }
 }
 

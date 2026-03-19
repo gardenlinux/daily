@@ -20,6 +20,30 @@
 export const GL_INITIAL_DATE = "2020-03-31";
 
 // ========================================
+// SCHEMA VERSION CONFIGURATION
+// ========================================
+// Schema v2 starts at GL 2174 - no more stage 4 (Publish Images)
+export const SCHEMA_V2_CUTOFF = 2174;
+
+/**
+ * Determines the schema version based on GL days
+ * @param {number} glDays - Garden Linux version number
+ * @returns {number} Schema version (1 or 2)
+ */
+export function getSchemaVersion(glDays) {
+    return glDays >= SCHEMA_V2_CUTOFF ? 2 : 1;
+}
+
+/**
+ * Checks if a GL version has stage 4 (Publish Images)
+ * @param {number} glDays - Garden Linux version number
+ * @returns {boolean} True if this version has stage 4
+ */
+export function hasStage4(glDays) {
+    return glDays < SCHEMA_V2_CUTOFF;
+}
+
+// ========================================
 // ARTIFACT CONFIGURATION
 // ========================================
 
@@ -115,6 +139,28 @@ export const STAGE_WORKFLOWS = {
     "stage-4": [WORKFLOW_IDS.PUBLISH_GHCR, WORKFLOW_IDS.PUBLISH_S3],
 };
 
+/**
+ * Gets stage workflows based on schema version
+ * @param {number} glDays - Garden Linux version number
+ * @returns {Object} Stage to workflow ID mappings
+ */
+export function getStageWorkflows(glDays) {
+    const baseStages = {
+        "stage-1": [], // Package Builds (handled separately)
+        "stage-2": [WORKFLOW_IDS.REPO_UPDATE, WORKFLOW_IDS.REPO_BUILD],
+        "stage-3": [WORKFLOW_IDS.NIGHTLY, WORKFLOW_IDS.MANUAL_RELEASE],
+    };
+
+    if (hasStage4(glDays)) {
+        baseStages["stage-4"] = [
+            WORKFLOW_IDS.PUBLISH_GHCR,
+            WORKFLOW_IDS.PUBLISH_S3,
+        ];
+    }
+
+    return baseStages;
+}
+
 // All expected workflow IDs for validation
 export const EXPECTED_WORKFLOW_IDS = [
     WORKFLOW_IDS.REPO_UPDATE,
@@ -124,6 +170,26 @@ export const EXPECTED_WORKFLOW_IDS = [
     WORKFLOW_IDS.PUBLISH_GHCR,
     WORKFLOW_IDS.PUBLISH_S3,
 ];
+
+/**
+ * Gets expected workflow IDs based on schema version
+ * @param {number} glDays - Garden Linux version number
+ * @returns {Array<string>} Array of workflow IDs
+ */
+export function getExpectedWorkflowIds(glDays) {
+    const base = [
+        WORKFLOW_IDS.REPO_UPDATE,
+        WORKFLOW_IDS.REPO_BUILD,
+        WORKFLOW_IDS.NIGHTLY,
+        WORKFLOW_IDS.MANUAL_RELEASE,
+    ];
+
+    if (hasStage4(glDays)) {
+        base.push(WORKFLOW_IDS.PUBLISH_GHCR, WORKFLOW_IDS.PUBLISH_S3);
+    }
+
+    return base;
+}
 
 // ========================================
 // API CONFIGURATION

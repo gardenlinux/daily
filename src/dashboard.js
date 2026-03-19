@@ -46,6 +46,8 @@ import {
     API_CONFIG,
     PACKAGE_STATUSES,
     UI_CONFIG,
+    getStageWorkflows,
+    getExpectedWorkflowIds,
 } from "./constants.js";
 
 import {
@@ -127,9 +129,6 @@ function updateWorkflowMonitoringHeader() {
 // WORKFLOW STATUS MANAGEMENT
 // ========================================
 export async function getRun() {
-    // Use workflow configurations from constants
-    getAllWorkflowConfigs();
-
     // Reset workflow statuses
     workflowStatuses = {};
     workflowRunData = {};
@@ -157,13 +156,14 @@ export async function getRun() {
 
     // Process workflows in two phases:
     // Phase 1: Process Stage 3 workflows first to collect run IDs
-    // Phase 2: Process all other workflows (including Stage 4 with parent matching)
+    // Phase 2: Process all other workflows (including Stage 4 with parent matching if schema v1)
 
     const stage3WorkflowIds = [
         WORKFLOW_IDS.NIGHTLY,
         WORKFLOW_IDS.MANUAL_RELEASE,
     ];
-    const allWorkflows = getAllWorkflowConfigs();
+    // Get version-aware workflows (excludes stage-4 for schema v2)
+    const allWorkflows = getAllWorkflowConfigs(glDays);
     const stage3Workflows = allWorkflows.filter((w) =>
         stage3WorkflowIds.includes(w.id)
     );
@@ -1087,11 +1087,15 @@ export function updatePipelineHierarchy() {
     console.log("Workflow statuses:", workflowStatuses);
     console.log("Package status:", packageStatus);
 
+    // Get GL version to use version-aware stage workflows
+    const glDays = getGlDays();
+    const versionAwareStageWorkflows = getStageWorkflows(glDays);
+
     // Use shared stage status calculation (same as current view)
     const stageStatuses = calculateStageStatuses(
         workflowStatuses,
         packageStatus,
-        STAGE_WORKFLOWS
+        versionAwareStageWorkflows
     );
 
     console.log(`[Current View] Stage statuses:`, stageStatuses);
@@ -1105,15 +1109,16 @@ export function updatePipelineHierarchy() {
     // Use shared pipeline status calculation (same as current view)
     const pipelineStatus = calculatePipelineStatus(stageStatuses);
 
-    // Count expected vs actual workflow statuses for logging
-    const loadedWorkflowStatuses = EXPECTED_WORKFLOW_IDS.filter(
+    // Count expected vs actual workflow statuses for logging (version-aware)
+    const expectedWorkflowIds = getExpectedWorkflowIds(glDays);
+    const loadedWorkflowStatuses = expectedWorkflowIds.filter(
         (id) => workflowStatuses[id] && workflowStatuses[id] !== "unknown"
     );
     const allWorkflowsLoaded =
-        loadedWorkflowStatuses.length === EXPECTED_WORKFLOW_IDS.length;
+        loadedWorkflowStatuses.length === expectedWorkflowIds.length;
 
     console.log("Pipeline status evaluation:");
-    console.log("- Expected workflows:", EXPECTED_WORKFLOW_IDS.length);
+    console.log("- Expected workflows:", expectedWorkflowIds.length);
     console.log("- Loaded workflows:", loadedWorkflowStatuses.length);
     console.log("- All workflows loaded:", allWorkflowsLoaded);
     console.log("- Stage statuses:", Object.values(stageStatuses));
@@ -1244,20 +1249,22 @@ async function loadHistoricDay(glDays) {
         const { workflowStatuses, workflowRunData } =
             await getHistoricWorkflowStatuses(glDays);
 
-        // Use shared stage status calculation (same as current view)
+        // Use shared stage status calculation with version-aware stages
+        const versionAwareStageWorkflows = getStageWorkflows(glDays);
         const stageStatuses = calculateStageStatuses(
             workflowStatuses,
             packageStatus.status,
-            STAGE_WORKFLOWS
+            versionAwareStageWorkflows
         );
 
         // Use shared pipeline status calculation (same as current view)
         const pipelineStatus = calculatePipelineStatus(stageStatuses);
 
-        // Calculate pipeline duration
+        // Calculate pipeline duration (version-aware)
         const duration = calculateHistoricPipelineDuration(
             workflowRunData,
-            WORKFLOW_IDS
+            WORKFLOW_IDS,
+            glDays
         );
 
         return {
@@ -1339,50 +1346,16 @@ async function getHistoricWorkflowStatuses(glDays) {
     extendedNextDay.setDate(extendedNextDay.getDate() + 1);
 
     try {
-        // Check multiple workflows per stage for better coverage using constants
-        const workflowChecks = [
-            // Stage 2: Repository workflows
-            {
-                id: WORKFLOW_IDS.REPO_UPDATE,
-                stage: "stage-2",
-                repo: WORKFLOWS.REPO_UPDATE.repo,
-                name: WORKFLOWS.REPO_UPDATE.name,
-            },
-            {
-                id: WORKFLOW_IDS.REPO_BUILD,
-                stage: "stage-2",
-                repo: WORKFLOWS.REPO_BUILD.repo,
-                name: WORKFLOWS.REPO_BUILD.name,
-            },
-
-            // Stage 3: Build & Release workflows
-            {
-                id: WORKFLOW_IDS.NIGHTLY,
-                stage: "stage-3",
-                repo: WORKFLOWS.NIGHTLY.repo,
-                name: WORKFLOWS.NIGHTLY.name,
-            },
-            {
-                id: WORKFLOW_IDS.MANUAL_RELEASE,
-                stage: "stage-3",
-                repo: WORKFLOWS.MANUAL_RELEASE.repo,
-                name: WORKFLOWS.MANUAL_RELEASE.name,
-            },
-
-            // Stage 4: Publish workflows
-            {
-                id: WORKFLOW_IDS.PUBLISH_GHCR,
-                stage: "stage-4",
-                repo: WORKFLOWS.PUBLISH_GHCR.repo,
-                name: WORKFLOWS.PUBLISH_GHCR.name,
-            },
-            {
-                id: WORKFLOW_IDS.PUBLISH_S3,
-                stage: "stage-4",
-                repo: WORKFLOWS.PUBLISH_S3.repo,
-                name: WORKFLOWS.PUBLISH_S3.name,
-            },
-        ];
+        // Use version-aware workflow list (excludes stage-4 for schema v2)
+        const allWorkflowsForVersion = getAllWorkflowConfigs(glDays);
+        const workflowChecks = allWorkflowsForVersion
+            .map((w) => ({
+                id: w.id,
+                stage: w.stage,
+                repo: w.repo,
+                name: w.name,
+            }))
+            .filter((w) => w.stage.startsWith("stage-")); // Only include stage workflows
 
         // Collect Stage 3 run IDs first
         const stage3Workflows = workflowChecks.filter(
