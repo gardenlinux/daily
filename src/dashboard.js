@@ -26,6 +26,7 @@ import {
     shouldLoadHistoricReleases,
     setElementStatus,
     getBranchParameter,
+    shouldSearchAllBranches,
     calculateTargetDate,
     calculateHistoricPipelineDuration,
     collectStage3RunIds,
@@ -47,6 +48,7 @@ import {
     PACKAGE_STATUSES,
     UI_CONFIG,
     getStageWorkflows,
+    formatVersionBranch,
     getExpectedWorkflowIds,
 } from "./constants.js";
 
@@ -186,7 +188,8 @@ export async function getRun() {
             extendedNextDay,
             stage3RunIds,
             tagName,
-            true
+            true,
+            glDays
         );
     }
 
@@ -202,7 +205,8 @@ export async function getRun() {
             extendedNextDay,
             stage3RunIds,
             tagName,
-            false
+            false,
+            glDays
         );
     }
 
@@ -219,7 +223,8 @@ async function processWorkflow(
     extendedNextDay,
     stage3RunIds,
     tagName,
-    _isStage3Phase
+    _isStage3Phase,
+    glDays
 ) {
     let apiUrl;
     const isCloudCleanup = workflow.id === WORKFLOW_IDS.CLOUD_TEST_CLEANUP;
@@ -652,6 +657,59 @@ async function processWorkflow(
             const runDate = new Date(run.created_at);
             return runDate >= targetDate && runDate < nextDay;
         });
+    }
+
+    // Filter by branch based on workflow type
+    // - Repo workflows: match version branch (e.g., "2179.0" for GL 2179)
+    // - Other workflows: only "main" branch
+    // - Skip filtering if "search all branches" is enabled
+    if (!shouldSearchAllBranches() && targetRunsUnsorted.length > 0) {
+        const beforeFilter = targetRunsUnsorted.length;
+
+        if (isRepoBuild) {
+            // Repo Build workflow runs on version branches
+            // Version format v1 (GL < 2017): "1592.0"
+            // Version format v2 (GL >= 2017): "2179.0.0"
+            const expectedBranch = formatVersionBranch(glDays);
+            targetRunsUnsorted = targetRunsUnsorted.filter((run) => {
+                const isCorrectBranch = run.head_branch === expectedBranch;
+                if (!isCorrectBranch) {
+                    console.log(
+                        `🔍 [Branch Filter] ${workflow.name}: Filtered out run #${run.run_number} from branch "${run.head_branch}" (expected "${expectedBranch}")`
+                    );
+                }
+                return isCorrectBranch;
+            });
+        } else if (isRepoUpdate) {
+            // Repo Update workflow always runs on main branch
+            targetRunsUnsorted = targetRunsUnsorted.filter((run) => {
+                const isMainBranch = run.head_branch === "main";
+                if (!isMainBranch) {
+                    console.log(
+                        `🔍 [Branch Filter] ${workflow.name}: Filtered out run #${run.run_number} from branch "${run.head_branch}" (expected "main")`
+                    );
+                }
+                return isMainBranch;
+            });
+        } else {
+            // Non-repo workflows run on main branch
+            targetRunsUnsorted = targetRunsUnsorted.filter((run) => {
+                const isMainBranch = run.head_branch === "main";
+                if (!isMainBranch) {
+                    console.log(
+                        `🔍 [Branch Filter] ${workflow.name}: Filtered out run #${run.run_number} from branch "${run.head_branch}" (expected "main")`
+                    );
+                }
+                return isMainBranch;
+            });
+        }
+
+        const afterFilter = targetRunsUnsorted.length;
+        if (beforeFilter !== afterFilter) {
+            console.log(
+                `🔍 [Branch Filter] ${workflow.name}: Filtered ${beforeFilter - afterFilter} runs from incorrect branches (${afterFilter} remaining)`
+            );
+        }
     }
 
     // Collect Stage 3 run IDs for later Stage 4 matching

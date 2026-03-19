@@ -25,6 +25,9 @@ export const GL_INITIAL_DATE = "2020-03-31";
 // Schema v2 starts at GL 2174 - no more stage 4 (Publish Images)
 export const SCHEMA_V2_CUTOFF = 2174;
 
+// Version format cutoff: Versions >= 2017 use X.Y.Z format, versions < 2017 use X.Y format
+export const VERSION_FORMAT_CUTOFF = 2017;
+
 /**
  * Determines the schema version based on GL days
  * @param {number} glDays - Garden Linux version number
@@ -32,6 +35,26 @@ export const SCHEMA_V2_CUTOFF = 2174;
  */
 export function getSchemaVersion(glDays) {
     return glDays >= SCHEMA_V2_CUTOFF ? 2 : 1;
+}
+
+/**
+ * Determines the version format based on GL days
+ * Versions < 2017.0.0 use major.minor format (e.g., "27.0", "1592.6")
+ * Versions >= 2017.0.0 use major.minor.patch format (e.g., "2017.0.0", "2222.1.5")
+ * @param {number} glDays - Garden Linux version number
+ * @returns {string} "X.Y" or "X.Y.Z" format specifier
+ */
+export function getVersionFormat(glDays) {
+    return glDays >= VERSION_FORMAT_CUTOFF ? "X.Y.Z" : "X.Y";
+}
+
+/**
+ * Formats a GL version number as a branch name according to versioning scheme
+ * @param {number} glDays - Garden Linux version number
+ * @returns {string} Branch name (e.g., "2179.0.0" or "1592.0")
+ */
+export function formatVersionBranch(glDays) {
+    return glDays >= VERSION_FORMAT_CUTOFF ? `${glDays}.0.0` : `${glDays}.0`;
 }
 
 /**
