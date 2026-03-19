@@ -1143,7 +1143,8 @@ export function updatePipelineHierarchy() {
         packageStatus,
         workflowRunData,
         WORKFLOW_IDS,
-        getGlDays
+        getGlDays,
+        workflowStatuses
     );
 
     console.log("Stage statuses:", stageStatuses);
@@ -1261,7 +1262,8 @@ async function loadHistoricDay(glDays) {
             glDays,
             date: glDate,
             packageStatus,
-            workflowStatus: stageStatuses, // for small dots
+            workflowStatus: stageStatuses, // for small dots (aggregated stage statuses)
+            workflowStatuses, // individual workflow statuses for stacked dots
             duration,
             pipelineStatus, // for main dot and row coloring
         };

@@ -52,8 +52,40 @@ export function renderHistoricReleases(historicData) {
     }));
 
     historicList.innerHTML = safeHistoricData
-        .map(
-            (day) => `
+        .map((day) => {
+            // Get individual workflow statuses for stages 2, 3, and 4
+            const repoUpdateStatus =
+                day.workflowStatuses &&
+                day.workflowStatuses[WORKFLOW_IDS.REPO_UPDATE]
+                    ? day.workflowStatuses[WORKFLOW_IDS.REPO_UPDATE]
+                    : "unknown";
+            const repoBuildStatus =
+                day.workflowStatuses &&
+                day.workflowStatuses[WORKFLOW_IDS.REPO_BUILD]
+                    ? day.workflowStatuses[WORKFLOW_IDS.REPO_BUILD]
+                    : "unknown";
+            const nightlyStatus =
+                day.workflowStatuses &&
+                day.workflowStatuses[WORKFLOW_IDS.NIGHTLY]
+                    ? day.workflowStatuses[WORKFLOW_IDS.NIGHTLY]
+                    : "unknown";
+            const manualReleaseStatus =
+                day.workflowStatuses &&
+                day.workflowStatuses[WORKFLOW_IDS.MANUAL_RELEASE]
+                    ? day.workflowStatuses[WORKFLOW_IDS.MANUAL_RELEASE]
+                    : "unknown";
+            const publishGhcrStatus =
+                day.workflowStatuses &&
+                day.workflowStatuses[WORKFLOW_IDS.PUBLISH_GHCR]
+                    ? day.workflowStatuses[WORKFLOW_IDS.PUBLISH_GHCR]
+                    : "unknown";
+            const publishS3Status =
+                day.workflowStatuses &&
+                day.workflowStatuses[WORKFLOW_IDS.PUBLISH_S3]
+                    ? day.workflowStatuses[WORKFLOW_IDS.PUBLISH_S3]
+                    : "unknown";
+
+            return `
         <a href="?gl=${day.glDays}&no_historic_releases=true" target="_blank" class="historic-release-row ${day.pipelineStatus}" title="View detailed dashboard for GL ${day.glDays}">
             <div class="historic-gl-version ${day.pipelineStatus}">GL ${day.glDays}</div>
             <div class="historic-date">${day.date}</div>
@@ -64,10 +96,21 @@ export function renderHistoricReleases(historicData) {
             </div>
 
             <div class="historic-stages" title="Stages: Package | Repo | Build | Publish">
-                <span class="historic-stage-dot ${day.workflowStatus && day.workflowStatus["stage-1"] ? day.workflowStatus["stage-1"] : "unknown"}" title="Package Builds"></span>
-                <span class="historic-stage-dot ${day.workflowStatus && day.workflowStatus["stage-2"] ? day.workflowStatus["stage-2"] : "unknown"}" title="Repository"></span>
-                <span class="historic-stage-dot ${day.workflowStatus && day.workflowStatus["stage-3"] ? day.workflowStatus["stage-3"] : "unknown"}" title="Build & Release"></span>
-                <span class="historic-stage-dot ${day.workflowStatus && day.workflowStatus["stage-4"] ? day.workflowStatus["stage-4"] : "unknown"}" title="Publish"></span>
+                <div class="historic-stage-dot-container" title="Package Builds">
+                    <span class="historic-stage-dot ${day.workflowStatus && day.workflowStatus["stage-1"] ? day.workflowStatus["stage-1"] : "unknown"}" title="Package Builds"></span>
+                </div>
+                <div class="historic-stage-dots-stacked" title="Repository">
+                    <span class="historic-stage-dot ${repoUpdateStatus}" title="Repo Update"></span>
+                    <span class="historic-stage-dot ${repoBuildStatus}" title="Repo Build"></span>
+                </div>
+                <div class="historic-stage-dots-stacked" title="Build & Release">
+                    <span class="historic-stage-dot ${nightlyStatus}" title="Garden Linux Nightly - Schedule"></span>
+                    <span class="historic-stage-dot ${manualReleaseStatus}" title="Build and publish a release - Manual"></span>
+                </div>
+                <div class="historic-stage-dots-stacked" title="Publish">
+                    <span class="historic-stage-dot ${publishGhcrStatus}" title="Publish to ghcr.io"></span>
+                    <span class="historic-stage-dot ${publishS3Status}" title="Publish to S3"></span>
+                </div>
             </div>
 
             <div class="historic-package-status">
@@ -105,8 +148,8 @@ export function renderHistoricReleases(historicData) {
                 }
             </div>
         </a>
-    `
-        )
+    `;
+        })
         .join("");
 }
 
@@ -136,7 +179,8 @@ export function updateCurrentReleaseSummary(
     packageStatus,
     workflowRunData,
     WORKFLOW_IDS,
-    getGlDays
+    getGlDays,
+    workflowStatuses = {}
 ) {
     const glDays = getGlDays();
     const formattedDate = formatDetailedDate(glDays);
@@ -164,12 +208,53 @@ export function updateCurrentReleaseSummary(
     }
 
     // Update stage dots
-    for (let i = 1; i <= 4; i++) {
-        const stageDot = document.getElementById(`current-stage-${i}`);
-        if (stageDot) {
-            const stageStatus = stageStatuses[`stage-${i}`] || "unknown";
-            setElementStatus(stageDot, stageStatus);
-        }
+    // Stage 1: single dot
+    const stage1Dot = document.getElementById("current-stage-1");
+    if (stage1Dot) {
+        const stageStatus = stageStatuses["stage-1"] || "unknown";
+        setElementStatus(stage1Dot, stageStatus);
+    }
+
+    // Stage 2: stacked dots for individual workflows
+    const stage2TopDot = document.getElementById("current-stage-2-top");
+    const stage2BottomDot = document.getElementById("current-stage-2-bottom");
+    if (stage2TopDot) {
+        const repoUpdateStatus =
+            workflowStatuses[WORKFLOW_IDS.REPO_UPDATE] || "unknown";
+        setElementStatus(stage2TopDot, repoUpdateStatus);
+    }
+    if (stage2BottomDot) {
+        const repoBuildStatus =
+            workflowStatuses[WORKFLOW_IDS.REPO_BUILD] || "unknown";
+        setElementStatus(stage2BottomDot, repoBuildStatus);
+    }
+
+    // Stage 3: stacked dots for individual workflows
+    const stage3TopDot = document.getElementById("current-stage-3-top");
+    const stage3BottomDot = document.getElementById("current-stage-3-bottom");
+    if (stage3TopDot) {
+        const nightlyStatus =
+            workflowStatuses[WORKFLOW_IDS.NIGHTLY] || "unknown";
+        setElementStatus(stage3TopDot, nightlyStatus);
+    }
+    if (stage3BottomDot) {
+        const manualReleaseStatus =
+            workflowStatuses[WORKFLOW_IDS.MANUAL_RELEASE] || "unknown";
+        setElementStatus(stage3BottomDot, manualReleaseStatus);
+    }
+
+    // Stage 4: stacked dots for individual workflows
+    const stage4TopDot = document.getElementById("current-stage-4-top");
+    const stage4BottomDot = document.getElementById("current-stage-4-bottom");
+    if (stage4TopDot) {
+        const publishGhcrStatus =
+            workflowStatuses[WORKFLOW_IDS.PUBLISH_GHCR] || "unknown";
+        setElementStatus(stage4TopDot, publishGhcrStatus);
+    }
+    if (stage4BottomDot) {
+        const publishS3Status =
+            workflowStatuses[WORKFLOW_IDS.PUBLISH_S3] || "unknown";
+        setElementStatus(stage4BottomDot, publishS3Status);
     }
 
     // Update summary text
