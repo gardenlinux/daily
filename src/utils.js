@@ -1170,3 +1170,32 @@ export async function processWorkflowRuns(
 
     return { status, runData: mostRecentRun };
 }
+
+// ========================================
+// STAGE 3 COMMIT SHA HELPER
+// ========================================
+/**
+ * Returns the commit SHA for the stage-3 run of a given day.
+ * Prefers the Manual Release run (when it has data), falls back to Nightly.
+ *
+ * @param {Object} workflowRunData - Map of workflow ID → run object
+ * @param {Object} WORKFLOW_IDS - Workflow ID constants
+ * @returns {string|null} Full commit SHA, or null if unavailable
+ */
+export function getStage3CommitSha(workflowRunData, WORKFLOW_IDS) {
+    if (
+        workflowRunData &&
+        workflowRunData[WORKFLOW_IDS.MANUAL_RELEASE] &&
+        workflowRunData[WORKFLOW_IDS.MANUAL_RELEASE].head_sha
+    ) {
+        return workflowRunData[WORKFLOW_IDS.MANUAL_RELEASE].head_sha;
+    }
+    if (
+        workflowRunData &&
+        workflowRunData[WORKFLOW_IDS.NIGHTLY] &&
+        workflowRunData[WORKFLOW_IDS.NIGHTLY].head_sha
+    ) {
+        return workflowRunData[WORKFLOW_IDS.NIGHTLY].head_sha;
+    }
+    return null;
+}

@@ -21,6 +21,7 @@ import {
     calculatePipelineDuration,
     formatDateTimeDetailed,
     getTriggerInfo,
+    getStage3CommitSha,
 } from "./utils.js";
 import { WORKFLOW_IDS, API_CONFIG, hasStage4 } from "./constants.js";
 import { getParentWorkflowInfo } from "./parentWorkflow.js";
@@ -94,6 +95,7 @@ export function renderHistoricReleases(historicData) {
             return `
         <a href="?gl=${day.glDays}&no_historic_releases=true" target="_blank" class="historic-release-row ${day.pipelineStatus}" title="View detailed dashboard for GL ${day.glDays}">
             <div class="historic-gl-version ${day.pipelineStatus}">GL ${day.glDays}</div>
+            <span class="historic-commit ${day.pipelineStatus}" title="Stage 3 commit: ${day.commitSha ? day.commitSha.substring(0, 7) : "unavailable"}">${day.commitSha ? day.commitSha.substring(0, 7) : "0000000"}</span>
             <div class="historic-date">${day.date}</div>
 
             <div class="historic-overall-status">
@@ -208,6 +210,24 @@ export function updateCurrentReleaseSummary(
     }
     if (currentDateElement) {
         currentDateElement.textContent = formattedDate;
+    }
+
+    // Update stage-3 commit box
+    const currentCommitElement = document.getElementById("current-commit");
+    if (currentCommitElement) {
+        const commitSha = getStage3CommitSha(workflowRunData, WORKFLOW_IDS);
+        if (commitSha) {
+            const shortSha = commitSha.substring(0, 7);
+            currentCommitElement.textContent = shortSha;
+            currentCommitElement.href = `${API_CONFIG.GITHUB_BASE}/${API_CONFIG.GARDENLINUX_ORG}/gardenlinux/commit/${commitSha}`;
+            currentCommitElement.title = `Stage 3 commit: ${shortSha}`;
+            setElementStatus(currentCommitElement, pipelineStatus);
+        } else {
+            currentCommitElement.textContent = "0000000";
+            currentCommitElement.href = "#";
+            currentCommitElement.title = "Stage 3 commit: unavailable";
+            setElementStatus(currentCommitElement, "unknown");
+        }
     }
 
     // Update overall status indicator
