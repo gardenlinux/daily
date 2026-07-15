@@ -36,6 +36,7 @@ import {
     processWorkflowRuns,
     getRepoBranchParameter,
     getHistoricReleasesCount,
+    getStage3CommitSha,
 } from "./utils.js";
 
 import {
@@ -1333,6 +1334,7 @@ async function loadHistoricDay(glDays) {
             workflowStatuses, // individual workflow statuses for stacked dots
             duration,
             pipelineStatus, // for main dot and row coloring
+            commitSha: getStage3CommitSha(workflowRunData, WORKFLOW_IDS),
         };
     } catch (error) {
         console.warn(
