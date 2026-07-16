@@ -161,6 +161,7 @@ export function renderHistoricReleases(historicData) {
                               : "Status loading..."
                 }
             </div>
+            ${day.cached ? '<div class="historic-cached">cached</div>' : ""}
         </a>
     `;
         })

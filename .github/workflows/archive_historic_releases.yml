@@ -1,0 +1,51 @@
+name: Archive Historic Releases
+
+on:
+    schedule:
+        # Run nightly at 2 AM UTC
+        - cron: "0 2 * * *"
+    workflow_dispatch: # Allow manual triggering
+
+jobs:
+    archive:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "20"
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Collect historic release data
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  node scripts/collect-historic.js --days 14 --start-from-yesterday
+
+            - name: Checkout historic-releases branch
+              run: |
+                  git fetch origin
+                  git checkout -B historic-releases origin/historic-releases || git checkout -b historic-releases
+
+            - name: Commit and push historic data
+              run: |
+                  git config user.email "release_historian@gardenlinux.io"
+                  git config user.name "release_historian"
+
+                  if [ -n "$(git status --porcelain historic/)" ]; then
+                    git add historic/
+                    git commit -m "Archive historic release data for last 14 days (starting from yesterday)"
+                    git push origin historic-releases
+                  else
+                    echo "No changes to commit"
+                  fi

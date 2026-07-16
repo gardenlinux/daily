@@ -21,9 +21,12 @@
 import {
     GL_INITIAL_DATE,
     WORKFLOWS,
+    WORKFLOW_IDS,
     hasStage4,
     SCHEMA_V2_CUTOFF,
     formatVersionBranch,
+    HISTORIC_CACHE_SCHEMA_VERSION,
+    HISTORIC_CACHE_MIN_SUPPORTED_VERSION,
 } from "./constants.js";
 
 import { reportApiResponse, reportNetworkError } from "./errorBanner.js";
@@ -52,11 +55,45 @@ export function getHistoricReleasesCount() {
     const countParam = getUrlParameter("historic_count");
     if (countParam) {
         const count = parseInt(countParam, 10);
-        if (!isNaN(count) && count > 0 && count <= 100) {
+        if (!isNaN(count) && count > 0 && count <= 2000) {
             return count;
         }
     }
     return 14; // Default value
+}
+
+/**
+ * Checks whether the dashboard should bypass historic cache
+ * Uses a URL parameter `force`, similar to the CLI flag `--force`
+ * Examples:
+ *  - ?force        -> true
+ *  - ?force=true   -> true
+ *  - ?force=1      -> true
+ *  - ?force=false  -> false
+ *  - ?force=0      -> false
+ */
+export function isForceNoCache() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (!urlParams.has("force")) {
+        return false;
+    }
+
+    const value = urlParams.get("force");
+    // Treat presence, empty, "true" or "1" as enabled by default
+    if (value === null || value === "") {
+        return true;
+    }
+
+    const normalized = value.toLowerCase();
+    if (normalized === "true" || normalized === "1") {
+        return true;
+    }
+    if (normalized === "false" || normalized === "0") {
+        return false;
+    }
+
+    // Any other non-empty value means force as well
+    return true;
 }
 
 export function getCurrentGlDays() {
@@ -216,6 +253,145 @@ export function shouldSearchAllBranches() {
     const urlParams = new URLSearchParams(window.location.search);
     const branchParam = urlParams.get("all_branches");
     return branchParam === "true" || branchParam === "1";
+}
+
+// ========================================
+// BRANCH FILTERING UTILITIES
+// ========================================
+
+/**
+ * Calculates the expected branch for a workflow based on its type
+ * @param {Object} workflow - Workflow configuration object
+ * @param {number} glDays - GL version days
+ * @returns {string|null} Expected branch name, or null for Repo Build (special handling)
+ */
+export function calculateExpectedBranch(workflow, glDays) {
+    const isRepoWorkflow = workflow.repo === "repo";
+    const isRepoUpdate = workflow.id === WORKFLOW_IDS.REPO_UPDATE;
+    const isRepoBuild = workflow.id === WORKFLOW_IDS.REPO_BUILD;
+
+    if (isRepoWorkflow) {
+        if (isRepoUpdate) {
+            // Repo Update always runs on "main" branch
+            return "main";
+        } else if (isRepoBuild) {
+            // Repo Build runs on version branches in format "{glDays}.0" or "{glDays}.0.0"
+            // Return null to indicate special handling needed
+            return null;
+        } else {
+            return `${glDays}.0.0`;
+        }
+    } else {
+        // Non-repo workflows run on "main" branch
+        return "main";
+    }
+}
+
+/**
+ * Checks if a run's branch matches the expected branch for a workflow
+ * @param {string} runBranch - Branch name from the workflow run
+ * @param {string|null} expectedBranch - Expected branch (null for Repo Build)
+ * @param {Object} workflow - Workflow configuration object
+ * @param {number} glDays - GL version days
+ * @returns {boolean} True if branch matches
+ */
+export function isBranchMatch(runBranch, expectedBranch, workflow, glDays) {
+    const isRepoBuild = workflow.id === WORKFLOW_IDS.REPO_BUILD;
+
+    if (isRepoBuild && expectedBranch === null) {
+        // Repo Build accepts both "{glDays}.0" and "{glDays}.0.0" formats
+        return runBranch === `${glDays}.0` || runBranch === `${glDays}.0.0`;
+    } else {
+        // Exact match for other workflows
+        return runBranch === expectedBranch;
+    }
+}
+
+// ========================================
+// DATE RANGE CALCULATION UTILITIES
+// ========================================
+
+/**
+ * Calculates all date ranges needed for GL version processing
+ * @param {number} glDays - GL version days
+ * @param {string} initialDate - Initial date string (e.g., "2020-03-31")
+ * @returns {Object} Object containing targetDate, nextDay, extendedDate, extendedNextDay
+ */
+export function calculateDateRanges(glDays, initialDate) {
+    const targetDate = calculateTargetDate(glDays, initialDate);
+    const nextDay = new Date(targetDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+
+    // For Stage 4 extended date range: GL day + 7
+    const extendedDate = new Date(targetDate);
+    extendedDate.setDate(extendedDate.getDate() + 7);
+    const extendedNextDay = new Date(extendedDate);
+    extendedNextDay.setDate(extendedNextDay.getDate() + 1);
+
+    return {
+        targetDate,
+        nextDay,
+        extendedDate,
+        extendedNextDay,
+    };
+}
+
+// ========================================
+// WORKFLOW LIST UTILITIES
+// ========================================
+
+/**
+ * Returns the standard list of workflows to check for historic releases
+ * @returns {Array} Array of workflow check objects
+ */
+export function getAllWorkflowChecks() {
+    return [
+        // Stage 2: Repository workflows
+        {
+            id: WORKFLOW_IDS.REPO_UPDATE,
+            stage: "stage-2",
+            repo: WORKFLOWS.REPO_UPDATE.repo,
+            name: WORKFLOWS.REPO_UPDATE.name,
+            workflowFile: WORKFLOWS.REPO_UPDATE.workflowFile,
+        },
+        {
+            id: WORKFLOW_IDS.REPO_BUILD,
+            stage: "stage-2",
+            repo: WORKFLOWS.REPO_BUILD.repo,
+            name: WORKFLOWS.REPO_BUILD.name,
+            workflowFile: WORKFLOWS.REPO_BUILD.workflowFile,
+        },
+        // Stage 3: Build & Release workflows
+        {
+            id: WORKFLOW_IDS.NIGHTLY,
+            stage: "stage-3",
+            repo: WORKFLOWS.NIGHTLY.repo,
+            name: WORKFLOWS.NIGHTLY.name,
+            workflowFile: WORKFLOWS.NIGHTLY.workflowFile,
+        },
+        {
+            id: WORKFLOW_IDS.MANUAL_RELEASE,
+            stage: "stage-3",
+            repo: WORKFLOWS.MANUAL_RELEASE.repo,
+            name: WORKFLOWS.MANUAL_RELEASE.name,
+            workflowFile: WORKFLOWS.MANUAL_RELEASE.workflowFile,
+        },
+        // Stage 4: Publish workflows
+        {
+            id: WORKFLOW_IDS.PUBLISH_GHCR,
+            stage: "stage-4",
+            repo: WORKFLOWS.PUBLISH_GHCR.repo,
+            name: WORKFLOWS.PUBLISH_GHCR.name,
+            workflowFile: WORKFLOWS.PUBLISH_GHCR.workflowFile,
+        },
+        {
+            id: WORKFLOW_IDS.PUBLISH_S3,
+            stage: "stage-4",
+            repo: WORKFLOWS.PUBLISH_S3.repo,
+            name: WORKFLOWS.PUBLISH_S3.name,
+            workflowFile: WORKFLOWS.PUBLISH_S3.workflowFile,
+        },
+    ];
 }
 
 // ========================================
@@ -672,6 +848,93 @@ export function calculateHistoricPipelineDuration(
 // ========================================
 
 /**
+ * Core Stage 4 run validation logic (shared between browser and Node.js)
+ * @param {Object} run - Workflow run to validate
+ * @param {Date} targetDate - GL target date
+ * @param {Date} nextDay - Day after GL target date
+ * @param {Date} extendedNextDay - GL target date + 7 days
+ * @param {Set} stage3RunIds - Set of valid Stage 3 run IDs
+ * @param {Function} getParentInfoFn - Async function to get parent workflow info
+ * @param {Function|null} logFn - Optional logging function (run, message) => void
+ * @returns {Promise<boolean>} True if run is valid
+ */
+export async function validateStage4RunCore(
+    run,
+    targetDate,
+    nextDay,
+    extendedNextDay,
+    stage3RunIds,
+    getParentInfoFn,
+    logFn = null
+) {
+    const runDate = new Date(run.created_at);
+    const isBaseDate = runDate >= targetDate && runDate < nextDay;
+    const isExtendedDate = runDate >= targetDate && runDate < extendedNextDay;
+
+    try {
+        const parentInfo = await getParentInfoFn();
+
+        // Case 1: Same date validation - only valid if no parent info OR parent matches Stage 3
+        if (isBaseDate) {
+            // If there's no parent info, include the run (manual run or no parent data)
+            if (!parentInfo || !parentInfo.parentRunId) {
+                if (logFn) {
+                    logFn(run, "Added (GL date, no parent)");
+                }
+                return true;
+            }
+
+            // If there's a parent ID, it must match a Stage 3 run
+            if (stage3RunIds.has(parentInfo.parentRunId.toString())) {
+                if (logFn) {
+                    logFn(
+                        run,
+                        `Added (GL date, matching parent ${parentInfo.parentRunId})`
+                    );
+                }
+                return true;
+            }
+
+            // Skip runs with parent IDs that don't match Stage 3
+            if (logFn) {
+                logFn(
+                    run,
+                    `Skipped (GL date, parent ${parentInfo.parentRunId} doesn't match Stage 3)`
+                );
+            }
+            return false;
+        }
+
+        // Case 2: Later date validation (+1 to +7 days) - only valid if parent run matches Stage 3
+        if (
+            isExtendedDate &&
+            !isBaseDate &&
+            parentInfo &&
+            parentInfo.parentRunId &&
+            stage3RunIds.has(parentInfo.parentRunId.toString())
+        ) {
+            if (logFn) {
+                logFn(
+                    run,
+                    `Added (later date, matching parent ${parentInfo.parentRunId})`
+                );
+            }
+            return true;
+        }
+
+        if (logFn) {
+            logFn(run, "Skipped (doesn't match validation criteria)");
+        }
+        return false;
+    } catch (error) {
+        if (logFn) {
+            logFn(run, `Failed to get parent info: ${error.message}`);
+        }
+        return false;
+    }
+}
+
+/**
  * Validates Stage 4 runs based on date and parent criteria
  * @param {Array} runs - Array of Stage 4 runs to validate
  * @param {Date} targetDate - GL target date
@@ -694,76 +957,66 @@ export async function validateStage4Runs(
     const { getParentWorkflowInfo } = await import("./parentWorkflow.js");
     const { API_CONFIG } = await import("./constants.js");
 
+    // Check if user wants to search all branches (respects "Search all branches" setting)
+    const searchAllBranches = shouldSearchAllBranches();
+
+    // Calculate expected branch using shared utility
+    const expectedBranch = calculateExpectedBranch(workflow, glDays);
+
     const validRuns = [];
 
     for (const run of runs) {
+        // Calculate runBranch once and reuse
+        const runBranch = run.head_branch || "main";
+
+        // Filter by branch only if not searching all branches
+        if (!searchAllBranches) {
+            const isCorrectBranch = isBranchMatch(
+                runBranch,
+                expectedBranch,
+                workflow,
+                glDays
+            );
+
+            if (!isCorrectBranch) {
+                console.log(
+                    `[Branch Filter] [Historic Stage 4] GL${glDays} - ${workflow.name} (${workflow.id}) - Run ${run.id}: Excluded (branch "${runBranch}" doesn't match expected branch)`
+                );
+                continue;
+            }
+        }
+
         console.log(
-            `[DEBUG] [Historic Stage 4] GL${glDays} - ${workflow.name} (${workflow.id}) - Pre-filter Run ${run.id}: created_at=${run.created_at}`
+            `[DEBUG] [Historic Stage 4] GL${glDays} - ${workflow.name} (${workflow.id}) - Pre-filter Run ${run.id}: created_at=${run.created_at}, branch=${runBranch}`
         );
 
-        try {
-            // Get parent workflow info for this run
-            const parentInfo = await getParentWorkflowInfo(
+        // Use shared core validation logic
+        const getParentInfoFn = async () => {
+            return await getParentWorkflowInfo(
                 API_CONFIG.GARDENLINUX_ORG,
                 workflow.repo,
                 run.id
             );
+        };
 
-            const runDate = new Date(run.created_at);
-            const isBaseDate = runDate >= targetDate && runDate < nextDay;
-            const isExtendedDate =
-                runDate >= targetDate && runDate < extendedNextDay;
-
-            // Case 1: Same date validation - only valid if no parent info OR parent matches Stage 3
-            if (isBaseDate) {
-                // If there's no parent info, include the run (manual run or no parent data)
-                if (!parentInfo || !parentInfo.parentRunId) {
-                    validRuns.push(run);
-                    console.log(
-                        `🔍 [Historic Stage 4] GL${glDays} - ${workflow.name} (${workflow.id}) - Run ${run.id}: Added (GL date, no parent)`
-                    );
-                    continue;
-                }
-
-                // If there's a parent ID, it must match a Stage 3 run
-                if (stage3RunIds.has(parentInfo.parentRunId.toString())) {
-                    validRuns.push(run);
-                    console.log(
-                        `🔍 [Historic Stage 4] GL${glDays} - ${workflow.name} (${workflow.id}) - Run ${run.id}: Added (GL date, matching parent ${parentInfo.parentRunId})`
-                    );
-                    continue;
-                }
-
-                // Skip runs with parent IDs that don't match Stage 3
-                console.log(
-                    `🔍 [Historic Stage 4] GL${glDays} - ${workflow.name} (${workflow.id}) - Run ${run.id}: Skipped (GL date, parent ${parentInfo.parentRunId} doesn't match Stage 3)`
-                );
-                continue;
-            }
-
-            // Case 2: Later date validation (+1 to +7 days) - only valid if parent run matches Stage 3
-            if (
-                isExtendedDate &&
-                !isBaseDate &&
-                parentInfo &&
-                parentInfo.parentRunId &&
-                stage3RunIds.has(parentInfo.parentRunId.toString())
-            ) {
-                validRuns.push(run);
-                console.log(
-                    `🔍 [Historic Stage 4] GL${glDays} - ${workflow.name} (${workflow.id}) - Run ${run.id}: Added (later date, matching parent ${parentInfo.parentRunId})`
-                );
-                continue;
-            }
-
+        const logFn = (runToLog, message) => {
             console.log(
-                `🔍 [Historic Stage 4] GL${glDays} - ${workflow.name} (${workflow.id}) - Run ${run.id}: Skipped (doesn't match validation criteria)`
+                `🔍 [Historic Stage 4] GL${glDays} - ${workflow.name} (${workflow.id}) - Run ${runToLog.id}: ${message}`
             );
-        } catch (error) {
-            console.log(
-                `🔍 [Historic Stage 4] GL${glDays} - ${workflow.name} (${workflow.id}) - Failed to get parent info for run ${run.id}:`,
-                error.message
-            );
+        };
+
+        const isValid = await validateStage4RunCore(
+            run,
+            targetDate,
+            nextDay,
+            extendedNextDay,
+            stage3RunIds,
+            getParentInfoFn,
+            logFn
+        );
+
+        if (isValid) {
+            validRuns.push(run);
         }
     }
 
@@ -785,6 +1038,148 @@ export async function validateStage4Runs(
 }
 
 /**
+ * Fetches workflow runs with pagination using GitHub's created date filter
+ * @param {Object} workflow - Workflow configuration object
+ * @param {Date} targetDate - Target date to search for
+ * @param {Date} nextDay - Day after target date (exclusive boundary)
+ * @param {Function} getAuthHeaders - Function to get auth headers
+ * @param {Function} getBranchParameter - Function to get branch parameter
+ * @param {Function} getRepoBranchParameter - Function to get repo branch parameter
+ * @returns {Promise<Array>} Array of all collected workflow runs
+ */
+export async function fetchWorkflowRunsPaginated(
+    workflow,
+    targetDate,
+    nextDay,
+    getAuthHeaders,
+    getBranchParameter,
+    getRepoBranchParameter
+) {
+    const { API_CONFIG } = await import("./constants.js");
+    const allRuns = [];
+    const perPage = API_CONFIG.HISTORIC_RUNS_PER_PAGE || 100;
+
+    // Format dates for GitHub API (YYYY-MM-DD format, UTC)
+    // GitHub's date range is inclusive on both ends
+    // To get runs from targetDate (inclusive) to nextDay (exclusive):
+    // - fromDate: targetDate (inclusive start)
+    // - toDate: nextDay (inclusive end, we filter client-side with < nextDay)
+    const fromDate = targetDate.toISOString().split("T")[0];
+    const nextDayStr = nextDay.toISOString().split("T")[0];
+
+    // Use nextDay as the end date (inclusive), which effectively makes it exclusive
+    // because we filter client-side with < nextDay
+    const createdParam = `created=${fromDate}..${nextDayStr}`;
+
+    const branchParam =
+        workflow.repo === "repo"
+            ? getRepoBranchParameter()
+            : getBranchParameter();
+
+    try {
+        // Use repository-level endpoint which supports 'created' parameter
+        // Then filter by workflow_id client-side
+        // According to GitHub API docs, workflow-specific endpoint may not support 'created'
+        const firstPageUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/runs?per_page=${perPage}&page=1&${createdParam}${branchParam}`;
+
+        const firstResponse = await fetch(firstPageUrl, {
+            headers: getAuthHeaders(),
+        });
+
+        if (!firstResponse.ok) {
+            console.warn(
+                `[Pagination] Failed to fetch workflow runs for ${workflow.name}: ${firstResponse.status}`
+            );
+            return [];
+        }
+
+        const firstData = await firstResponse.json();
+        const firstPageRuns = firstData.workflow_runs || [];
+
+        // Filter by workflow_id and date
+        const filteredRuns = firstPageRuns.filter((run) => {
+            // Match workflow by workflow_id (can be string or number)
+            const runWorkflowId = run.workflow_id?.toString();
+            const targetWorkflowId = workflow.id.toString();
+            if (runWorkflowId !== targetWorkflowId) return false;
+
+            // Filter by date
+            if (!run.created_at) return false;
+            const runDate = new Date(run.created_at);
+            return runDate >= targetDate && runDate < nextDay;
+        });
+
+        allRuns.push(...filteredRuns);
+
+        const totalCount = firstData.total_count || 0;
+        const maxResults = 1000; // GitHub API limit for filtered results
+        const maxPages = Math.min(
+            Math.ceil(totalCount / perPage),
+            Math.ceil(maxResults / perPage)
+        ); // Cap at 10 pages (1000 results)
+
+        // Warn if results may be truncated
+        if (totalCount >= maxResults) {
+            console.warn(
+                `[Pagination] ${workflow.name}: Found ${totalCount} runs in date range (API limit: ${maxResults}). Results may be truncated.`
+            );
+        }
+
+        // Fetch remaining pages if needed
+        for (let page = 2; page <= maxPages; page++) {
+            const pageUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/runs?per_page=${perPage}&page=${page}&${createdParam}${branchParam}`;
+
+            const pageResponse = await fetch(pageUrl, {
+                headers: getAuthHeaders(),
+            });
+
+            if (!pageResponse.ok) {
+                console.warn(
+                    `[Pagination] Failed to fetch page ${page} for ${workflow.name}: ${pageResponse.status}`
+                );
+                break;
+            }
+
+            const pageData = await pageResponse.json();
+            const pageRuns = pageData.workflow_runs || [];
+
+            if (pageRuns.length === 0) {
+                break;
+            }
+
+            // Filter by workflow_id and date
+            const pageFilteredRuns = pageRuns.filter((run) => {
+                const runWorkflowId = run.workflow_id?.toString();
+                const targetWorkflowId = workflow.id.toString();
+                if (runWorkflowId !== targetWorkflowId) return false;
+
+                if (!run.created_at) return false;
+                const runDate = new Date(run.created_at);
+                return runDate >= targetDate && runDate < nextDay;
+            });
+
+            allRuns.push(...pageFilteredRuns);
+        }
+
+        const pagesFetched = Math.min(
+            maxPages,
+            Math.ceil(totalCount / perPage)
+        );
+        console.log(
+            `📄 [Pagination] ${workflow.name}: Fetched ${pagesFetched} page${pagesFetched !== 1 ? "s" : ""} (${allRuns.length} runs for workflow ${workflow.id} in date range ${fromDate}..${nextDayStr})`
+        );
+
+        return allRuns;
+    } catch (error) {
+        console.warn(
+            `[Pagination] Error fetching workflow runs for ${workflow.name}:`,
+            error.message
+        );
+        return [];
+    }
+}
+
+/**
  * Collects Stage 3 run IDs for a specific GL date
  * @param {Array} stage3Workflows - Array of Stage 3 workflow configurations
  * @param {Date} targetDate - GL target date
@@ -801,33 +1196,20 @@ export async function collectStage3RunIds(
     try {
         const { getBranchParameter, getRepoBranchParameter } =
             await import("./utils.js");
-        const { API_CONFIG } = await import("./constants.js");
 
         const stage3RunIds = new Set();
 
         for (const workflow of stage3Workflows) {
             try {
-                const response = await githubFetch(
-                    `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=${API_CONFIG.HISTORIC_RUNS_PER_PAGE}${workflow.repo === "repo" ? getRepoBranchParameter() : getBranchParameter()}`
+                // Use pagination to fetch all runs
+                const runs = await fetchWorkflowRunsPaginated(
+                    workflow,
+                    targetDate,
+                    nextDay,
+                    getAuthHeaders,
+                    getBranchParameter,
+                    getRepoBranchParameter
                 );
-
-                if (!response.ok) {
-                    console.warn(
-                        `[Utils] Failed to fetch Stage 3 runs for ${workflow.name} (${workflow.id}):`,
-                        {
-                            status: response.status,
-                            statusText: response.statusText,
-                            workflowId: workflow.id,
-                            workflowName: workflow.name,
-                            repo: workflow.repo,
-                            glDays,
-                        }
-                    );
-                    continue;
-                }
-
-                const data = await response.json();
-                const runs = data.workflow_runs || [];
 
                 // Use base date range for Stage 3 run collection (GL date only, not extended)
                 const dayRuns = runs.filter((run) => {
@@ -1052,6 +1434,12 @@ export async function processWorkflowRuns(
     // Check if this is a Stage 4 workflow
     const isStage4Workflow = workflow.stage === "stage-4";
 
+    // Check if user wants to search all branches (respects "Search all branches" setting)
+    const searchAllBranches = shouldSearchAllBranches();
+
+    // Calculate expected branch using shared utility
+    const expectedBranch = calculateExpectedBranch(workflow, glDays);
+
     let targetRuns = [];
 
     if (isStage4Workflow && hasStage4(glDays)) {
@@ -1069,7 +1457,29 @@ export async function processWorkflowRuns(
         // Standard date filtering for non-Stage 4 workflows
         targetRuns = runs.filter((run) => {
             const runDate = new Date(run.created_at);
-            return runDate >= targetDate && runDate < nextDay;
+            const isInDateRange = runDate >= targetDate && runDate < nextDay;
+
+            // Filter by branch only if not searching all branches
+            if (!searchAllBranches) {
+                const runBranch = run.head_branch || "main";
+                const isCorrectBranch = isBranchMatch(
+                    runBranch,
+                    expectedBranch,
+                    workflow,
+                    glDays
+                );
+
+                if (!isCorrectBranch && isInDateRange) {
+                    console.log(
+                        `[Branch Filter] GL${glDays} - ${workflow.name} (${workflow.id}) - Run ${run.id}: Excluded (branch "${runBranch}" doesn't match expected branch)`
+                    );
+                }
+
+                return isInDateRange && isCorrectBranch;
+            }
+
+            // If searching all branches, only filter by date
+            return isInDateRange;
         });
     }
 
@@ -1233,4 +1643,154 @@ export function getStage3CommitSha(workflowRunData, WORKFLOW_IDS) {
         return workflowRunData[WORKFLOW_IDS.NIGHTLY].head_sha;
     }
     return null;
+}
+
+// ========================================
+// HISTORIC CACHE UTILITIES
+// ========================================
+
+/**
+ * Loads historic release data from cache
+ * @param {number} glDays - GL version days
+ * @returns {Promise<Object|null>} Cached historic data or null if unavailable/incompatible
+ */
+export async function loadHistoricFromCache(glDays) {
+    // Allow users to bypass cache via force URL parameter
+    if (isForceNoCache()) {
+        console.log(
+            `[Cache] Skipping historic cache for GL${glDays} because force parameter is set`
+        );
+        return null;
+    }
+
+    try {
+        console.log(
+            `[Cache] Attempting to load cache for GL${glDays} from historic/${glDays}.json`
+        );
+        const response = await fetch(`historic/${glDays}.json`);
+        if (!response.ok) {
+            console.log(
+                `[Cache] Cache file not found or not accessible for GL${glDays} (HTTP ${response.status})`
+            );
+            return null;
+        }
+
+        const data = await response.json();
+        console.log(
+            `[Cache] Successfully loaded cache file for GL${glDays}, validating...`
+        );
+
+        // Validate schema version
+        if (!data.schemaVersion) {
+            console.warn(
+                `[Cache] Historic cache for GL${glDays} missing schemaVersion, rejecting`
+            );
+            return null;
+        }
+
+        const schemaVersion = data.schemaVersion;
+
+        // Check if version is supported
+        if (
+            schemaVersion < HISTORIC_CACHE_MIN_SUPPORTED_VERSION ||
+            schemaVersion > HISTORIC_CACHE_SCHEMA_VERSION
+        ) {
+            console.warn(
+                `[Cache] Historic cache for GL${glDays} has unsupported schema version ${schemaVersion} (supported: ${HISTORIC_CACHE_MIN_SUPPORTED_VERSION}-${HISTORIC_CACHE_SCHEMA_VERSION}), rejecting`
+            );
+            return null;
+        }
+
+        // Migrate data if needed (for future versions)
+        const migratedData = migrateHistoricCache(data, schemaVersion);
+
+        // Validate required fields for current schema version
+        if (!validateHistoricCache(migratedData)) {
+            console.warn(
+                `[Cache] Historic cache for GL${glDays} failed validation, rejecting`
+            );
+            return null;
+        }
+
+        console.log(
+            `[Cache] Successfully loaded and validated cache for GL${glDays}`
+        );
+        return migratedData;
+    } catch (error) {
+        console.warn(
+            `[Cache] Failed to load historic cache for GL${glDays}:`,
+            error.message
+        );
+        return null;
+    }
+}
+
+/**
+ * Migrates historic cache data to current schema version
+ * @param {Object} data - Cached data
+ * @param {number} fromVersion - Source schema version
+ * @returns {Object} Migrated data
+ */
+function migrateHistoricCache(data, fromVersion) {
+    // Currently only version 1 exists, so no migration needed
+    // Future: Add migration logic here when schema evolves
+    if (fromVersion === HISTORIC_CACHE_SCHEMA_VERSION) {
+        return data;
+    }
+
+    // Placeholder for future migrations
+    console.warn(
+        `[Cache] Migration from version ${fromVersion} to ${HISTORIC_CACHE_SCHEMA_VERSION} not implemented`
+    );
+    return data;
+}
+
+/**
+ * Validates historic cache data structure
+ * @param {Object} data - Cached data to validate
+ * @returns {boolean} True if valid
+ */
+function validateHistoricCache(data) {
+    // Required fields for schema version 1
+    const requiredFields = [
+        "schemaVersion",
+        "glDays",
+        "date",
+        "timestamp",
+        "packageDataPath",
+        "packageIssuesPath",
+        "packageStatus",
+        "workflowStatuses",
+        "workflowStatus",
+        "pipelineStatus",
+        "commitSha",
+        "workflowRuns",
+        "workflowMetadata",
+    ];
+
+    for (const field of requiredFields) {
+        if (!(field in data)) {
+            console.warn(`[Cache] Missing required field: ${field}`);
+            return false;
+        }
+    }
+
+    // Validate packageStatus structure
+    if (
+        !data.packageStatus ||
+        typeof data.packageStatus.status !== "string" ||
+        typeof data.packageStatus.issueCount !== "number" ||
+        typeof data.packageStatus.totalCount !== "number"
+    ) {
+        console.warn("[Cache] Invalid packageStatus structure");
+        return false;
+    }
+
+    // Validate workflowStatuses is an object
+    if (!data.workflowStatuses || typeof data.workflowStatuses !== "object") {
+        console.warn("[Cache] Invalid workflowStatuses structure");
+        return false;
+    }
+
+    return true;
 }

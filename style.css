@@ -1005,6 +1005,15 @@ table {
 
 /* Unified date styling */
 .current-date,
+.historic-cached-indicator {
+    display: inline-block;
+    font-size: 0.7em;
+    color: var(--color-unknown);
+    margin-left: 4px;
+    font-weight: normal;
+    opacity: 0.7;
+}
+
 .historic-date {
     color: var(--text-unknown);
     font-size: 1em;
@@ -1164,6 +1173,18 @@ table {
     color: var(--text-unknown);
     font-size: 0.95em;
     font-weight: 600;
+}
+
+/* Historic cached indicator */
+.historic-cached {
+    width: 80px;
+    flex-shrink: 0;
+    text-align: right;
+    color: var(--color-unknown);
+    font-size: 0.9em;
+    font-weight: 500;
+    opacity: 0.8;
+    margin-left: auto;
 }
 
 /* PIPELINE HIERARCHY SYSTEM */

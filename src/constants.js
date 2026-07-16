@@ -18,6 +18,7 @@
 // DATE & VERSION CONFIGURATION
 // ========================================
 export const GL_INITIAL_DATE = "2020-03-31";
+export const MIN_GL_VERSION = 1825; // Earliest GL version to retrieve data from (workflow structure changed before this)
 
 // ========================================
 // SCHEMA VERSION CONFIGURATION
@@ -248,3 +249,9 @@ export const UI_CONFIG = {
     BATCH_SIZE: 3, // API request batch size for rate limiting
     BATCH_DELAY: 200, // Delay between batches in milliseconds
 };
+
+// ========================================
+// HISTORIC CACHE SCHEMA VERSIONING
+// ========================================
+export const HISTORIC_CACHE_SCHEMA_VERSION = 1;
+export const HISTORIC_CACHE_MIN_SUPPORTED_VERSION = 1;

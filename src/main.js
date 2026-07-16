@@ -116,8 +116,8 @@ window.updateHistoricCount = function () {
     if (!input) return;
 
     const count = parseInt(input.value, 10);
-    if (isNaN(count) || count < 1 || count > 100) {
-        alert("Please enter a valid number between 1 and 100");
+    if (isNaN(count) || count < 1 || count > 2000) {
+        alert("Please enter a valid number between 1 and 2000");
         input.value = getHistoricReleasesCount();
         return;
     }
@@ -225,10 +225,12 @@ if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => {
         setBranchCheckboxFromUrl();
         setHistoricCountFromUrl();
+        setForceFromUrl();
     });
 } else {
     setBranchCheckboxFromUrl();
     setHistoricCountFromUrl();
+    setForceFromUrl();
 }
 
 function updateAuthStatus() {
@@ -388,6 +390,57 @@ function toggleWorkflowMonitoring() {
     );
 }
 
+// Toggle force cache (disable historic cache usage)
+window.toggleForceCache = function () {
+    try {
+        const checkbox = document.getElementById("force-cache");
+        if (!checkbox) return;
+
+        const url = new URL(window.location);
+        if (checkbox.checked) {
+            url.searchParams.set("force", "true");
+        } else {
+            url.searchParams.delete("force");
+        }
+
+        window.location.href = url.toString();
+    } catch (error) {
+        console.error("[Main] Error toggling force cache:", {
+            error: error.message,
+            stack: error.stack,
+        });
+    }
+};
+
+// Initialize force cache checkbox from URL parameter
+function setForceFromUrl() {
+    try {
+        const checkbox = document.getElementById("force-cache");
+        if (!checkbox) return;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const value = urlParams.get("force");
+        if (value === null) {
+            checkbox.checked = false;
+            return;
+        }
+
+        const normalized = value.toLowerCase();
+        const isForce =
+            value === "" ||
+            normalized === "true" ||
+            normalized === "1" ||
+            normalized === "yes";
+
+        checkbox.checked = isForce;
+    } catch (error) {
+        console.error("[Main] Error setting force checkbox from URL:", {
+            error: error.message,
+            stack: error.stack,
+        });
+    }
+}
+
 // Toggle Debian Snapshot sub-section
 function toggleSnapshot() {
     toggleSection("snapshot-content", "snapshot-toggle-icon", getRun);
@@ -438,23 +491,27 @@ function generateWorkflowHTML() {
             .join("");
     }
 
+    const isHistoric = isHistoricView();
+
     // Cloud Test Cleanup: render from constants into monitoring sub-stage
-    const cloudCleanupContainer = document.querySelector(
-        "#cloud-cleanup-content .cloud-cleanup-workflow"
-    );
-    if (cloudCleanupContainer && WORKFLOWS.CLOUD_TEST_CLEANUP) {
-        cloudCleanupContainer.innerHTML = uiGenerateWorkflowBoxHTML(
-            WORKFLOWS.CLOUD_TEST_CLEANUP,
-            API_CONFIG,
-            WORKFLOWS
+    if (!isHistoric) {
+        const cloudCleanupContainer = document.querySelector(
+            "#cloud-cleanup-content .cloud-cleanup-workflow"
         );
+        if (cloudCleanupContainer && WORKFLOWS.CLOUD_TEST_CLEANUP) {
+            cloudCleanupContainer.innerHTML = uiGenerateWorkflowBoxHTML(
+                WORKFLOWS.CLOUD_TEST_CLEANUP,
+                API_CONFIG,
+                WORKFLOWS
+            );
+        }
     }
 
     // Workflow Monitoring: render additional monitoring workflows as sub-stages
     const monitoringSubsections = document.getElementById(
         "monitoring-subsections"
     );
-    if (monitoringSubsections && WORKFLOWS.SNAPSHOT) {
+    if (!isHistoric && monitoringSubsections && WORKFLOWS.SNAPSHOT) {
         const snapshotSection = document.createElement("div");
         snapshotSection.className = "sub-stage";
         snapshotSection.id = "sub-stage-snapshot";
@@ -575,6 +632,21 @@ function initDashboard() {
                 const historicCount = getHistoricReleasesCount();
                 historicReleaseHeader.textContent = `📅 Historic Daily Releases (${historicCount} ${historicCount === 1 ? "Day" : "Days"} Before GL ${glDays})`;
             }
+
+            // Hide Workflow Monitoring section for historic views
+            const workflowMonitoringContainer = document.getElementById(
+                "workflow-monitoring-container"
+            );
+            if (workflowMonitoringContainer) {
+                workflowMonitoringContainer.style.display = "none";
+                console.log(
+                    `[Main] Hidden Workflow Monitoring container for historic GL${glDays}`
+                );
+            } else {
+                console.warn(
+                    `[Main] Workflow Monitoring container not found when trying to hide for historic GL${glDays}`
+                );
+            }
         } else {
             glDaysElement.innerText = `GL ${glDays} \n ${formattedDate}`;
 
@@ -601,6 +673,14 @@ function initDashboard() {
             if (historicReleaseHeader) {
                 const historicCount = getHistoricReleasesCount();
                 historicReleaseHeader.textContent = `📅 Historic Daily Releases (${historicCount} ${historicCount === 1 ? "Day" : "Days"} Before Today)`;
+            }
+
+            // Show Workflow Monitoring section for current view
+            const workflowMonitoringContainer = document.getElementById(
+                "workflow-monitoring-container"
+            );
+            if (workflowMonitoringContainer) {
+                workflowMonitoringContainer.style.display = "";
             }
         }
 
