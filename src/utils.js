@@ -26,6 +26,8 @@ import {
     formatVersionBranch,
 } from "./constants.js";
 
+import { reportApiResponse, reportNetworkError } from "./errorBanner.js";
+
 // ========================================
 // DATE AND GL VERSION CALCULATIONS
 // ========================================
@@ -242,6 +244,40 @@ export function getAuthHeaders() {
             Accept: "application/vnd.github.v3+json",
             "X-GitHub-Api-Version": "2022-11-28",
         };
+    }
+}
+
+/**
+ * Wrapper around fetch() for GitHub API requests.
+ *
+ * Injects the standard auth headers (unless the caller already supplied
+ * headers), routes the response through the global error banner so that
+ * access-denied / rate-limit responses are surfaced at the top of the page,
+ * and clears the banner on success. Returns the same Response the caller
+ * would get from fetch(), so existing per-workflow handling is unaffected.
+ *
+ * Pass `reportErrors: false` for endpoints where an access-denied response is
+ * an expected, locally-handled outcome (e.g. anonymous artifact downloads) so
+ * it does not raise a page-level banner.
+ *
+ * @param {string} url
+ * @param {RequestInit & { reportErrors?: boolean }} [options]
+ * @returns {Promise<Response>}
+ */
+export async function githubFetch(url, options = {}) {
+    const { reportErrors = true, ...fetchOptions } = options;
+    const headers = fetchOptions.headers || getAuthHeaders();
+    try {
+        const response = await fetch(url, { ...fetchOptions, headers });
+        if (reportErrors) {
+            reportApiResponse(response);
+        }
+        return response;
+    } catch (error) {
+        if (reportErrors) {
+            reportNetworkError(error);
+        }
+        throw error;
     }
 }
 
@@ -763,7 +799,7 @@ export async function collectStage3RunIds(
     glDays
 ) {
     try {
-        const { getAuthHeaders, getBranchParameter, getRepoBranchParameter } =
+        const { getBranchParameter, getRepoBranchParameter } =
             await import("./utils.js");
         const { API_CONFIG } = await import("./constants.js");
 
@@ -771,9 +807,8 @@ export async function collectStage3RunIds(
 
         for (const workflow of stage3Workflows) {
             try {
-                const response = await fetch(
-                    `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=${API_CONFIG.HISTORIC_RUNS_PER_PAGE}${workflow.repo === "repo" ? getRepoBranchParameter() : getBranchParameter()}`,
-                    { headers: getAuthHeaders() }
+                const response = await githubFetch(
+                    `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=${API_CONFIG.HISTORIC_RUNS_PER_PAGE}${workflow.repo === "repo" ? getRepoBranchParameter() : getBranchParameter()}`
                 );
 
                 if (!response.ok) {
