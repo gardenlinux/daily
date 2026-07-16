@@ -1588,6 +1588,69 @@ table {
     border-color: var(--color-failure);
 }
 
+/* GLOBAL ERROR BANNER */
+.global-error-banner {
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 12px 48px 12px 20px;
+    background: var(--color-failure);
+    color: var(--text-white);
+    font-size: 0.95em;
+    line-height: 1.4;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    animation: global-error-banner-slide-in 0.2s ease-out;
+}
+
+.global-error-banner__text {
+    font-weight: 600;
+}
+
+.global-error-banner__countdown {
+    opacity: 0.9;
+    font-variant-numeric: tabular-nums;
+}
+
+.global-error-banner__dismiss {
+    position: absolute;
+    top: 50%;
+    right: 14px;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--text-white);
+    font-size: 1.4em;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 6px;
+    opacity: 0.85;
+}
+
+.global-error-banner__dismiss:hover {
+    opacity: 1;
+}
+
+@keyframes global-error-banner-slide-in {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
 /* SETTINGS PANEL */
 #settings-container {
     position: fixed;
@@ -2086,6 +2149,11 @@ table {
 
 /* RESPONSIVE DESIGN */
 @media (max-width: 768px) {
+    .global-error-banner {
+        font-size: 0.85em;
+        padding: 10px 40px 10px 14px;
+    }
+
     .header-title {
         gap: 15px;
     }

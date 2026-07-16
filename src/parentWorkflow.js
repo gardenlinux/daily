@@ -13,7 +13,7 @@
  */
 
 import { ALLOWED_ARTIFACT_NAMES, API_CONFIG } from "./constants.js";
-import { getAuthHeaders } from "./utils.js";
+import { githubFetch } from "./utils.js";
 import JSZip from "jszip";
 
 /**
@@ -32,11 +32,11 @@ export async function downloadAndExtractArtifact(owner, repo, artifact) {
                 message: `Artifact name '${artifact.name}' not in allowed list: ${ALLOWED_ARTIFACT_NAMES.join(", ")}`,
             };
         }
-        const downloadResponse = await fetch(
+        // A 401/403 here is an expected outcome for anonymous users and is
+        // handled locally below, so don't raise the global error banner.
+        const downloadResponse = await githubFetch(
             `${API_CONFIG.GITHUB_API_BASE}/repos/${owner}/${repo}/actions/artifacts/${artifact.id}/zip`,
-            {
-                headers: getAuthHeaders(),
-            }
+            { reportErrors: false }
         );
         if (!downloadResponse.ok) {
             const status = downloadResponse.status;
@@ -131,11 +131,8 @@ export async function getParentWorkflowInfo(owner, repo, runId) {
     try {
         // First, try to get parent workflow info from the workflow_run event
         // This is more reliable and doesn't require downloading artifacts
-        const runResponse = await fetch(
-            `${API_CONFIG.GITHUB_API_BASE}/repos/${owner}/${repo}/actions/runs/${runId}`,
-            {
-                headers: getAuthHeaders(),
-            }
+        const runResponse = await githubFetch(
+            `${API_CONFIG.GITHUB_API_BASE}/repos/${owner}/${repo}/actions/runs/${runId}`
         );
 
         if (runResponse.ok) {
@@ -153,11 +150,8 @@ export async function getParentWorkflowInfo(owner, repo, runId) {
         }
 
         // Fall back to artifact-based detection if workflow_run event doesn't provide parent info
-        const artifactsResponse = await fetch(
-            `${API_CONFIG.GITHUB_API_BASE}/repos/${owner}/${repo}/actions/runs/${runId}/artifacts`,
-            {
-                headers: getAuthHeaders(),
-            }
+        const artifactsResponse = await githubFetch(
+            `${API_CONFIG.GITHUB_API_BASE}/repos/${owner}/${repo}/actions/runs/${runId}/artifacts`
         );
         if (!artifactsResponse.ok) {
             console.error(

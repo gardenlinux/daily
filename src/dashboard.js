@@ -18,7 +18,7 @@
  */
 
 import {
-    getAuthHeaders,
+    githubFetch,
     isHistoricView,
     getGlDays,
     formatGLDate,
@@ -246,11 +246,8 @@ async function processWorkflow(
     // Only filter by daily tag for the repo build workflow
     else if (workflow.id === WORKFLOW_IDS.REPO_BUILD) {
         try {
-            const tagResponse = await fetch(
-                `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/git/ref/tags/${tagName}`,
-                {
-                    headers: getAuthHeaders(),
-                }
+            const tagResponse = await githubFetch(
+                `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/git/ref/tags/${tagName}`
             );
             const tagData = await tagResponse.json();
             const commitSha = tagData.object.sha;
@@ -264,9 +261,7 @@ async function processWorkflow(
         apiUrl = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflowIdentifier}/runs?per_page=50${workflow.repo === "repo" ? getRepoBranchParameter() : getBranchParameter()}`;
     }
 
-    const response = await fetch(apiUrl, {
-        headers: getAuthHeaders(),
-    });
+    const response = await githubFetch(apiUrl);
 
     if (!response.ok) {
         console.error(
@@ -345,9 +340,7 @@ async function processWorkflow(
             for (let page = 1; page <= 5; page++) {
                 try {
                     const url = `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.workflowFile || workflow.id}/runs?per_page=100&page=${page}${workflow.repo === "repo" ? getRepoBranchParameter() : getBranchParameter()}`;
-                    const resp = await fetch(url, {
-                        headers: getAuthHeaders(),
-                    });
+                    const resp = await githubFetch(url);
                     if (!resp.ok) break;
                     const data = await resp.json();
                     const pageRuns = data.workflow_runs || [];
@@ -1438,10 +1431,9 @@ async function getHistoricWorkflowStatuses(glDays) {
                     API_CONFIG.TIMEOUT
                 );
 
-                const response = await fetch(
+                const response = await githubFetch(
                     `${API_CONFIG.GITHUB_API_BASE}/repos/${API_CONFIG.GARDENLINUX_ORG}/${workflow.repo}/actions/workflows/${workflow.id}/runs?per_page=${API_CONFIG.HISTORIC_RUNS_PER_PAGE}${workflow.repo === "repo" ? getRepoBranchParameter() : getBranchParameter()}`,
                     {
-                        headers: getAuthHeaders(),
                         signal: controller.signal,
                     }
                 );
