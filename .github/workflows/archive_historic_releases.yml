@@ -2,8 +2,8 @@ name: Archive Historic Releases
 
 on:
     schedule:
-        # Run nightly at 2 AM UTC
-        - cron: "0 2 * * *"
+        # Run nightly at 5 AM UTC - after aggregate_package_states (~04:2x UTC)
+        - cron: "0 5 * * *"
     workflow_dispatch: # Allow manual triggering
 
 jobs:
@@ -25,6 +25,9 @@ jobs:
 
             - name: Install dependencies
               run: npm ci
+
+            - name: Fetch package data
+              run: npm run packages
 
             - name: Collect historic release data
               env:
