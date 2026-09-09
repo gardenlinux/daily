@@ -1,77 +1,49 @@
 # Garden Linux Daily Dashboard
 
-A real-time monitoring dashboard for Garden Linux CI/CD pipeline status, package builds, and workflow runs.
+## Documentation
 
-https://gardenlinux.github.io/daily/
+A browser-based monitoring dashboard for the Garden Linux CI/CD pipeline. It displays the
+current health of each pipeline stage and shows historical data for past Garden Linux versions.
 
-## 🌟 Features
+Live dashboard: <https://gardenlinux.github.io/daily/>
 
-- **Real-time Pipeline Status**: Monitor Production Garden Linux workflows
-- **Package Monitoring**: Track package builds and identify issues (via daily cronjob)
-- **Historical View**: Browse past Garden Linux versions
-- **GitHub Authentication**: Support for both Classic and Fine-grained GitHub tokens
+Our documentation contains detailed information about the following topics:
 
-## 🚀 Quick Start
+- [Dashboard concepts and data sources](https://docs.gardenlinux.org/docs/explanation/daily-dashboard)
+- [How to use the dashboard and re-run workflows](https://docs.gardenlinux.org/how-to/daily-dashboard.md)
+- [Dashboard reference](https://docs.gardenlinux.org/reference/supporting_tools/daily-dashboard.md)
 
-### Prerequisites
+For local development, see [DEVELOPER.md](DEVELOPER.md).
 
-- **To build or develop locally:**
-    - Node.js 16 or higher
-    - npm
-- **To use or serve the dashboard (e.g., via GitHub Pages or any static web server):**
-    - No dependencies required; just serve the static files in the repository (index.html, dist/dashboard.js, style.css, etc.)
+# Community
 
-## 🛠️ Development & Build Workflow
+To stay up-to-date with recent news about Gardenlinux, subscribe to our mailing list:
 
-### Development Mode
+<https://lists.neonephos.org/g/gardenlinux-discussion>
 
-- **Watch mode**: `npm run dev`
-  Rebuilds the dashboard automatically on file changes. Use this for local development.
-- **Serve only**: `npm run serve`
-  Serves the static files in the current directory (default: http://localhost:8000).
+For updates and statements regarding security issues, we have a security mailing
+list for you:
 
-### Production Build
+<https://lists.neonephos.org/g/gardenlinux-security>
 
-- **Build for production**:
+For embargoed security related topics, this list is for you:
 
-    ```sh
-    NODE_ENV=production npm run build
-    ```
+<https://lists.neonephos.org/g/gardenlinux-security-embargo>
 
-    This creates a minified, optimized bundle in `dist/dashboard.js` with source maps for debugging. Console statements are removed in production builds.
+# Contributing
 
-- **Build only**: `npm run build`
-  (If you do not set `NODE_ENV=production`, the output will not be minified.)
+We welcome your contributions to Gardenlinux or any supporting projects.
 
-### Output Details
+To find out more, visit our
+[Contributor Documentation](https://docs.gardenlinux.org/contributing).
 
-- **Entry Point**: `src/main.js`
-- **Output**: `dist/dashboard.js` (with source maps)
-- **Format**: IIFE for direct browser inclusion
-- **Minification**: Enabled automatically when `NODE_ENV=production`
+## Licensing
 
-## 🚀 GitHub Pages Integration
-
-This dashboard is designed to be deployed on GitHub Pages:
-
-- The `dist/` directory contains the production-ready JavaScript bundle.
-- The `index.html` and `style.css` are also in the repository root for direct serving.
-- GitHub Pages is configured to serve from the `/` (root).
-- After building, simply push your changes to the `gh-pages` branch.
-- The dashboard will be live at: https://gardenlinux.github.io/daily/
-
-## 🔧 Configuration
-
-### GitHub Token (Optional but Recommended)
-
-To avoid GitHub API rate limits, configure a personal access token:
-
-1. Go to [GitHub Settings > Tokens](https://github.com/settings/tokens)
-2. Create a token with `public_repo` or `repo` scope
-3. Click the ⚙️ settings button in the dashboard
-4. Enter your token and save
-
-The dashboard supports both Classic (`ghp_`) and Fine-grained (`github_pat_`) tokens.
+Copyright 2025 SAP SE or an SAP affiliate company and GardenLinux contributors.
+See our [LICENSE](LICENSE) for copyright and license information.
+Detailed information including third-party components and their
+licensing/copyright information is available
+[via the REUSE tool](https://reuse.software).
 
 <p align="center">
   <img alt="Bundesministerium für Wirtschaft und Energie (BMWE)-EU funding logo" src="https://apeirora.eu/assets/img/BMWK-EU.png" width="400"/>
