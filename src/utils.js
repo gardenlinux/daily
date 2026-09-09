@@ -23,7 +23,6 @@ import {
     WORKFLOWS,
     WORKFLOW_IDS,
     hasStage4,
-    SCHEMA_V2_CUTOFF,
     formatVersionBranch,
     HISTORIC_CACHE_SCHEMA_VERSION,
     HISTORIC_CACHE_MIN_SUPPORTED_VERSION,
@@ -1487,10 +1486,6 @@ export async function processWorkflowRuns(
     // - Repo workflows: match version branch (e.g., "2179.0" for GL 2179)
     // - Other workflows: only "main" branch
     // - Skip filtering if "search all branches" is enabled
-    const isRepoWorkflow =
-        workflow.id === WORKFLOW_IDS.REPO_BUILD ||
-        workflow.id === WORKFLOW_IDS.REPO_UPDATE;
-
     if (!shouldSearchAllBranches() && targetRuns.length > 0) {
         const beforeFilter = targetRuns.length;
 
