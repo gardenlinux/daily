@@ -14,8 +14,8 @@ import (
 )
 
 var (
-	outFileName, githubToken, orga, prefix, workflowfile, exclude string
-	stale                                                         float64
+	outFileName, githubToken, orga, prefix, workflowfile, exclude, branches string
+	stale                                                                   float64
 )
 
 type packageState struct {
@@ -81,7 +81,9 @@ func getPackageStateByRepoName(repoName string, client *github.Client, ctx conte
 		return ps
 	}
 
-	wfRuns, _, err := client.Actions.ListWorkflowRunsByFileName(ctx, orga, repoName, workflowfile, &github.ListWorkflowRunsOptions{})
+	wfRuns, _, err := client.Actions.ListWorkflowRunsByFileName(ctx, orga, repoName, workflowfile, &github.ListWorkflowRunsOptions{
+		ListOptions: github.ListOptions{PerPage: 30},
+	})
 	if err != nil {
 		slog.Warn("Failed to get workflow", "repo", repoName, "err", err)
 		ps.Status = "workFlowNotFound"
@@ -92,8 +94,23 @@ func getPackageStateByRepoName(repoName string, client *github.Client, ctx conte
 		ps.Status = "noRunFound"
 		return ps
 	}
+
+	acceptedBranches := strings.Split(branches, ",")
+	var run *github.WorkflowRun
+	for _, r := range wfRuns.WorkflowRuns {
+		if r.HeadBranch != nil && isBranchAccepted(*r.HeadBranch, acceptedBranches) {
+			run = r
+			break
+		}
+	}
+	if run == nil {
+		slog.Warn("No run found on accepted branches", "repo", repoName, "branches", branches)
+		ps.Status = "noRunFound"
+		return ps
+	}
+
 	// logic same as here: https://github.com/gardenlinux/daily/blob/3753fd9e9b5eb931eb62f468a2558c5f081065b2/index.html#L60
-	timeStamp := wfRuns.WorkflowRuns[0].UpdatedAt
+	timeStamp := run.UpdatedAt
 	if timeStamp != nil {
 		timeStampText, err := timeStamp.MarshalText()
 		// in case of an error, we just use the default stamp set above
@@ -104,11 +121,11 @@ func getPackageStateByRepoName(repoName string, client *github.Client, ctx conte
 		}
 		ps.Time = string(timeStampText)
 	}
-	if wfRuns.WorkflowRuns[0].GetStatus() == "in_progress" {
+	if run.GetStatus() == "in_progress" {
 		ps.Status = "progress"
 	} else {
-		if wfRuns.WorkflowRuns[0].GetStatus() == "completed" {
-			if wfRuns.WorkflowRuns[0].GetConclusion() == "success" {
+		if run.GetStatus() == "completed" {
+			if run.GetConclusion() == "success" {
 				if now.Sub(timeStamp.Time).Hours() > stale {
 					ps.Status = "stale"
 				} else {
@@ -167,6 +184,15 @@ func getPackageRepoNames(client *github.Client, ctx context.Context) []string {
 	return packageRepos
 }
 
+func isBranchAccepted(branch string, accepted []string) bool {
+	for _, b := range accepted {
+		if branch == b {
+			return true
+		}
+	}
+	return false
+}
+
 func getGitHubClient() (context.Context, *github.Client) {
 	// default context
 	ctx := context.Background()
@@ -187,6 +213,7 @@ func config() {
 	flag.StringVar(&workflowfile, "workflowfile", "build.yml", "scrape workflow runs of this file")
 	flag.StringVar(&exclude, "exclude", "", "a comma separated list of repositories to exclude from scraping")
 	flag.Float64Var(&stale, "stale", 24, "time after which a package should be considered stale (even if the run was successful)")
+	flag.StringVar(&branches, "branches", "main,master", "comma-separated list of branches whose workflow runs count for status")
 
 	flag.Parse()
 
