@@ -1,0 +1,662 @@
+[
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:11:19.976516813Z",
+  "Name": "package-libnet-ssleay-perl"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:11:20.120730889Z",
+  "Name": "package-libtaint-runtime-perl"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:14:59Z",
+  "Name": "package-libcap2"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:11:20.979322037Z",
+  "Name": "package-libtext-charwidth-perl"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:36:04Z",
+  "Name": "package-open-vm-tools"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:24:07Z",
+  "Name": "package-checkbox-provider-tpm2"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:34:15Z",
+  "Name": "package-runc"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:16:16Z",
+  "Name": "package-dracut"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:28:43Z",
+  "Name": "package-python3.14"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:11:25.608923603Z",
+  "Name": "package-libuuid-perl"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:11:25.770080542Z",
+  "Name": "package-libxml-parser-perl"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:28:55Z",
+  "Name": "package-glib2.0"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:15:48Z",
+  "Name": "package-ca-certificates"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:11:26.950133641Z",
+  "Name": "package-gl-fips-checker"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:13:23Z",
+  "Name": "package-aws-kms-pkcs11"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:18:59Z",
+  "Name": "package-xz-utils"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:11:28.716441692Z",
+  "Name": "package-libscalar-list-utils-perl"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:35:19Z",
+  "Name": "package-oras"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:03:39Z",
+  "Name": "package-checkbox-support"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:11:30.664570053Z",
+  "Name": "package-libtest-leaktrace-perl"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:11:30.761104649Z",
+  "Name": "package-perl-tk"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:21:03Z",
+  "Name": "package-dnsmasq"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:29:31Z",
+  "Name": "package-htop-dev"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:17:15Z",
+  "Name": "package-ignition-legacy"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:23:13Z",
+  "Name": "package-google-compute-engine-oslogin"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:34:58Z",
+  "Name": "package-keylime-agent"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:11:35.275843146Z",
+  "Name": "package-ffmpeg"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:07:38Z",
+  "Name": "package-coreutils"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:07:54Z",
+  "Name": "package-ignition"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:04:29Z",
+  "Name": "package-perl"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:10:36Z",
+  "Name": "package-containerd"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:05:36Z",
+  "Name": "package-libpcap"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:34:03Z",
+  "Name": "package-sbsigntool"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:31:10Z",
+  "Name": "package-libguestfs"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:21:16Z",
+  "Name": "package-nettle"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:11:42.672804224Z",
+  "Name": "package-libwin-hivex-perl"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:37:40Z",
+  "Name": "package-resizefat32"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:03:43Z",
+  "Name": "package-glvd"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:37:08Z",
+  "Name": "package-krb5"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:29:06Z",
+  "Name": "package-gnutls"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:07:39Z",
+  "Name": "package-checkbox-base"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:07:53Z",
+  "Name": "package-dpkg"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:11:47.994783639Z",
+  "Name": "package-libparams-classify-perl"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:11:48.138424382Z",
+  "Name": "package-libxs-parse-keyword-perl"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:30:39Z",
+  "Name": "package-checkbox-ng"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:31:02Z",
+  "Name": "package-systemd"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:21:23Z",
+  "Name": "package-ferm"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:35:42Z",
+  "Name": "package-metalbond"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:21:16Z",
+  "Name": "package-deborphan"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:28:50Z",
+  "Name": "package-bootloader"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:23:46Z",
+  "Name": "package-jinja2"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:27:11Z",
+  "Name": "package-acl"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:14:17Z",
+  "Name": "package-onmetal-image"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:09:12Z",
+  "Name": "package-libgcrypt"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:11:58.701950779Z",
+  "Name": "package-bind9"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:13:52Z",
+  "Name": "package-adduser"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:11:59.530973479Z",
+  "Name": "package-libcompress-raw-zlib-perl"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:11:59.651456358Z",
+  "Name": "package-libb-cow-perl"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:11:59.795493053Z",
+  "Name": "package-liblist-moreutils-xs-perl"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:27:47Z",
+  "Name": "package-zero-copy-initrd"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:08:29Z",
+  "Name": "package-checkbox-provider-gpgpu"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:12:01.944313873Z",
+  "Name": "package-libsyntax-keyword-try-perl"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:21:53Z",
+  "Name": "package-tcpdump"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:20:50Z",
+  "Name": "package-gsasl"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:12:04.173392442Z",
+  "Name": "package-libsys-virt-perl"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:30:30Z",
+  "Name": "package-cron"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:36:51Z",
+  "Name": "package-openssl"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:38:21Z",
+  "Name": "package-libxml2"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:33:15Z",
+  "Name": "package-rsync"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:12:07.79751583Z",
+  "Name": "package-libhtml-parser-perl"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:28:06Z",
+  "Name": "package-golang"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:02:30Z",
+  "Name": "package-sshguard"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:21:06Z",
+  "Name": "package-frr"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:38:29Z",
+  "Name": "package-gardenlinux-repo-manager"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:35:44Z",
+  "Name": "package-gardenlinux-update"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:27:47Z",
+  "Name": "package-capstone"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:09:09Z",
+  "Name": "package-pam"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:09:46Z",
+  "Name": "package-selinux-basics"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:12:14.345259799Z",
+  "Name": "package-efitools"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:15:08Z",
+  "Name": "package-google-compute-engine"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:26:20Z",
+  "Name": "package-gnupg2"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:23:57Z",
+  "Name": "package-gh"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:12:17.175306982Z",
+  "Name": "package-libdevel-callchecker-perl"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:12:17.41761903Z",
+  "Name": "package-libencode-perl"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:18:05Z",
+  "Name": "package-aws-sdk-cpp"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:19:30Z",
+  "Name": "package-kexec-tools"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:22:00Z",
+  "Name": "package-sops"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:41:14Z",
+  "Name": "package-linux"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:12:21.784334825Z",
+  "Name": "package-libtext-iconv-perl"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:13:30Z",
+  "Name": "package-xfsprogs"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:09:33Z",
+  "Name": "package-libstoragemgmt"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:12:23.618757792Z",
+  "Name": "package-python3.12"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:15:10Z",
+  "Name": "package-ovh-debian-cis"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:07:35Z",
+  "Name": "package-cloud-init"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:15:25Z",
+  "Name": "package-refpolicy"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:03:22Z",
+  "Name": "package-python3.13"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:01:48Z",
+  "Name": "package-libxml-libxml-perl"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:01:59Z",
+  "Name": "package-cyrus-sasl2"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:36:00Z",
+  "Name": "package-golang-github-checkpoint-restore-go-criu-dev"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:41:54Z",
+  "Name": "package-edk2-cloud-hypervisor-gl"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:25:56Z",
+  "Name": "package-libvirt"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:34:05Z",
+  "Name": "package-pcr-oracle"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:14:56Z",
+  "Name": "package-socat"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:12:34.765973242Z",
+  "Name": "package-qemu"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:12:34.861907341Z",
+  "Name": "package-liblocale-gettext-perl"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:23:35Z",
+  "Name": "package-iproute2"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:09:53Z",
+  "Name": "package-libsemanage"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:22:25Z",
+  "Name": "package-apt"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:12:37.839004197Z",
+  "Name": "package-net-snmp"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:24:10Z",
+  "Name": "package-jitterentropy-rngd"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:25:57Z",
+  "Name": "package-gardenlinux-selinux-module"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:05:44Z",
+  "Name": "package-htop"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:26:41Z",
+  "Name": "package-google-guest-agent"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:29:38Z",
+  "Name": "package-sssd"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:22:04Z",
+  "Name": "package-dhcpcd"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:12:43.422344033Z",
+  "Name": "package-libclass-xsaccessor-perl"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:12:43.568593898Z",
+  "Name": "package-libcompress-raw-bzip2-perl"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:32:08Z",
+  "Name": "package-rng-tools5"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:38:45Z",
+  "Name": "package-curl"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:33:19Z",
+  "Name": "package-expat"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:32:32Z",
+  "Name": "package-openssh"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:19:43Z",
+  "Name": "package-datefudge"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:13:01Z",
+  "Name": "package-libsepol2"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:29:33Z",
+  "Name": "package-cloud-hypervisor-gl"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:10:48Z",
+  "Name": "package-checkbox-provider-resource"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:05:48Z",
+  "Name": "package-fwts"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:12:52.661318562Z",
+  "Name": "package-libb-hooks-op-check-perl"
+ },
+ {
+  "Status": "hasNullRelease",
+  "Time": "2026-10-30T03:12:52.774207946Z",
+  "Name": "package-libclone-perl"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:25:18Z",
+  "Name": "package-libpam-ssh"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:32:48Z",
+  "Name": "package-golang-github-containers-libhvee"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:18:41Z",
+  "Name": "package-libkcapi"
+ },
+ {
+  "Status": "success",
+  "Time": "2026-10-30T00:15:45Z",
+  "Name": "package-nghttp2"
+ }
+]
