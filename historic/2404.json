@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "glDays": 2404,
+  "date": "Fri, 2026-10-30",
+  "timestamp": "2026-10-31T05:07:42.652Z",
+  "cached": true,
+  "packageDataPath": "packages/2404.json",
+  "packageIssuesPath": "packages/2404.json",
+  "packageStatus": {
+    "status": "success",
+    "issueCount": 0,
+    "totalCount": 132
+  },
+  "workflowStatuses": {
+    "28837699": "success",
+    "84300233": "success",
+    "84300234": "success",
+    "152444842": "unknown"
+  },
+  "workflowStatus": {
+    "stage-1": "success",
+    "stage-2": "success",
+    "stage-3": "success"
+  },
+  "pipelineStatus": "success",
+  "duration": "2h 14m",
+  "commitSha": "eca4c2d3c0755ea7dc207d2986891021bab77524",
+  "workflowRuns": {
+    "28837699": {
+      "repo": "gardenlinux",
+      "workflowFile": "nightly.yml",
+      "workflowName": "Garden Linux Nightly - Schedule",
+      "runs": [
+        {
+          "id": 41001603515,
+          "html_url": "https://github.com/gardenlinux/gardenlinux/actions/runs/41001603515",
+          "status": "completed",
+          "conclusion": "success",
+          "created_at": "2026-10-30T04:12:31Z",
+          "updated_at": "2026-10-30T06:26:42Z",
+          "head_branch": "main",
+          "head_sha": "eca4c2d3c0755ea7dc207d2986891021bab77524",
+          "workflow_url": "https://api.github.com/repos/gardenlinux/gardenlinux/actions/workflows/28837699"
+        }
+      ]
+    },
+    "84300233": {
+      "repo": "repo",
+      "workflowFile": "build.yml",
+      "workflowName": "Repo Build",
+      "runs": [
+        {
+          "id": 40981030943,
+          "html_url": "https://github.com/gardenlinux/repo/actions/runs/40981030943",
+          "status": "completed",
+          "conclusion": "success",
+          "created_at": "2026-10-30T00:39:16Z",
+          "updated_at": "2026-10-30T02:33:47Z",
+          "head_branch": "2404.0.0",
+          "head_sha": "cbb7b97f4562a656731800032d9a3056ccac4943",
+          "workflow_url": "https://api.github.com/repos/gardenlinux/repo/actions/workflows/84300233"
+        }
+      ]
+    },
+    "84300234": {
+      "repo": "repo",
+      "workflowFile": "update.yml",
+      "workflowName": "Repo Update",
+      "runs": [
+        {
+          "id": 40980868410,
+          "html_url": "https://github.com/gardenlinux/repo/actions/runs/40980868410",
+          "status": "completed",
+          "conclusion": "success",
+          "created_at": "2026-10-30T00:37:41Z",
+          "updated_at": "2026-10-30T00:39:20Z",
+          "head_branch": "main",
+          "head_sha": "3ee28fdb7dd83371ef41b962fb6b48e7336d3972",
+          "workflow_url": "https://api.github.com/repos/gardenlinux/repo/actions/workflows/84300234"
+        }
+      ]
+    }
+  },
+  "workflowMetadata": {
+    "28837699": {
+      "repo": "gardenlinux",
+      "workflowFile": "nightly.yml",
+      "name": "Garden Linux Nightly - Schedule",
+      "workflowUrl": "https://github.com/gardenlinux/gardenlinux/actions/workflows/nightly.yml"
+    },
+    "84300233": {
+      "repo": "repo",
+      "workflowFile": "build.yml",
+      "name": "Repo Build",
+      "workflowUrl": "https://github.com/gardenlinux/repo/actions/workflows/build.yml"
+    },
+    "84300234": {
+      "repo": "repo",
+      "workflowFile": "update.yml",
+      "name": "Repo Update",
+      "workflowUrl": "https://github.com/gardenlinux/repo/actions/workflows/update.yml"
+    },
+    "152444842": {
+      "repo": "gardenlinux",
+      "workflowFile": "manual_release.yml",
+      "name": "Build and publish a release - Manual",
+      "workflowUrl": "https://github.com/gardenlinux/gardenlinux/actions/workflows/manual_release.yml"
+    }
+  }
+}
