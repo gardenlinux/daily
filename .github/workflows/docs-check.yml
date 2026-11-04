@@ -7,15 +7,15 @@ name: Documentation Quality Check
 # repos-config.json as the single source of truth for documentation paths.
 
 on:
-  pull_request:
-    branches: [gh-pages]
-    types: [opened, synchronize, reopened, closed]
-  push:
-    branches: [gh-pages]
+    pull_request:
+        branches: [gh-pages]
+        types: [opened, synchronize, reopened, closed]
+    push:
+        branches: [gh-pages]
 
 jobs:
-  docs:
-    uses: gardenlinux/docs/.github/workflows/aggregated-repo-docs.yml@main
-    with:
-      repo: daily
-    secrets: inherit
+    docs:
+        uses: gardenlinux/docs/.github/workflows/aggregated-repo-docs.yml@main
+        with:
+            repo: daily
+        secrets: inherit

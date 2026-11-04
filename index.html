@@ -22,10 +22,35 @@
             <h1>Daily Dashboard</h1>
         </div>
 
-        <!-- Settings Container -->
+        <!-- Settings Trigger -->
         <div id="settings-container">
-            <button id="settings-btn" onclick="toggleSettings()">⚙️</button>
-            <div id="settings-panel" style="display: none">
+            <button
+                id="settings-btn"
+                type="button"
+                aria-label="Open settings"
+                aria-haspopup="dialog"
+                aria-controls="settings-panel"
+                aria-expanded="false"
+                onclick="toggleSettings()"
+            >
+                ⚙️
+            </button>
+        </div>
+
+        <!-- Settings Dialog -->
+        <dialog id="settings-panel" aria-labelledby="settings-title">
+            <div class="settings-modal-header">
+                <h2 id="settings-title">Settings</h2>
+                <button
+                    type="button"
+                    class="settings-close-btn"
+                    aria-label="Close settings"
+                    onclick="toggleSettings()"
+                >
+                    ×
+                </button>
+            </div>
+            <div class="settings-modal-body">
                 <h3>GitHub Authentication</h3>
                 <div class="token-status">
                     <span id="auth-status">Not authenticated</span>
@@ -191,7 +216,7 @@
                     </small>
                 </div>
             </div>
-        </div>
+        </dialog>
 
         <!-- Main Container for consistent column width -->
         <div class="main-container">
