@@ -9,9 +9,9 @@ Live dashboard: <https://gardenlinux.github.io/daily/>
 
 Our documentation contains detailed information about the following topics:
 
-- [Dashboard concepts and data sources](https://docs.gardenlinux.org/docs/explanation/daily-dashboard)
-- [How to use the dashboard and re-run workflows](https://docs.gardenlinux.org/how-to/daily-dashboard.md)
-- [Dashboard reference](https://docs.gardenlinux.org/reference/supporting_tools/daily-dashboard.md)
+- [Dashboard concepts and data sources](https://docs.gardenlinux.org/explanation/daily-dashboard.html)
+- [How to use the dashboard and re-run workflows](https://docs.gardenlinux.org/how-to/daily-dashboard.html)
+- [Dashboard reference](https://docs.gardenlinux.org/reference/supporting_tools/daily-dashboard.html)
 
 For local development, see [DEVELOPER.md](DEVELOPER.md).
 
