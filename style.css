@@ -1672,7 +1672,7 @@ table {
     }
 }
 
-/* SETTINGS PANEL */
+/* SETTINGS DIALOG */
 #settings-container {
     position: fixed;
     bottom: 20px;
@@ -1688,9 +1688,13 @@ table {
     width: 50px;
     height: 50px;
     font-size: 1.2em;
+    line-height: 1;
     cursor: pointer;
     box-shadow: var(--shadow-md);
     transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 #settings-btn:hover {
@@ -1699,16 +1703,95 @@ table {
 }
 
 #settings-panel {
-    position: absolute;
-    bottom: 60px;
-    right: 0;
-    width: 300px;
+    width: min(440px, calc(100vw - 2rem));
+    max-width: calc(100vw - 2rem);
+    max-height: calc(100vh - 2rem);
+    max-height: calc(100dvh - 2rem);
+    margin: auto;
+    padding: 0;
     background: var(--bg-primary);
     border: 1px solid var(--border-light);
-    border-radius: 8px;
+    border-radius: 12px;
     box-shadow: var(--shadow-lg);
+    color: var(--text-primary);
+    overflow: hidden;
+}
+
+#settings-panel[open] {
+    display: flex;
+    flex-direction: column;
+}
+
+#settings-panel::backdrop {
+    background: rgba(34, 53, 72, 0.45);
+}
+
+.settings-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-shrink: 0;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.settings-modal-header h2 {
+    margin: 0;
+    font-size: 1.15em;
+    color: var(--text-primary);
+}
+
+.settings-close-btn {
+    padding: 0 4px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--text-unknown);
+    font-size: 1.6em;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+        color 0.2s ease,
+        background 0.2s ease;
+}
+
+.settings-close-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-unknown);
+}
+
+.settings-modal-body {
     padding: 20px;
-    display: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+body.settings-open {
+    overflow: hidden;
+}
+
+@media (max-width: 480px) {
+    #settings-panel {
+        width: 100vw;
+        max-width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        max-height: 100vh;
+        max-height: 100dvh;
+        margin: 0;
+        border: none;
+        border-radius: 0;
+    }
+
+    .settings-modal-header {
+        padding: 14px 16px;
+    }
+
+    .settings-modal-body {
+        padding: 16px;
+    }
 }
 
 #settings-panel h3 {
@@ -1729,6 +1812,7 @@ table {
 
 .token-input-group input {
     flex: 1;
+    min-width: 0;
     padding: 8px;
     border: 1px solid var(--border-medium);
     border-radius: 4px 0 0 4px;
@@ -1744,6 +1828,8 @@ table {
 }
 
 .token-input-group button {
+    flex-shrink: 0;
+    white-space: nowrap;
     padding: 8px 12px;
     border: 1px solid var(--border-medium);
     border-left: none;

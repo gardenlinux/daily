@@ -41,13 +41,49 @@ import {
 import { generateWorkflowBoxHTML as uiGenerateWorkflowBoxHTML } from "./ui.js";
 
 // ========================================
-// SETTINGS PANEL MANAGEMENT
+// SETTINGS DIALOG MANAGEMENT
 // ========================================
-// Settings panel functions (need to be global for onclick handlers)
+// Settings dialog functions (need to be global for onclick handlers)
+function syncSettingsDialogState(panel) {
+    const isOpen = panel.open;
+    const button = document.getElementById("settings-btn");
+
+    if (button) {
+        button.setAttribute("aria-expanded", String(isOpen));
+    }
+    document.body.classList.toggle("settings-open", isOpen);
+}
+
+function initializeSettingsDialog() {
+    const panel = document.getElementById("settings-panel");
+    if (!panel) return;
+
+    panel.addEventListener("close", () => syncSettingsDialogState(panel));
+    panel.addEventListener("click", (event) => {
+        if (event.target === panel) {
+            panel.close();
+        }
+    });
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initializeSettingsDialog);
+} else {
+    initializeSettingsDialog();
+}
+
 window.toggleSettings = function () {
     const panel = document.getElementById("settings-panel");
-    panel.style.display = panel.style.display === "none" ? "block" : "none";
+    if (!panel) return;
+
+    if (panel.open) {
+        panel.close();
+        return;
+    }
+
     updateAuthStatus();
+    panel.showModal();
+    syncSettingsDialogState(panel);
 };
 
 window.saveToken = function () {
